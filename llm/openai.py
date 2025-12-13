@@ -12,16 +12,20 @@ from llm.common import BaseLLM, Message, MessageType
 
 @dataclass(kw_only=True)
 class OpenAILLM(BaseLLM):
-    client: OpenAI
+    api_key: str
+    base_url: str
     model: str
     max_tokens: int
     timeout: int
+
+    def __post_init__(self) -> None:
+        self._client: OpenAI = OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     @retry(wait=wait_random(max=1), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
     def query(self, *messages: Message) -> str:
         return str(
-            self.client.chat.completions.create(
+            self._client.chat.completions.create(
                 messages=list(map(self._convert, messages)),
                 model=self.model,
                 max_completion_tokens=self.max_tokens,
@@ -35,7 +39,7 @@ class OpenAILLM(BaseLLM):
     @override
     def parse[T: BaseModel](self, *messages: Message, format: type[T]) -> T:
         result: T | None = (
-            self.client.chat.completions.parse(
+            self._client.chat.completions.parse(
                 messages=list(map(self._convert, messages)),
                 model=self.model,
                 response_format=format,
