@@ -23,10 +23,10 @@ def main():
     from pathlib import Path
     from time import time_ns
 
-    from contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
+    from games.contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
 
     result: ContextoHintGameResult = (
-        ContextoHintGameManager(games_dir=Path("../../../data/contexto_hint/games"), seed=time_ns())
+        ContextoHintGameManager(games_dir=Path("data/contexto_hint/games"), seed=time_ns())
         .create_game(game_id=int(input("Input Game ID: ")), num_candidates=5)
         .play(player=ContextoHintManualPlayer())
     )

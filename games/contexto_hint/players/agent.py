@@ -352,7 +352,7 @@ def main() -> None:
     from pathlib import Path
     from time import time_ns
 
-    from contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
+    from games.contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
     from llm.openai import OpenAILLM
 
     model: OpenAILLM = OpenAILLM(
@@ -366,7 +366,7 @@ def main() -> None:
     player = ContextoHintAgentPlayer(model=model, prompt_mode=PromptMode.MULTI_TURN)
 
     game_manager: ContextoHintGameManager = ContextoHintGameManager(
-        games_dir=Path("../../../data/contexto_hint/games"), seed=time_ns()
+        games_dir=Path("data/contexto_hint/games"), seed=time_ns()
     )
 
     if input("Train? (y/n): ")[0].lower() == "y":
