@@ -4,9 +4,9 @@ from common.player import BasePlayer
 from games.contexto.common import ContextoError, ContextoResponse
 
 
-class ContextoManualPlayer(BasePlayer[None, None, str, ContextoResponse | ContextoError]):
+class ContextoManualPlayer(BasePlayer[int, None, str, ContextoResponse | ContextoError]):
     @override
-    def prepare(self, *, game_info: None) -> None:
+    def prepare(self, *, game_info: int) -> None:
         pass
 
     @override
@@ -25,7 +25,7 @@ def main() -> None:
 
     result: ContextoGameResult = (
         ContextoGameManager(seed=time_ns())
-        .create_game(game_id=int(input("Input Game ID: ")))
+        .create_game(game_id=int(input("Input Game ID: ")), max_guesses=50)
         .play(player=ContextoManualPlayer())
     )
 

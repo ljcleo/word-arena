@@ -20,7 +20,7 @@ class ContextoHintGame(BaseGame[int, list[str], int, int, list[str]]):
         return self._num_candidates
 
     @override
-    def is_win(self) -> bool:
+    def is_over(self) -> bool:
         return self._best_pos == 0
 
     @override

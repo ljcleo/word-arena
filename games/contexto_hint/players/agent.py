@@ -19,6 +19,26 @@ class ContextoHintExperience(BaseModel):
     strategy: str
 
 
+def make_game_rule(*, num_candidates: int) -> str:
+    return f"""You are playing a game where you need to find a secret word.
+
+The game holds a word list with 500 words, including the secret word,
+sorted by the similarity to the secret word.
+
+The position of the secret word is 1; the position of the word closest to the secret word
+(but not the secret word itself) is 2; the position of the furthest word is 500.
+
+Word similarity is based on the context in which words are used on the internet,
+related to both meaning and proximity.
+
+Every time, the game provides {num_candidates} candidate words from the list that
+you have not guessed before, but without their positions.
+
+You need to choose one of them as your next guess, then you will see its position in the list.
+
+It is guaranteed that there is a candidate word closer than the current best guess."""
+
+
 class ContextoHintMemory(
     BaseMemory[int, list[str], int, int, list[str], ContextoHintReflection, ContextoHintExperience]
 ):
@@ -79,23 +99,7 @@ class ContextoHintMemory(
 
 The following section describes a word relation game:
 
-> You are playing a game where you need to find a secret word.
->
-> The game holds a word list with 500 words, including the secret word,
-> sorted by the similarity to the secret word.
->
-> The position of the secret word is 1; the position of the word closest to the secret word
-> (but not the secret word itself) is 2; the position of the furthest word is 500.
->
-> Word similarity is based on the context in which words are used on the internet,
-> related to both meaning and proximity.
->
-> Every time, the game provides {num_candidates} candidate words from the list that
-> you have not guessed before, but without their positions.
->
-> You need to choose one of them as your next guess, then you will see its position in the list.
->
-> It is guaranteed that there is a candidate word closer than the current best guess.
+{"\n".join(f"> {line}" for line in make_game_rule(num_candidates=num_candidates).split("\n"))}
 
 Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} times"}."""
         )
@@ -166,25 +170,8 @@ class ContextoHintAgentPlayer(
         print("Candidates:", options)
 
         system_prompt_sections: list[str] = [
-            f"""You are an intelligent AI good at understanding word relations.
-
-You are playing a game where you need to find a secret word.
-
-The game holds a word list with 500 words, including the secret word,
-sorted by the similarity to the secret word.
-
-The position of the secret word is 1; the position of the word closest to the secret word
-(but not the secret word itself) is 2; the position of the furthest word is 500.
-
-Word similarity is based on the context in which words are used on the internet,
-related to both meaning and proximity.
-
-Every time, the game provides {self.memory.game_info} candidate words from the list that
-you have not guessed before, but without their positions.
-
-You need to choose one of them as your next guess, then you will see its position in the list.
-
-It is guaranteed that there is a candidate word closer than the current best guess."""
+            "You are an intelligent AI good at understanding word relations.\n\n"
+            f"{make_game_rule(num_candidates=self.memory.game_info)}"
         ]
 
         if experience is not None:
@@ -292,6 +279,7 @@ def main() -> None:
 
     print("You Guessed", len(result["trajectory"]), "Times")
     print("Top Words:", *result["summary"][:10])
+    player.memory.reflect(summary=result["summary"], update_experience=False)
 
 
 if __name__ == "__main__":

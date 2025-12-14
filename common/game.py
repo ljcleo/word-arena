@@ -10,7 +10,7 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
         player.prepare(game_info=game_info)
         trajectory: list[tuple[PT, AT, RT]] = []
 
-        while not self.is_win():
+        while not self.is_over():
             hint: PT = self.get_guess_prompt()
             guess: AT = player.guess(hint=hint)
             result: RT = self.process_guess(guess=guess)
@@ -24,7 +24,7 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def is_win(self) -> bool:
+    def is_over(self) -> bool:
         raise NotImplementedError()
 
     @abstractmethod

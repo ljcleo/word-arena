@@ -20,9 +20,30 @@ class ContextoExperience(BaseModel):
     strategy: str
 
 
+def make_game_rule(*, max_guesses: int) -> str:
+    return f"""You are playing a game where you need to find a secret word.
+
+The game holds a word list with tens of thousands words, including the secret word,
+sorted by the similarity to the secret word.
+
+The position of the secret word is 1; the position of the word closest to the secret word
+(but not the secret word itself) is 2; the position of the furthest word is 500.
+
+Word similarity is based on the context in which words are used on the internet,
+related to both meaning and proximity.
+
+Every time, you choose a word as your next guess; if the word is accepted,
+you will see its position in the list, otherwise you will see the reject reason,
+such as invalid word format, word not in list, or taboo words.
+
+Your guess must be a **single word with only lowercase letters and no hyphens**.
+
+You have {"unlimited" if max_guesses <= 0 else max_guesses} guesses in total."""
+
+
 class ContextoMemory(
     BaseMemory[
-        None,
+        int,
         None,
         str,
         ContextoResponse | ContextoError,
@@ -32,16 +53,16 @@ class ContextoMemory(
     ]
 ):
     @override
-    def process_game_info(self, *, game_info: None) -> None:
+    def process_game_info(self, *, game_info: int) -> None:
         pass
 
     @override
     def make_reflection_messages(
         self,
         *,
-        game_result: GameResult[None, None, str, ContextoResponse | ContextoError, list[str]],
+        game_result: GameResult[int, None, str, ContextoResponse | ContextoError, list[str]],
     ) -> Iterator[Message]:
-        yield self._make_system_message(num_trial=1)
+        yield self._make_system_message(max_guesses=game_result["game_info"], num_trial=1)
         yield self._make_record_message(record={"game_result": game_result, "reflection": None})
 
         yield Message.human(
@@ -58,11 +79,13 @@ class ContextoMemory(
         *,
         history: list[
             GameRecord[
-                None, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
+                int, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
             ]
         ],
     ) -> Iterator[Message]:
-        yield self._make_system_message(num_trial=len(self._history))
+        yield self._make_system_message(
+            max_guesses=history[0]["game_result"]["game_info"], num_trial=len(self._history)
+        )
 
         for index, record in enumerate(history):
             yield self._make_record_message(record=record, index=index + 1)
@@ -85,28 +108,13 @@ class ContextoMemory(
             '"strategy": "Follow these rules and strategies when guessing: ..."}`.',
         )
 
-    def _make_system_message(self, *, num_trial: int) -> Message:
+    def _make_system_message(self, *, max_guesses: int, num_trial: int) -> Message:
         return Message.system(
             f"""You are an intelligent AI good at understanding word relations.
 
 The following section describes a word relation game:
 
-> You are playing a game where you need to find a secret word.
->
-> The game holds a word list with tens of thousands words, including the secret word,
-> sorted by the similarity to the secret word.
->
-> The position of the secret word is 1; the position of the word closest to the secret word
-> (but not the secret word itself) is 2; the position of the furthest word is 500.
->
-> Word similarity is based on the context in which words are used on the internet,
-related to both meaning and proximity.
->
-> Every time, you choose a word as your next guess; if the word is accepted,
-> you will see its position in the list, otherwise you will see the reject reason,
-> such as invalid word format, word not in list, or taboo words.
->
-> Your guess must be a **single word with only lowercase letters and no hyphens**.
+{"\n".join(f"> {line}" for line in make_game_rule(max_guesses=max_guesses).split("\n"))}
 
 Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} times"}."""
         )
@@ -115,11 +123,11 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
         self,
         *,
         record: GameRecord[
-            None, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
+            int, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
         ],
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[None, None, str, ContextoResponse | ContextoError, list[str]] = (
+        game_result: GameResult[int, None, str, ContextoResponse | ContextoError, list[str]] = (
             record["game_result"]
         )
         summary: list[str] = game_result["summary"]
@@ -168,7 +176,7 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
 
 class ContextoAgentPlayer(
     BaseAgentPlayer[
-        None,
+        int,
         None,
         str,
         ContextoResponse | ContextoError,
@@ -186,24 +194,8 @@ class ContextoAgentPlayer(
         hint: None,
     ) -> Iterator[Message]:
         system_prompt_sections: list[str] = [
-            """You are an intelligent AI good at understanding word relations.
-
-You are playing a game where you need to find a secret word.
-
-The game holds a word list with tens of thousands words, including the secret word,
-sorted by the similarity to the secret word.
-
-The position of the secret word is 1; the position of the word closest to the secret word
-(but not the secret word itself) is 2; the position of the furthest word is 500.
-
-Word similarity is based on the context in which words are used on the internet,
-related to both meaning and proximity.
-
-Every time, you choose a word as your next guess; if the word is accepted,
-you will see its position in the list, otherwise you will see the reject reason,
-such as invalid word format, word not in list, or taboo words.
-
-Your guess must be a **single word with only lowercase letters and no hyphens**."""
+            "You are an intelligent AI good at understanding word relations.\n\n"
+            f"{make_game_rule(max_guesses=self.memory.game_info)}"
         ]
 
         if experience is not None:
@@ -301,18 +293,21 @@ def main() -> None:
 
         for _ in range(num_train_loops):
             for i in range(num_in_loop_trials):
-                result: ContextoGameResult = game_manager.create_game(game_id=None).play(
-                    player=player
-                )
+                result: ContextoGameResult = game_manager.create_game(
+                    game_id=None, max_guesses=50
+                ).play(player=player)
 
                 player.memory.reflect(
                     summary=result["summary"], update_experience=i == num_in_loop_trials - 1
                 )
 
-    result = game_manager.create_game(game_id=int(input("Input Game ID: "))).play(player=player)
+    result = game_manager.create_game(game_id=int(input("Input Game ID: ")), max_guesses=50).play(
+        player=player
+    )
 
     print("You Guessed", len(result["trajectory"]), "Times")
     print("Top Words:", *result["summary"][:10])
+    player.memory.reflect(summary=result["summary"], update_experience=False)
 
 
 if __name__ == "__main__":
