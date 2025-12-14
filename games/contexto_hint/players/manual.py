@@ -19,7 +19,7 @@ class ContextoHintManualPlayer(BasePlayer[int, list[str], int, int]):
         print("Guess:", hint[guess], "Position:", result + 1)
 
 
-def main():
+def main() -> None:
     from pathlib import Path
     from time import time_ns
 
