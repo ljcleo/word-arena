@@ -6,38 +6,48 @@ from pydantic import BaseModel
 from agent.memory import BaseMemory, GameRecord
 from agent.player import BaseAgentPlayer
 from common.common import GameResult
+from games.contexto.common import ContextoError, ContextoResponse
 from llm.common import Message
 
 
-class ContextoHintReflection(BaseModel):
+class ContextoReflection(BaseModel):
     summary: str
     lessons: str
 
 
-class ContextoHintExperience(BaseModel):
+class ContextoExperience(BaseModel):
     law: str
     strategy: str
 
 
-class ContextoHintMemory(
-    BaseMemory[int, list[str], int, int, list[str], ContextoHintReflection, ContextoHintExperience]
+class ContextoMemory(
+    BaseMemory[
+        None,
+        None,
+        str,
+        ContextoResponse | ContextoError,
+        list[str],
+        ContextoReflection,
+        ContextoExperience,
+    ]
 ):
     @override
-    def process_game_info(self, *, game_info: int) -> None:
+    def process_game_info(self, *, game_info: None) -> None:
         pass
 
     @override
     def make_reflection_messages(
-        self, *, game_result: GameResult[int, list[str], int, int, list[str]]
+        self,
+        *,
+        game_result: GameResult[None, None, str, ContextoResponse | ContextoError, list[str]],
     ) -> Iterator[Message]:
-        yield self._make_system_message(num_candidates=game_result["game_info"], num_trial=1)
+        yield self._make_system_message(num_trial=1)
         yield self._make_record_message(record={"game_result": game_result, "reflection": None})
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
             "Make a summary of your guesses and summarize the lessons you have learned.",
-            "Pay attention to the rounds where you failed to choose the word "
-            "with the closest position among the candidates.",
+            "Pay attention to the rounds where you guessed very close or very far words.",
             "Make your response clear and simple in JSON format like "
             '`{"summary": "In this trial, ...", "lessons": "..."}`.',
         )
@@ -46,11 +56,13 @@ class ContextoHintMemory(
     def make_update_experience_messages(
         self,
         *,
-        history: list[GameRecord[int, list[str], int, int, list[str], ContextoHintReflection]],
+        history: list[
+            GameRecord[
+                None, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
+            ]
+        ],
     ) -> Iterator[Message]:
-        yield self._make_system_message(
-            num_candidates=history[0]["game_result"]["game_info"], num_trial=len(self._history)
-        )
+        yield self._make_system_message(num_trial=len(self._history))
 
         for index, record in enumerate(history):
             yield self._make_record_message(record=record, index=index + 1)
@@ -67,13 +79,13 @@ class ContextoHintMemory(
 
         yield Message.human(
             "Now, update your notes about the word similarity laws and possible strategies.",
-            "The notes should help you choose the best word among the candidates.",
+            "The notes should help you guess a good word in a turn.",
             "Make your response clear and simple in JSON format like "
             '`{"law": "In summary, the word similarity obeys these laws: ...", '
             '"strategy": "Follow these rules and strategies when guessing: ..."}`.',
         )
 
-    def _make_system_message(self, *, num_candidates: int, num_trial: int) -> Message:
+    def _make_system_message(self, *, num_trial: int) -> Message:
         return Message.system(
             f"""You are an intelligent AI good at understanding word relations.
 
@@ -81,21 +93,20 @@ The following section describes a word relation game:
 
 > You are playing a game where you need to find a secret word.
 >
-> The game holds a word list with 500 words, including the secret word,
+> The game holds a word list with tens of thousands words, including the secret word,
 > sorted by the similarity to the secret word.
 >
 > The position of the secret word is 1; the position of the word closest to the secret word
 > (but not the secret word itself) is 2; the position of the furthest word is 500.
 >
 > Word similarity is based on the context in which words are used on the internet,
-> related to both meaning and proximity.
+related to both meaning and proximity.
 >
-> Every time, the game provides {num_candidates} candidate words from the list that
-> you have not guessed before, but without their positions.
+> Every time, you choose a word as your next guess; if the word is accepted,
+> you will see its position in the list, otherwise you will see the reject reason,
+> such as invalid word format, word not in list, or taboo words.
 >
-> You need to choose one of them as your next guess, then you will see its position in the list.
->
-> It is guaranteed that there is a candidate word closer than the current best guess.
+> Your guess must be a **single word with only lowercase letters and no hyphens**.
 
 Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} times"}."""
         )
@@ -103,25 +114,34 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, list[str], int, int, list[str], ContextoHintReflection],
+        record: GameRecord[
+            None, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
+        ],
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[int, list[str], int, int, list[str]] = record["game_result"]
+        game_result: GameResult[None, None, str, ContextoResponse | ContextoError, list[str]] = (
+            record["game_result"]
+        )
         summary: list[str] = game_result["summary"]
         answer: str = summary[0]
         top_words: str = ", ".join(summary[:30])
-        word_pos: dict[str, int] = {word: pos + 1 for pos, word in enumerate(summary)}
         trajectory_sections: list[str] = []
 
-        for index, (hint, guess, position) in enumerate(game_result["trajectory"]):
-            candidates: str = ", ".join(f"{word} (Position: {word_pos[word]})" for word in hint)
+        for index, (_, guess, result) in enumerate(game_result["trajectory"]):
+            result_str: str
+
+            if isinstance(result, ContextoError):
+                result_str = f"Reject -- {result.error}"
+            else:
+                result_str = (
+                    f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
+                )
 
             trajectory_sections.extend(
                 (
                     f"Guess Round {index + 1}",
-                    f"Guess: {hint[guess]}",
-                    f"Position: {position + 1}",
-                    f"Candidates: {candidates}",
+                    f"Guess: {guess}",
+                    f"Result: {result_str}",
                 )
             )
 
@@ -139,38 +159,38 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
             )
         )
 
-        reflection: ContextoHintReflection | None = record["reflection"]
+        reflection: ContextoReflection | None = record["reflection"]
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 
         return Message.human(*sections)
 
 
-class ContextoHintAgentPlayer(
+class ContextoAgentPlayer(
     BaseAgentPlayer[
-        int, list[str], int, int, list[str], ContextoHintReflection, ContextoHintExperience
+        None,
+        None,
+        str,
+        ContextoResponse | ContextoError,
+        list[str],
+        ContextoReflection,
+        ContextoExperience,
     ]
 ):
     @override
     def make_guess_info_messages(
         self,
         *,
-        experience: ContextoHintExperience | None,
-        current_trajectory: Iterable[tuple[list[str], int, int]],
-        hint: list[str],
+        experience: ContextoExperience | None,
+        current_trajectory: Iterable[tuple[None, str, ContextoResponse | ContextoError]],
+        hint: None,
     ) -> Iterator[Message]:
-        options: str = "; ".join(
-            f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint)
-        )
-
-        print("Candidates:", options)
-
         system_prompt_sections: list[str] = [
-            f"""You are an intelligent AI good at understanding word relations.
+            """You are an intelligent AI good at understanding word relations.
 
 You are playing a game where you need to find a secret word.
 
-The game holds a word list with 500 words, including the secret word,
+The game holds a word list with tens of thousands words, including the secret word,
 sorted by the similarity to the secret word.
 
 The position of the secret word is 1; the position of the word closest to the secret word
@@ -179,12 +199,11 @@ The position of the secret word is 1; the position of the word closest to the se
 Word similarity is based on the context in which words are used on the internet,
 related to both meaning and proximity.
 
-Every time, the game provides {self.memory.game_info} candidate words from the list that
-you have not guessed before, but without their positions.
+Every time, you choose a word as your next guess; if the word is accepted,
+you will see its position in the list, otherwise you will see the reject reason,
+such as invalid word format, word not in list, or taboo words.
 
-You need to choose one of them as your next guess, then you will see its position in the list.
-
-It is guaranteed that there is a candidate word closer than the current best guess."""
+Your guess must be a **single word with only lowercase letters and no hyphens**."""
         ]
 
         if experience is not None:
@@ -194,13 +213,21 @@ It is guaranteed that there is a candidate word closer than the current best gue
 
         trajectory_sections: list[str] = []
 
-        for index, (cur_hint, guess, position) in enumerate(current_trajectory):
+        for index, (_, guess, result) in enumerate(current_trajectory):
+            result_str: str
+
+            if isinstance(result, ContextoError):
+                result_str = f"Reject -- {result.error}"
+            else:
+                result_str = (
+                    f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
+                )
+
             trajectory_sections.extend(
                 (
                     f"Guess {index + 1}",
-                    f"Candidates: {', '.join(cur_hint)}",
-                    f"Guess: {cur_hint[guess]}",
-                    f"Position: {position + 1}",
+                    f"Guess: {guess}",
+                    f"Result: {result_str}",
                 )
             )
 
@@ -209,13 +236,12 @@ It is guaranteed that there is a candidate word closer than the current best gue
             trajectory_sections.append("(empty)")
 
         yield Message.human("History:", "\n".join(trajectory_sections))
-        yield Message.human(f"Candidates of Guess {turn_index}:", options)
 
     @override
-    def make_full_guess_prompt(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Analyze the situation, then plan and choose your next guess."
-        yield f"For example, the choice is B if you choose {hint[1]}."
-        yield 'Respond in JSON format like `{"analysis": "...", "plan": "...", "guess": "B"}`.'
+    def make_full_guess_prompt(self, *, hint: None) -> Iterator[str]:
+        yield "Analyze the situation, then plan and make your next guess."
+        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
+        yield 'Respond in JSON format like `{"analysis": "...", "plan": "...", "guess": "word"}`.'
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
@@ -226,22 +252,21 @@ It is guaranteed that there is a candidate word closer than the current best gue
         yield "Write a paragraph to plan the next guess."
 
     @override
-    def make_simple_guess_prompt(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Choose your next guess."
-        yield f"For example, the choice is B if you choose {hint[1]}."
-        yield 'Respond in JSON format like `{"guess": "B"}`.'
+    def make_simple_guess_prompt(self, *, hint: None) -> Iterator[str]:
+        yield "Make your next guess."
+        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
+        yield 'Respond in JSON format like `{"guess": "word"}`.'
 
     @override
-    def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
-        return ord(raw_guess) - ord("A")
+    def process_guess(self, *, hint: None, raw_guess: str) -> str:
+        return raw_guess
 
 
 def main() -> None:
-    from pathlib import Path
     from time import time_ns
 
     from agent.player import PromptMode
-    from games.contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
+    from games.contexto.game import ContextoGameManager, ContextoGameResult
     from llm.openai import OpenAILLM
 
     model: OpenAILLM = OpenAILLM(
@@ -252,12 +277,12 @@ def main() -> None:
         timeout=7200,
     )
 
-    player: ContextoHintAgentPlayer = ContextoHintAgentPlayer(
+    player: ContextoAgentPlayer = ContextoAgentPlayer(
         model=model,
-        memory=ContextoHintMemory(
+        memory=ContextoMemory(
             model=model,
-            reflection_type=ContextoHintReflection,
-            experience_type=ContextoHintExperience,
+            reflection_type=ContextoReflection,
+            experience_type=ContextoExperience,
         ),
         prompt_mode=(
             PromptMode.MULTI_TURN
@@ -268,9 +293,7 @@ def main() -> None:
         else PromptMode.SIMPLE,
     )
 
-    game_manager: ContextoHintGameManager = ContextoHintGameManager(
-        games_dir=Path("data/contexto_hint/games"), seed=time_ns()
-    )
+    game_manager: ContextoGameManager = ContextoGameManager(seed=time_ns())
 
     if input("Train? (y/n): ")[0].lower() == "y":
         num_train_loops: int = 3
@@ -278,17 +301,15 @@ def main() -> None:
 
         for _ in range(num_train_loops):
             for i in range(num_in_loop_trials):
-                result: ContextoHintGameResult = game_manager.create_game(
-                    game_id=None, num_candidates=5
-                ).play(player=player)
+                result: ContextoGameResult = game_manager.create_game(game_id=None).play(
+                    player=player
+                )
 
                 player.memory.reflect(
                     summary=result["summary"], update_experience=i == num_in_loop_trials - 1
                 )
 
-    result = game_manager.create_game(game_id=int(input("Input Game ID: ")), num_candidates=5).play(
-        player=player
-    )
+    result = game_manager.create_game(game_id=int(input("Input Game ID: "))).play(player=player)
 
     print("You Guessed", len(result["trajectory"]), "Times")
     print("Top Words:", *result["summary"][:10])
