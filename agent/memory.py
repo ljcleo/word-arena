@@ -8,19 +8,19 @@ from common.game import GameResult
 from llm.common import BaseLLM, Message
 
 
-class GameRecord[GT, PT, AT, RT, FT, TT: BaseModel](TypedDict):
-    game_result: GameResult[GT, PT, AT, RT, FT]
+class GameRecord[GT, PT, AT, RT, FT, MT: BaseModel, TT: BaseModel](TypedDict):
+    game_result: GameResult[GT, PT, tuple[MT, AT], RT, FT]
     reflection: TT | None
 
 
-class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
+class BaseMemory[GT, PT, AT, RT, FT, MT: BaseModel, TT: BaseModel, ET: BaseModel](ABC):
     def __init__(
         self, model: BaseLLM, reflection_type: type[TT], experience_type: type[ET]
     ) -> None:
         self._model: BaseLLM = model
         self._reflection_type: type[TT] = reflection_type
         self._experience_type: type[ET] = experience_type
-        self._history: list[GameRecord[GT, PT, AT, RT, FT, TT]] = []
+        self._history: list[GameRecord[GT, PT, AT, RT, FT, MT, TT]] = []
 
     @property
     def game_info(self) -> GT:
@@ -31,23 +31,26 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
         return self._experience
 
     @property
-    def current_trajectory(self) -> Iterator[tuple[PT, AT, RT]]:
+    def current_trajectory(self) -> Iterator[tuple[PT, tuple[MT, AT], RT]]:
         yield from self._trajectory
 
     def prepare(self, *, game_info: GT) -> None:
         self._game_info: GT = game_info
-        self._trajectory: list[tuple[PT, AT, RT]] = []
+        self._trajectory: list[tuple[PT, tuple[MT, AT], RT]] = []
         self.process_game_info(game_info=game_info)
 
         self._experience: ET = self._model.parse(
             *self.make_create_experience_messages(), format=self._experience_type
         )
 
+    def update_analysis(self, *, analysis: MT) -> None:
+        self._latest_analysis: MT = analysis
+
     def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
-        self._trajectory.append((hint, guess, result))
+        self._trajectory.append((hint, (self._latest_analysis, guess), result))
 
     def reflect(self, *, summary: FT, update_experience: bool) -> None:
-        game_result: GameResult[GT, PT, AT, RT, FT] = {
+        game_result: GameResult[GT, PT, tuple[MT, AT], RT, FT] = {
             "game_info": self._game_info,
             "trajectory": self._trajectory,
             "summary": summary,
@@ -81,12 +84,12 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
 
     @abstractmethod
     def make_reflection_messages(
-        self, *, game_result: GameResult[GT, PT, AT, RT, FT]
+        self, *, game_result: GameResult[GT, PT, tuple[MT, AT], RT, FT]
     ) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
     def make_update_experience_messages(
-        self, *, history: list[GameRecord[GT, PT, AT, RT, FT, TT]]
+        self, *, history: list[GameRecord[GT, PT, AT, RT, FT, MT, TT]]
     ) -> Iterator[Message]:
         raise NotImplementedError()

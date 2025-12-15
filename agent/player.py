@@ -21,10 +21,20 @@ class SimpleGuess(BaseModel):
     guess: str
 
 
+class Analysis(BaseModel):
+    analysis: str | None
+    plan: str | None
+
+
 class FullGuess(BaseModel):
-    analysis: str
-    plan: str
+    analysis: Analysis
     guess: str
+
+
+class AgentMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
+    BaseMemory[GT, PT, AT, RT, FT, Analysis, TT, ET], ABC
+):
+    pass
 
 
 class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
@@ -34,15 +44,15 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
         self,
         *,
         model: BaseLLM,
-        memory: BaseMemory[GT, PT, AT, RT, FT, TT, ET],
+        memory: BaseMemory[GT, PT, AT, RT, FT, Analysis, TT, ET],
         prompt_mode: PromptMode,
     ):
         self._model: BaseLLM = model
         self._prompt_mode: PromptMode = prompt_mode
-        self._memory: BaseMemory[GT, PT, AT, RT, FT, TT, ET] = memory
+        self._memory: BaseMemory[GT, PT, AT, RT, FT, Analysis, TT, ET] = memory
 
     @property
-    def memory(self) -> BaseMemory[GT, PT, AT, RT, FT, TT, ET]:
+    def memory(self) -> BaseMemory[GT, PT, AT, RT, FT, Analysis, TT, ET]:
         return self._memory
 
     @override
@@ -60,6 +70,7 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
             )
         )
 
+        full_analysis: Analysis
         raw_guess: str
 
         if self._prompt_mode == PromptMode.DIRECT:
@@ -69,18 +80,22 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
                 format=FullGuess,
             )
 
-            print("AI Analysis:", full_guess.analysis)
-            print("AI Plan:", full_guess.plan)
+            print("AI Analysis:", full_guess.analysis.analysis)
+            print("AI Plan:", full_guess.analysis.plan)
             raw_guess = full_guess.guess
+            full_analysis = full_guess.analysis
         else:
+            analysis: str | None = None
+            plan: str | None = None
+
             if self._prompt_mode == PromptMode.MULTI_TURN:
                 messages.append(Message.human(*self.make_analyze_prompt()))
-                analysis: str = self._model.query(*messages)
+                analysis = self._model.query(*messages)
                 print("AI Analysis:", analysis)
                 messages.append(Message.ai(analysis))
 
                 messages.append(Message.human(*self.make_plan_prompt()))
-                plan: str = self._model.query(*messages)
+                plan = self._model.query(*messages)
                 print("AI Plan:", plan)
                 messages.append(Message.ai(plan))
 
@@ -90,6 +105,9 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
                 format=SimpleGuess,
             ).guess
 
+            full_analysis = Analysis(analysis=analysis, plan=plan)
+
+        self._memory.update_analysis(analysis=full_analysis)
         guess: AT = self.process_guess(hint=hint, raw_guess=raw_guess)
         print("AI Guess:", raw_guess, guess)
         return guess
@@ -105,7 +123,7 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
         *,
         game_info: GT,
         experience: ET,
-        current_trajectory: Iterable[tuple[PT, AT, RT]],
+        current_trajectory: Iterable[tuple[PT, tuple[Analysis, AT], RT]],
         hint: PT,
     ) -> Iterator[Message]:
         raise NotImplementedError()

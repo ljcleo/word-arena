@@ -1,10 +1,11 @@
+from collections import deque
 from collections.abc import Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
 
-from agent.memory import BaseMemory, GameRecord
-from agent.player import BaseAgentPlayer
+from agent.memory import GameRecord
+from agent.player import AgentMemory, Analysis, BaseAgentPlayer
 from common.common import GameResult
 from games.contexto.common import ContextoError, ContextoResult
 from llm.common import Message
@@ -41,11 +42,20 @@ Your guess must be a **single word with only lowercase letters and no hyphens**.
 You have {"unlimited" if max_guesses <= 0 else max_guesses} guesses in total."""
 
 
-def process_trajectory(*, trajectory: Iterable[tuple[None, str, ContextoResult]]) -> str:
-    sections: list[str] = []
+def process_trajectory(
+    *,
+    trajectory: Iterable[tuple[None, tuple[Analysis, str], ContextoResult]],
+    num_latest_analysis: int,
+) -> tuple[str, str]:
+    all_analyses: deque[Analysis] = deque()
+    trajectory_sections: list[str] = []
     index: int = -1
 
-    for index, (_, guess, result) in enumerate(trajectory):
+    for index, (_, (analysis, guess), result) in enumerate(trajectory):
+        all_analyses.append(analysis)
+        if len(all_analyses) > num_latest_analysis:
+            all_analyses.popleft()
+
         result_str: str
 
         if isinstance(result, ContextoError):
@@ -53,7 +63,7 @@ def process_trajectory(*, trajectory: Iterable[tuple[None, str, ContextoResult]]
         else:
             result_str = f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
 
-        sections.extend(
+        trajectory_sections.extend(
             (
                 f"Guess {index + 1}",
                 f"Guess: {guess}",
@@ -62,13 +72,27 @@ def process_trajectory(*, trajectory: Iterable[tuple[None, str, ContextoResult]]
         )
 
     if index == -1:
-        sections.append("(empty)")
+        trajectory_sections.append("(empty)")
 
-    return "\n".join(sections)
+    analysis_sections: list[str] = []
+
+    for a_index, analysis in enumerate(all_analyses):
+        analysis_sections.extend(
+            (
+                f"Guess {index - len(all_analyses) + a_index + 2}",
+                f"Analysis: {'(none)' if analysis.analysis is None else analysis.analysis}",
+                f"Plan: {'(none)' if analysis.plan is None else analysis.plan}",
+            )
+        )
+
+    if len(analysis_sections) == 0:
+        analysis_sections.append("(empty)")
+
+    return "\n".join(trajectory_sections), "\n".join(analysis_sections)
 
 
 class ContextoMemory(
-    BaseMemory[int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience]
+    AgentMemory[int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience]
 ):
     @override
     def process_game_info(self, *, game_info: int) -> None:
@@ -88,7 +112,7 @@ class ContextoMemory(
 
     @override
     def make_reflection_messages(
-        self, *, game_result: GameResult[int, None, str, ContextoResult, list[str]]
+        self, *, game_result: GameResult[int, None, tuple[Analysis, str], ContextoResult, list[str]]
     ) -> Iterator[Message]:
         assert game_result["game_info"] == self.game_info
         yield self._make_system_message(max_guesses=self.game_info, num_trial=1)
@@ -106,7 +130,9 @@ class ContextoMemory(
     def make_update_experience_messages(
         self,
         *,
-        history: list[GameRecord[int, None, str, ContextoResult, list[str], ContextoReflection]],
+        history: list[
+            GameRecord[int, None, str, ContextoResult, list[str], Analysis, ContextoReflection]
+        ],
     ) -> Iterator[Message]:
         for record in history:
             assert record["game_result"]["game_info"] == self.game_info
@@ -157,10 +183,13 @@ class ContextoMemory(
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, None, str, ContextoResult, list[str], ContextoReflection],
+        record: GameRecord[int, None, str, ContextoResult, list[str], Analysis, ContextoReflection],
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[int, None, str, ContextoResult, list[str]] = record["game_result"]
+        game_result: GameResult[int, None, tuple[Analysis, str], ContextoResult, list[str]] = (
+            record["game_result"]
+        )
+
         summary: list[str] = game_result["summary"]
 
         sections: list[str] = []
@@ -170,7 +199,7 @@ class ContextoMemory(
         sections.extend(
             (
                 "Your guess records:",
-                process_trajectory(trajectory=game_result["trajectory"]),
+                process_trajectory(trajectory=game_result["trajectory"], num_latest_analysis=0)[0],
                 f"Secret word: {summary[0]}",
                 "Top 30 words:",
                 ", ".join(summary[:30]),
@@ -195,7 +224,7 @@ class ContextoAgentPlayer(
         *,
         game_info: int,
         experience: ContextoExperience | None,
-        current_trajectory: Iterable[tuple[None, str, ContextoResult]],
+        current_trajectory: Iterable[tuple[None, tuple[Analysis, str], ContextoResult]],
         hint: None,
     ) -> Iterator[Message]:
         system_prompt_sections: list[str] = [
@@ -207,7 +236,16 @@ class ContextoAgentPlayer(
             system_prompt_sections.append(f"{experience.law}\n\n{experience.strategy}")
 
         yield Message.system("\n---\n".join(system_prompt_sections))
-        yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
+
+        trajectory_str: str
+        analysis_str: str
+
+        trajectory_str, analysis_str = process_trajectory(
+            trajectory=current_trajectory, num_latest_analysis=3
+        )
+
+        yield Message.human("History:", trajectory_str)
+        yield Message.human("Last 3 Analyses:", analysis_str)
 
     @override
     def make_full_guess_prompt(self, *, hint: None) -> Iterator[str]:
