@@ -53,6 +53,7 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
     def guess(self, *, hint: PT) -> AT:
         messages: list[Message] = list(
             self.make_guess_info_messages(
+                game_info=self._memory.game_info,
                 experience=self._memory.experience,
                 current_trajectory=self._memory.current_trajectory,
                 hint=hint,
@@ -100,7 +101,12 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
 
     @abstractmethod
     def make_guess_info_messages(
-        self, *, experience: ET | None, current_trajectory: Iterable[tuple[PT, AT, RT]], hint: PT
+        self,
+        *,
+        game_info: GT,
+        experience: ET,
+        current_trajectory: Iterable[tuple[PT, AT, RT]],
+        hint: PT,
     ) -> Iterator[Message]:
         raise NotImplementedError()
 

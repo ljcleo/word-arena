@@ -9,3 +9,6 @@ class ContextoResponse(BaseModel):
 
 class ContextoError(BaseModel):
     error: str
+
+
+type ContextoResult = ContextoResponse | ContextoError

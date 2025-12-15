@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from agent.memory import BaseMemory, GameRecord
 from agent.player import BaseAgentPlayer
 from common.common import GameResult
-from games.contexto.common import ContextoError, ContextoResponse
+from games.contexto.common import ContextoError, ContextoResult
 from llm.common import Message
 
 
@@ -41,28 +41,57 @@ Your guess must be a **single word with only lowercase letters and no hyphens**.
 You have {"unlimited" if max_guesses <= 0 else max_guesses} guesses in total."""
 
 
+def process_trajectory(*, trajectory: Iterable[tuple[None, str, ContextoResult]]) -> str:
+    sections: list[str] = []
+    index: int = -1
+
+    for index, (_, guess, result) in enumerate(trajectory):
+        result_str: str
+
+        if isinstance(result, ContextoError):
+            result_str = f"Reject -- {result.error}"
+        else:
+            result_str = f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
+
+        sections.extend(
+            (
+                f"Guess {index + 1}",
+                f"Guess: {guess}",
+                f"Result: {result_str}",
+            )
+        )
+
+    if index == -1:
+        sections.append("(empty)")
+
+    return "\n".join(sections)
+
+
 class ContextoMemory(
-    BaseMemory[
-        int,
-        None,
-        str,
-        ContextoResponse | ContextoError,
-        list[str],
-        ContextoReflection,
-        ContextoExperience,
-    ]
+    BaseMemory[int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience]
 ):
     @override
     def process_game_info(self, *, game_info: int) -> None:
         pass
 
     @override
+    def make_create_experience_messages(self) -> Iterator[Message]:
+        yield self._make_system_message(max_guesses=self.game_info, num_trial=0)
+
+        yield Message.human(
+            "Now, initialize some notes about the word similarity laws and possible strategies.",
+            "The notes should help you guess a good word in a turn.",
+            "Make your response clear and simple in JSON format like "
+            '`{"law": "In summary, the word similarity obeys these laws: ...", '
+            '"strategy": "Follow these rules and strategies when guessing: ..."}`.',
+        )
+
+    @override
     def make_reflection_messages(
-        self,
-        *,
-        game_result: GameResult[int, None, str, ContextoResponse | ContextoError, list[str]],
+        self, *, game_result: GameResult[int, None, str, ContextoResult, list[str]]
     ) -> Iterator[Message]:
-        yield self._make_system_message(max_guesses=game_result["game_info"], num_trial=1)
+        assert game_result["game_info"] == self.game_info
+        yield self._make_system_message(max_guesses=self.game_info, num_trial=1)
         yield self._make_record_message(record={"game_result": game_result, "reflection": None})
 
         yield Message.human(
@@ -77,15 +106,12 @@ class ContextoMemory(
     def make_update_experience_messages(
         self,
         *,
-        history: list[
-            GameRecord[
-                int, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
-            ]
-        ],
+        history: list[GameRecord[int, None, str, ContextoResult, list[str], ContextoReflection]],
     ) -> Iterator[Message]:
-        yield self._make_system_message(
-            max_guesses=history[0]["game_result"]["game_info"], num_trial=len(self._history)
-        )
+        for record in history:
+            assert record["game_result"]["game_info"] == self.game_info
+
+        yield self._make_system_message(max_guesses=self.game_info, num_trial=len(self._history))
 
         for index, record in enumerate(history):
             yield self._make_record_message(record=record, index=index + 1)
@@ -109,49 +135,33 @@ class ContextoMemory(
         )
 
     def _make_system_message(self, *, max_guesses: int, num_trial: int) -> Message:
+        rule_hint: str = "\n".join(
+            f"> {line}" for line in make_game_rule(max_guesses=max_guesses).split("\n")
+        )
+
+        trial_hint: str
+
+        if num_trial == 0:
+            trial_hint = "Now, you are new to the game and have no trials yet."
+        elif num_trial == 1:
+            trial_hint = "Now, you have played this game once."
+        else:
+            trial_hint = f'Now, you have played this game {num_trial} times".'
+
         return Message.system(
-            f"""You are an intelligent AI good at understanding word relations.
-
-The following section describes a word relation game:
-
-{"\n".join(f"> {line}" for line in make_game_rule(max_guesses=max_guesses).split("\n"))}
-
-Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} times"}."""
+            "You are an intelligent AI good at understanding word relations.\n\n"
+            "The following section describes a word relation game:\n\n"
+            f"{rule_hint}\n\n{trial_hint}"
         )
 
     def _make_record_message(
         self,
         *,
-        record: GameRecord[
-            int, None, str, ContextoResponse | ContextoError, list[str], ContextoReflection
-        ],
+        record: GameRecord[int, None, str, ContextoResult, list[str], ContextoReflection],
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[int, None, str, ContextoResponse | ContextoError, list[str]] = (
-            record["game_result"]
-        )
+        game_result: GameResult[int, None, str, ContextoResult, list[str]] = record["game_result"]
         summary: list[str] = game_result["summary"]
-        answer: str = summary[0]
-        top_words: str = ", ".join(summary[:30])
-        trajectory_sections: list[str] = []
-
-        for index, (_, guess, result) in enumerate(game_result["trajectory"]):
-            result_str: str
-
-            if isinstance(result, ContextoError):
-                result_str = f"Reject -- {result.error}"
-            else:
-                result_str = (
-                    f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
-                )
-
-            trajectory_sections.extend(
-                (
-                    f"Guess Round {index + 1}",
-                    f"Guess: {guess}",
-                    f"Result: {result_str}",
-                )
-            )
 
         sections: list[str] = []
         if index is not None:
@@ -160,10 +170,10 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
         sections.extend(
             (
                 "Your guess records:",
-                "\n".join(trajectory_sections),
-                f"Secret word: {answer}",
+                process_trajectory(trajectory=game_result["trajectory"]),
+                f"Secret word: {summary[0]}",
                 "Top 30 words:",
-                top_words,
+                ", ".join(summary[:30]),
             )
         )
 
@@ -176,58 +186,28 @@ Now, you have played this game {"once" if num_trial == 1 else f"{num_trial} time
 
 class ContextoAgentPlayer(
     BaseAgentPlayer[
-        int,
-        None,
-        str,
-        ContextoResponse | ContextoError,
-        list[str],
-        ContextoReflection,
-        ContextoExperience,
+        int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience
     ]
 ):
     @override
     def make_guess_info_messages(
         self,
         *,
+        game_info: int,
         experience: ContextoExperience | None,
-        current_trajectory: Iterable[tuple[None, str, ContextoResponse | ContextoError]],
+        current_trajectory: Iterable[tuple[None, str, ContextoResult]],
         hint: None,
     ) -> Iterator[Message]:
         system_prompt_sections: list[str] = [
             "You are an intelligent AI good at understanding word relations.\n\n"
-            f"{make_game_rule(max_guesses=self.memory.game_info)}"
+            f"{make_game_rule(max_guesses=game_info)}"
         ]
 
         if experience is not None:
             system_prompt_sections.append(f"{experience.law}\n\n{experience.strategy}")
 
         yield Message.system("\n---\n".join(system_prompt_sections))
-
-        trajectory_sections: list[str] = []
-
-        for index, (_, guess, result) in enumerate(current_trajectory):
-            result_str: str
-
-            if isinstance(result, ContextoError):
-                result_str = f"Reject -- {result.error}"
-            else:
-                result_str = (
-                    f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
-                )
-
-            trajectory_sections.extend(
-                (
-                    f"Guess {index + 1}",
-                    f"Guess: {guess}",
-                    f"Result: {result_str}",
-                )
-            )
-
-        turn_index: int = len(trajectory_sections) + 1
-        if turn_index == 1:
-            trajectory_sections.append("(empty)")
-
-        yield Message.human("History:", "\n".join(trajectory_sections))
+        yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
 
     @override
     def make_full_guess_prompt(self, *, hint: None) -> Iterator[str]:

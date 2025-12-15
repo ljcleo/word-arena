@@ -5,12 +5,12 @@ from typing import override
 import httpx
 
 from common.game import BaseGame, GameResult
-from games.contexto.common import ContextoError, ContextoResponse
+from games.contexto.common import ContextoError, ContextoResponse, ContextoResult
 
-type ContextoGameResult = GameResult[int, None, str, ContextoResponse | ContextoError, list[str]]
+type ContextoGameResult = GameResult[int, None, str, ContextoResult, list[str]]
 
 
-class ContextoGame(BaseGame[int, None, str, ContextoResponse | ContextoError, list[str]]):
+class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
     def __init__(self, *, game_id: int, max_guesses: int) -> None:
         self._game_id: int = game_id
         self._max_guesses: int = max_guesses
@@ -31,7 +31,7 @@ class ContextoGame(BaseGame[int, None, str, ContextoResponse | ContextoError, li
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> ContextoResponse | ContextoError:
+    def process_guess(self, *, guess: str) -> ContextoResult:
         self._num_guesses += 1
 
         if not (guess.isalpha() and guess.islower()):

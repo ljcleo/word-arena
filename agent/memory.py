@@ -20,7 +20,6 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
         self._model: BaseLLM = model
         self._reflection_type: type[TT] = reflection_type
         self._experience_type: type[ET] = experience_type
-        self._experience: ET | None = None
         self._history: list[GameRecord[GT, PT, AT, RT, FT, TT]] = []
 
     @property
@@ -28,7 +27,7 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
         return self._game_info
 
     @property
-    def experience(self) -> ET | None:
+    def experience(self) -> ET:
         return self._experience
 
     @property
@@ -39,6 +38,10 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
         self._game_info: GT = game_info
         self._trajectory: list[tuple[PT, AT, RT]] = []
         self.process_game_info(game_info=game_info)
+
+        self._experience: ET = self._model.parse(
+            *self.make_create_experience_messages(), format=self._experience_type
+        )
 
     def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
         self._trajectory.append((hint, guess, result))
@@ -70,6 +73,10 @@ class BaseMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
 
     @abstractmethod
     def process_game_info(self, *, game_info: GT) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def make_create_experience_messages(self) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
