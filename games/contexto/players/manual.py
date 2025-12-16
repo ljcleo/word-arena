@@ -5,9 +5,13 @@ from games.contexto.common import ContextoError, ContextoResponse
 
 
 class ContextoManualPlayer(BasePlayer[int, None, str, ContextoResponse | ContextoError]):
+    @property
+    def num_guesses(self) -> int:
+        return self._num_guesses
+
     @override
     def prepare(self, *, game_info: int) -> None:
-        pass
+        self._num_guesses: int = 0
 
     @override
     def guess(self, *, hint: None) -> str:
@@ -16,21 +20,24 @@ class ContextoManualPlayer(BasePlayer[int, None, str, ContextoResponse | Context
     @override
     def digest(self, *, hint: None, guess: str, result: ContextoResponse | ContextoError) -> None:
         print("Guess:", guess, "Result:", result.model_dump_json())
+        self._num_guesses += 1
 
 
 def main() -> None:
     from time import time_ns
 
-    from games.contexto.game import ContextoGameManager, ContextoGameResult
+    from games.contexto.game import ContextoGameManager
 
-    result: ContextoGameResult = (
+    player: ContextoManualPlayer = ContextoManualPlayer()
+
+    summary: list[str] = (
         ContextoGameManager(seed=time_ns())
-        .create_game(game_id=int(input("Input Game ID: ")), max_guesses=50)
-        .play(player=ContextoManualPlayer())
+        .create_game(game_id=int(input("Input Game ID: ")), max_guesses=0)
+        .play(player=player)
     )
 
-    print("You Guessed", len(result["trajectory"]), "Times")
-    print("Top Words:", *result["summary"][:10])
+    print("You Guessed", player.num_guesses, "Times")
+    print("Top Words:", *summary[:10])
 
 
 if __name__ == "__main__":

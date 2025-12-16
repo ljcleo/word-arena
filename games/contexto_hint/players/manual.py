@@ -4,9 +4,14 @@ from common.player import BasePlayer
 
 
 class ContextoHintManualPlayer(BasePlayer[int, list[str], int, int]):
+    @property
+    def num_guesses(self) -> int:
+        return self._num_guesses
+
     @override
     def prepare(self, *, game_info: int) -> None:
-        pass
+        self._game_info: int = game_info
+        self._num_guesses: int = 0
 
     @override
     def guess(self, *, hint: list[str]) -> int:
@@ -17,22 +22,25 @@ class ContextoHintManualPlayer(BasePlayer[int, list[str], int, int]):
     @override
     def digest(self, *, hint: list[str], guess: int, result: int) -> None:
         print("Guess:", hint[guess], "Position:", result + 1)
+        self._num_guesses += 1
 
 
 def main() -> None:
     from pathlib import Path
     from time import time_ns
 
-    from games.contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
+    from games.contexto_hint.game import ContextoHintGameManager
 
-    result: ContextoHintGameResult = (
+    player: ContextoHintManualPlayer = ContextoHintManualPlayer()
+
+    summary: list[str] = (
         ContextoHintGameManager(games_dir=Path("data/contexto_hint/games"), seed=time_ns())
         .create_game(game_id=int(input("Input Game ID: ")), num_candidates=5)
-        .play(player=ContextoHintManualPlayer())
+        .play(player=player)
     )
 
-    print("You Guessed", len(result["trajectory"]), "Times")
-    print("Top Words:", *result["summary"][:10])
+    print("You Guessed", player.num_guesses, "Times")
+    print("Top Words:", *summary[:10])
 
 
 if __name__ == "__main__":

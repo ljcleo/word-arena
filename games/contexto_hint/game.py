@@ -2,9 +2,7 @@ from pathlib import Path
 from random import Random
 from typing import override
 
-from common.game import BaseGame, GameResult
-
-type ContextoHintGameResult = GameResult[int, list[str], int, int, list[str]]
+from common.game import BaseGame
 
 
 class ContextoHintGame(BaseGame[int, list[str], int, int, list[str]]):

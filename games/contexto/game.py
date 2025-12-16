@@ -4,10 +4,8 @@ from typing import override
 
 import httpx
 
-from common.game import BaseGame, GameResult
+from common.game import BaseGame
 from games.contexto.common import ContextoError, ContextoResponse, ContextoResult
-
-type ContextoGameResult = GameResult[int, None, str, ContextoResult, list[str]]
 
 
 class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):

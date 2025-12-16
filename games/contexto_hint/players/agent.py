@@ -1,12 +1,10 @@
-from collections import deque
 from collections.abc import Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
 
-from agent.memory import GameRecord
+from agent.memory import GameRecord, Turn
 from agent.player import AgentMemory, Analysis, BaseAgentPlayer
-from common.common import GameResult
 from llm.common import Message
 
 
@@ -41,24 +39,20 @@ It is guaranteed that there is a candidate word closer than the current best gue
 
 
 def process_trajectory(
-    *,
-    trajectory: Iterable[tuple[list[str], tuple[Analysis, int], int]],
-    num_latest_analysis: int,
-    summary: list[str] | None,
-) -> tuple[str, str, int]:
+    *, trajectory: Iterable[Turn[list[str], Analysis, int, int]], summary: list[str] | None
+) -> tuple[str, int]:
     word_pos: dict[str, int] | None = (
         None if summary is None else {word: pos + 1 for pos, word in enumerate(summary)}
     )
 
-    all_analyses: deque[Analysis] = deque()
-    trajectory_sections: list[str] = []
+    sections: list[str] = []
     index: int = -1
 
-    for index, (hint, (analysis, guess), position) in enumerate(trajectory):
-        all_analyses.append(analysis)
-        if len(all_analyses) > num_latest_analysis:
-            all_analyses.popleft()
-
+    for index, turn in enumerate(trajectory):
+        hint: list[str] = turn["hint"]
+        analysis: Analysis | None = turn["analysis"]
+        guess: int = turn["guess"]
+        position: int = turn["result"] + 1
         candidates: str
 
         if word_pos is None:
@@ -66,34 +60,28 @@ def process_trajectory(
         else:
             candidates = ", ".join(f"{word} (Position: {word_pos[word]})" for word in hint)
 
-        trajectory_sections.extend(
+        if analysis is not None:
+            sections.extend(
+                (
+                    f"Analysis Before Guess {index + 1}: {analysis.analysis}",
+                    f"Plan Before Guess {index + 1}: {analysis.plan}",
+                )
+            )
+
+        sections.extend(
             (
                 f"Guess {index + 1}",
                 f"Candidates: {candidates}",
                 f"Guess: {hint[guess]}",
-                f"Position: {position + 1}",
+                f"Position: {position}",
             )
         )
 
     index += 2
     if index == 1:
-        trajectory_sections.append("(empty)")
+        sections.append("(empty)")
 
-    analysis_sections: list[str] = []
-
-    for a_index, analysis in enumerate(all_analyses):
-        analysis_sections.extend(
-            (
-                f"Guess {index - len(all_analyses) + a_index}",
-                f"Analysis: {'(none)' if analysis.analysis is None else analysis.analysis}",
-                f"Plan: {'(none)' if analysis.plan is None else analysis.plan}",
-            )
-        )
-
-    if len(analysis_sections) == 0:
-        analysis_sections.append("(empty)")
-
-    return "\n".join(trajectory_sections), "\n".join(analysis_sections), index
+    return "\n".join(sections), index
 
 
 class ContextoHintMemory(
@@ -117,11 +105,15 @@ class ContextoHintMemory(
 
     @override
     def make_reflection_messages(
-        self, *, game_result: GameResult[int, list[str], tuple[Analysis, int], int, list[str]]
+        self,
+        *,
+        game_info: int,
+        trajectory: Iterable[Turn[list[str], Analysis, int, int]],
+        summary: list[str],
     ) -> Iterator[Message]:
-        assert game_result["game_info"] == self.game_info
+        assert game_info == self.game_info
         yield self._make_system_message(num_candidates=self.game_info, num_trial=1)
-        yield self._make_record_message(record={"game_result": game_result, "reflection": None})
+        yield self._make_record_message(trajectory=trajectory, summary=summary, reflection=None)
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
@@ -137,16 +129,21 @@ class ContextoHintMemory(
         self,
         *,
         history: list[
-            GameRecord[int, list[str], int, int, list[str], Analysis, ContextoHintReflection]
+            GameRecord[int, list[str], Analysis, int, int, list[str], ContextoHintReflection]
         ],
     ) -> Iterator[Message]:
         for record in history:
-            assert record["game_result"]["game_info"] == self.game_info
+            assert record["game_info"] == self.game_info
 
         yield self._make_system_message(num_candidates=self.game_info, num_trial=len(self._history))
 
         for index, record in enumerate(history):
-            yield self._make_record_message(record=record, index=index + 1)
+            yield self._make_record_message(
+                trajectory=record["trajectory"],
+                summary=record["summary"],
+                reflection=record["reflection"],
+                index=index + 1,
+            )
 
         yield Message.human(
             "Current Notes about Word Similarity Laws:",
@@ -189,15 +186,11 @@ class ContextoHintMemory(
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, list[str], int, int, list[str], Analysis, ContextoHintReflection],
+        trajectory: Iterable[Turn[list[str], Analysis, int, int]],
+        summary: list[str],
+        reflection: ContextoHintReflection | None,
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[int, list[str], tuple[Analysis, int], int, list[str]] = record[
-            "game_result"
-        ]
-
-        summary: list[str] = game_result["summary"]
-
         sections: list[str] = []
         if index is not None:
             sections.append(f"Trial {index}")
@@ -205,16 +198,13 @@ class ContextoHintMemory(
         sections.extend(
             (
                 "Your guess records:",
-                process_trajectory(
-                    trajectory=game_result["trajectory"], num_latest_analysis=0, summary=summary
-                )[0],
+                process_trajectory(trajectory=trajectory, summary=summary)[0],
                 f"Secret word: {summary[0]}",
                 "Top 30 words:",
                 ", ".join(summary[:30]),
             )
         )
 
-        reflection: ContextoHintReflection | None = record["reflection"]
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 
@@ -231,30 +221,26 @@ class ContextoHintAgentPlayer(
         self,
         *,
         game_info: int,
-        experience: ContextoHintExperience | None,
-        current_trajectory: Iterable[tuple[list[str], tuple[Analysis, int], int]],
+        experience: ContextoHintExperience,
+        current_trajectory: Iterable[Turn[list[str], Analysis, int, int]],
         hint: list[str],
     ) -> Iterator[Message]:
-        system_prompt_sections: list[str] = [
-            "You are an intelligent AI good at understanding word relations.\n\n"
-            f"{make_game_rule(num_candidates=game_info)}"
-        ]
-
-        if experience is not None:
-            system_prompt_sections.append(f"{experience.law}\n\n{experience.strategy}")
-
-        yield Message.system("\n---\n".join(system_prompt_sections))
-
-        trajectory_str: str
-        analysis_str: str
-        turn_index: int
-
-        trajectory_str, analysis_str, turn_index = process_trajectory(
-            trajectory=current_trajectory, num_latest_analysis=3, summary=None
+        yield Message.system(
+            "\n---\n".join(
+                [
+                    "You are an intelligent AI good at understanding word relations.\n\n"
+                    f"{make_game_rule(num_candidates=game_info)}",
+                    f"{experience.law}\n\n{experience.strategy}",
+                ]
+            )
         )
 
+        trajectory_str: str
+        turn_index: int
+
+        trajectory_str, turn_index = process_trajectory(trajectory=current_trajectory, summary=None)
+
         yield Message.human("History:", trajectory_str)
-        yield Message.human("Last 3 Analyses:", analysis_str)
 
         options: str = "; ".join(
             f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint)
@@ -293,7 +279,7 @@ def main() -> None:
     from time import time_ns
 
     from agent.player import PromptMode
-    from games.contexto_hint.game import ContextoHintGameManager, ContextoHintGameResult
+    from games.contexto_hint.game import ContextoHintGameManager
     from llm.openai import OpenAILLM
 
     model: OpenAILLM = OpenAILLM(
@@ -330,21 +316,21 @@ def main() -> None:
 
         for _ in range(num_train_loops):
             for i in range(num_in_loop_trials):
-                result: ContextoHintGameResult = game_manager.create_game(
-                    game_id=None, num_candidates=5
-                ).play(player=player)
-
-                player.memory.reflect(
-                    summary=result["summary"], update_experience=i == num_in_loop_trials - 1
+                summary: list[str] = game_manager.create_game(game_id=None, num_candidates=5).play(
+                    player=player
                 )
 
-    result = game_manager.create_game(game_id=int(input("Input Game ID: ")), num_candidates=5).play(
-        player=player
-    )
+                player.memory.reflect(
+                    summary=summary, update_experience=i == num_in_loop_trials - 1
+                )
 
-    print("You Guessed", len(result["trajectory"]), "Times")
-    print("Top Words:", *result["summary"][:10])
-    player.memory.reflect(summary=result["summary"], update_experience=False)
+    summary = game_manager.create_game(
+        game_id=int(input("Input Game ID: ")), num_candidates=5
+    ).play(player=player)
+
+    print("You Guessed", sum(1 for _ in player.memory.current_trajectory), "Times")
+    print("Top Words:", *summary[:10])
+    player.memory.reflect(summary=summary, update_experience=False)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
-from collections import deque
 from collections.abc import Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
 
-from agent.memory import GameRecord
-from agent.player import AgentMemory, Analysis, BaseAgentPlayer
-from common.common import GameResult
+from agent.memory import GameRecord, Turn
+from agent.player import AgentMemory, Analysis, BaseParallelAgentPlayer
 from games.contexto.common import ContextoError, ContextoResult
 from llm.common import Message
 
@@ -42,20 +40,14 @@ Your guess must be a **single word with only lowercase letters and no hyphens**.
 You have {"unlimited" if max_guesses <= 0 else max_guesses} guesses in total."""
 
 
-def process_trajectory(
-    *,
-    trajectory: Iterable[tuple[None, tuple[Analysis, str], ContextoResult]],
-    num_latest_analysis: int,
-) -> tuple[str, str]:
-    all_analyses: deque[Analysis] = deque()
-    trajectory_sections: list[str] = []
+def process_trajectory(*, trajectory: Iterable[Turn[None, Analysis, str, ContextoResult]]) -> str:
+    sections: list[str] = []
     index: int = -1
 
-    for index, (_, (analysis, guess), result) in enumerate(trajectory):
-        all_analyses.append(analysis)
-        if len(all_analyses) > num_latest_analysis:
-            all_analyses.popleft()
-
+    for index, turn in enumerate(trajectory):
+        analysis: Analysis | None = turn["analysis"]
+        guess: str = turn["guess"]
+        result: ContextoResult = turn["result"]
         result_str: str
 
         if isinstance(result, ContextoError):
@@ -63,7 +55,15 @@ def process_trajectory(
         else:
             result_str = f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
 
-        trajectory_sections.extend(
+        if analysis is not None:
+            sections.extend(
+                (
+                    f"Analysis Before Guess {index + 1}: {analysis.analysis}",
+                    f"Plan Before Guess {index + 1}: {analysis.plan}",
+                )
+            )
+
+        sections.extend(
             (
                 f"Guess {index + 1}",
                 f"Guess: {guess}",
@@ -72,23 +72,9 @@ def process_trajectory(
         )
 
     if index == -1:
-        trajectory_sections.append("(empty)")
+        sections.append("(empty)")
 
-    analysis_sections: list[str] = []
-
-    for a_index, analysis in enumerate(all_analyses):
-        analysis_sections.extend(
-            (
-                f"Guess {index - len(all_analyses) + a_index + 2}",
-                f"Analysis: {'(none)' if analysis.analysis is None else analysis.analysis}",
-                f"Plan: {'(none)' if analysis.plan is None else analysis.plan}",
-            )
-        )
-
-    if len(analysis_sections) == 0:
-        analysis_sections.append("(empty)")
-
-    return "\n".join(trajectory_sections), "\n".join(analysis_sections)
+    return "\n".join(sections)
 
 
 class ContextoMemory(
@@ -112,11 +98,15 @@ class ContextoMemory(
 
     @override
     def make_reflection_messages(
-        self, *, game_result: GameResult[int, None, tuple[Analysis, str], ContextoResult, list[str]]
+        self,
+        *,
+        game_info: int,
+        trajectory: Iterable[Turn[None, Analysis, str, ContextoResult]],
+        summary: list[str],
     ) -> Iterator[Message]:
-        assert game_result["game_info"] == self.game_info
+        assert game_info == self.game_info
         yield self._make_system_message(max_guesses=self.game_info, num_trial=1)
-        yield self._make_record_message(record={"game_result": game_result, "reflection": None})
+        yield self._make_record_message(trajectory=trajectory, summary=summary, reflection=None)
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
@@ -131,16 +121,21 @@ class ContextoMemory(
         self,
         *,
         history: list[
-            GameRecord[int, None, str, ContextoResult, list[str], Analysis, ContextoReflection]
+            GameRecord[int, None, Analysis, str, ContextoResult, list[str], ContextoReflection]
         ],
     ) -> Iterator[Message]:
         for record in history:
-            assert record["game_result"]["game_info"] == self.game_info
+            assert record["game_info"] == self.game_info
 
         yield self._make_system_message(max_guesses=self.game_info, num_trial=len(self._history))
 
         for index, record in enumerate(history):
-            yield self._make_record_message(record=record, index=index + 1)
+            yield self._make_record_message(
+                trajectory=record["trajectory"],
+                summary=record["summary"],
+                reflection=record["reflection"],
+                index=index + 1,
+            )
 
         yield Message.human(
             "Current Notes about Word Similarity Laws:",
@@ -183,15 +178,11 @@ class ContextoMemory(
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, None, str, ContextoResult, list[str], Analysis, ContextoReflection],
+        trajectory: Iterable[Turn[None, Analysis, str, ContextoResult]],
+        summary: list[str],
+        reflection: ContextoReflection | None,
         index: int | None = None,
     ) -> Message:
-        game_result: GameResult[int, None, tuple[Analysis, str], ContextoResult, list[str]] = (
-            record["game_result"]
-        )
-
-        summary: list[str] = game_result["summary"]
-
         sections: list[str] = []
         if index is not None:
             sections.append(f"Trial {index}")
@@ -199,14 +190,13 @@ class ContextoMemory(
         sections.extend(
             (
                 "Your guess records:",
-                process_trajectory(trajectory=game_result["trajectory"], num_latest_analysis=0)[0],
+                process_trajectory(trajectory=trajectory),
                 f"Secret word: {summary[0]}",
                 "Top 30 words:",
                 ", ".join(summary[:30]),
             )
         )
 
-        reflection: ContextoReflection | None = record["reflection"]
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 
@@ -214,8 +204,8 @@ class ContextoMemory(
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[
-        int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience
+    BaseParallelAgentPlayer[
+        int, str, ContextoResult, list[str], ContextoReflection, ContextoExperience
     ]
 ):
     @override
@@ -223,35 +213,30 @@ class ContextoAgentPlayer(
         self,
         *,
         game_info: int,
-        experience: ContextoExperience | None,
-        current_trajectory: Iterable[tuple[None, tuple[Analysis, str], ContextoResult]],
-        hint: None,
+        experience: ContextoExperience,
+        current_trajectory: Iterable[Turn[None, Analysis, str, ContextoResult]],
     ) -> Iterator[Message]:
-        system_prompt_sections: list[str] = [
-            "You are an intelligent AI good at understanding word relations.\n\n"
-            f"{make_game_rule(max_guesses=game_info)}"
-        ]
-
-        if experience is not None:
-            system_prompt_sections.append(f"{experience.law}\n\n{experience.strategy}")
-
-        yield Message.system("\n---\n".join(system_prompt_sections))
-
-        trajectory_str: str
-        analysis_str: str
-
-        trajectory_str, analysis_str = process_trajectory(
-            trajectory=current_trajectory, num_latest_analysis=3
+        yield Message.system(
+            "\n---\n".join(
+                [
+                    "You are an intelligent AI good at understanding word relations.\n\n"
+                    f"{make_game_rule(max_guesses=game_info)}",
+                    f"{experience.law}\n\n{experience.strategy}",
+                ]
+            )
         )
 
-        yield Message.human("History:", trajectory_str)
-        yield Message.human("Last 3 Analyses:", analysis_str)
+        yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
 
     @override
-    def make_full_guess_prompt(self, *, hint: None) -> Iterator[str]:
+    def make_full_guess_prompt(self) -> Iterator[str]:
         yield "Analyze the situation, then plan and make your next guess."
-        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
-        yield 'Respond in JSON format like `{"analysis": "...", "plan": "...", "guess": "word"}`.'
+        yield from self._make_guess_detail_prompt()
+
+        yield (
+            "Respond in JSON format like "
+            '`{"analysis": "...", "plan": "...", "guesses": ["word1", ...]}`.'
+        )
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
@@ -260,23 +245,34 @@ class ContextoAgentPlayer(
     @override
     def make_plan_prompt(self) -> Iterator[str]:
         yield "Write a paragraph to plan the next guess."
+        yield from self._make_guess_detail_prompt()
 
     @override
-    def make_simple_guess_prompt(self, *, hint: None) -> Iterator[str]:
+    def make_simple_guess_prompt(self) -> Iterator[str]:
         yield "Make your next guess."
-        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
-        yield 'Respond in JSON format like `{"guess": "word"}`.'
+        yield from self._make_guess_detail_prompt()
+        yield 'Respond in JSON format like `{"guesses": ["word1", ...]}`.'
 
     @override
-    def process_guess(self, *, hint: None, raw_guess: str) -> str:
+    def process_guess(self, *, raw_guess: str) -> str:
         return raw_guess
+
+    def _make_guess_detail_prompt(self) -> Iterator[str]:
+        max_parallel_guesses: str = (
+            "multiple"
+            if self.max_parallel_guesses is None
+            else f"at most {self.max_parallel_guesses}"
+        )
+
+        yield f"To speedup, you are allowed to make {max_parallel_guesses} guesses at once."
+        yield "Each guess should be a **single word with only lowercase letters and no hyphens**."
 
 
 def main() -> None:
     from time import time_ns
 
     from agent.player import PromptMode
-    from games.contexto.game import ContextoGameManager, ContextoGameResult
+    from games.contexto.game import ContextoGameManager
     from llm.openai import OpenAILLM
 
     model: OpenAILLM = OpenAILLM(
@@ -287,6 +283,19 @@ def main() -> None:
         timeout=7200,
     )
 
+    prompt_mode: PromptMode = (
+        (
+            PromptMode.MULTI_TURN
+            if input("Multi-turn? (y/n): ")[0].lower() == "y"
+            else PromptMode.DIRECT
+        )
+        if input("Analyze? (y/n): ")[0].lower() == "y"
+        else PromptMode.SIMPLE
+    )
+
+    max_parallel_guesses: int = int(input("Max Parallel Guesses (0 For Unlimited): "))
+    max_guesses: int = int(input("Max Guesses: "))
+
     player: ContextoAgentPlayer = ContextoAgentPlayer(
         model=model,
         memory=ContextoMemory(
@@ -294,13 +303,8 @@ def main() -> None:
             reflection_type=ContextoReflection,
             experience_type=ContextoExperience,
         ),
-        prompt_mode=(
-            PromptMode.MULTI_TURN
-            if input("Multi-turn? (y/n): ")[0].lower() == "y"
-            else PromptMode.DIRECT
-        )
-        if input("Analyze? (y/n): ")[0].lower() == "y"
-        else PromptMode.SIMPLE,
+        prompt_mode=prompt_mode,
+        max_parallel_guesses=None if max_parallel_guesses <= 0 else max_parallel_guesses,
     )
 
     game_manager: ContextoGameManager = ContextoGameManager(seed=time_ns())
@@ -311,21 +315,20 @@ def main() -> None:
 
         for _ in range(num_train_loops):
             for i in range(num_in_loop_trials):
-                result: ContextoGameResult = game_manager.create_game(
-                    game_id=None, max_guesses=50
-                ).play(player=player)
-
                 player.memory.reflect(
-                    summary=result["summary"], update_experience=i == num_in_loop_trials - 1
+                    summary=game_manager.create_game(game_id=None, max_guesses=max_guesses).play(
+                        player=player
+                    ),
+                    update_experience=i == num_in_loop_trials - 1,
                 )
 
-    result = game_manager.create_game(game_id=int(input("Input Game ID: ")), max_guesses=50).play(
-        player=player
-    )
+    summary: list[str] = game_manager.create_game(
+        game_id=int(input("Input Game ID: ")), max_guesses=max_guesses
+    ).play(player=player)
 
-    print("You Guessed", len(result["trajectory"]), "Times")
-    print("Top Words:", *result["summary"][:10])
-    player.memory.reflect(summary=result["summary"], update_experience=False)
+    print("You Guessed", sum(1 for _ in player.memory.current_trajectory), "Times")
+    print("Top Words:", *summary[:10])
+    player.memory.reflect(summary=summary, update_experience=False)
 
 
 if __name__ == "__main__":
