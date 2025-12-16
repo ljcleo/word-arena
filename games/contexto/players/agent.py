@@ -31,9 +31,10 @@ The position of the secret word is 1; the position of the word closest to the se
 Word similarity is based on the context in which words are used on the internet,
 related to both meaning and proximity.
 
-Every time, you choose a word as your next guess; if the word is accepted,
-you will see its position in the list, otherwise you will see the reject reason,
-such as invalid word format, word not in list, or taboo words.
+Every time, you choose a word as your next guess; the word will be lemmatized to its stem form.
+
+If the word is accepted, you will see its lemma and the lemma's position in the list,
+otherwise you will see the reject reason, such as invalid format, word not in list, or taboo words.
 
 Your guess must be a **single word with only lowercase letters and no hyphens**.
 
@@ -266,6 +267,7 @@ class ContextoAgentPlayer(
 
         yield f"To speedup, you are allowed to make {max_parallel_guesses} guesses at once."
         yield "Each guess should be a **single word with only lowercase letters and no hyphens**."
+        yield "Pay attention to the remaining trials --- don't always guess a lot of words."
 
 
 def main() -> None:
@@ -278,7 +280,7 @@ def main() -> None:
     model: OpenAILLM = OpenAILLM(
         api_key="sk-PInpH3EcNkJjwzqvB1EbBdF09e9b4b12A81fF0C325D55d71",
         base_url="https://openkey.cloud/v1",
-        model="gpt-5-mini",
+        model=input("LLM Model: "),
         max_tokens=32768,
         timeout=7200,
     )

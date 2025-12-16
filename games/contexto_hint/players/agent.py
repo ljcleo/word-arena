@@ -285,7 +285,7 @@ def main() -> None:
     model: OpenAILLM = OpenAILLM(
         api_key="sk-PInpH3EcNkJjwzqvB1EbBdF09e9b4b12A81fF0C325D55d71",
         base_url="https://openkey.cloud/v1",
-        model="gpt-5-mini",
+        model=input("LLM Model: "),
         max_tokens=32768,
         timeout=7200,
     )

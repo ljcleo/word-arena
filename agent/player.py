@@ -246,6 +246,7 @@ class BaseParallelAgentPlayer[GT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
     def digest(self, *, hint: None, guess: AT, result: RT) -> None:
         print("Result:", result)
         self._memory.digest(hint=hint, analysis=self._current_analysis, guess=guess, result=result)
+        self._current_analysis = None
 
     @abstractmethod
     def make_guess_info_messages(
