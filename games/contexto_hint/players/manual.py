@@ -4,7 +4,7 @@ from typing import override
 from players.manual import BaseManualPlayer
 
 
-class ContextoHintManualPlayer(BaseManualPlayer[int, list[str], int, int]):
+class ContextoHintManualPlayer(BaseManualPlayer[None, list[str], int, int]):
     @override
     def format_hint(self, *, hint: list[str]) -> Iterator[str]:
         yield "Candidates (Use Letter to Guess):"

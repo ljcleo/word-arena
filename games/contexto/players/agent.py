@@ -27,17 +27,7 @@ class ContextoExperience(BaseModel):
         return ContextoExperience.example().model_dump_json()
 
 
-def make_game_rule(*, max_guesses: int | None) -> str:
-    max_guesses_str: str = (
-        "You should try your best to minimize the number of guesses."
-        if max_guesses is None
-        else "You have unlimited guesses in total, "
-        "but you should try your best to minimize the number of guesses."
-        if max_guesses <= 0
-        else f"You have {max_guesses} guesses in total, so you should guess wisely."
-    )
-
-    return f"""You are playing a game where you need to find a secret word.
+CONTEXTO_GAME_RULE = """You are playing a game where you need to find a secret word.
 
 The game holds a word list with tens of thousands words, including the secret word,
 sorted by the similarity to the secret word.
@@ -55,7 +45,7 @@ otherwise you will see the reject reason, such as invalid format, word not in li
 
 Your guess must be a **single word with only lowercase letters and no hyphens**.
 
-{max_guesses_str}"""
+You should try your best to minimize the number of guesses; there may be a guessing limit."""
 
 
 def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) -> str:
@@ -85,17 +75,17 @@ def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]])
 
 class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], ContextoExperience]):
     @override
-    def process_game_info(self, *, game_info: int) -> None:
-        pass
-
-    @override
     def make_create_experience_messages(self) -> Iterator[Message]:
-        yield self._make_system_message(max_guesses=None, num_trial=0)
+        yield self._make_system_message(num_trial=0)
 
         yield Message.human(
             "Now, initialize some notes about the word similarity laws and possible strategies.",
             *self._make_note_prompt(),
         )
+
+    @override
+    def process_game_info(self, *, game_info: int) -> None:
+        pass
 
     @override
     def make_reflection_messages(
@@ -105,9 +95,11 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
         trajectory: Iterable[Turn[None, str, ContextoResult]],
         summary: list[str],
     ) -> Iterator[Message]:
-        assert game_info == self.game_info
-        yield self._make_system_message(max_guesses=self.game_info, num_trial=1)
-        yield self._make_record_message(trajectory=trajectory, summary=summary, reflection=None)
+        yield self._make_system_message(num_trial=1)
+
+        yield self._make_record_message(
+            max_guesses=self.game_info, trajectory=trajectory, summary=summary, reflection=None
+        )
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
@@ -120,13 +112,11 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
     def make_update_experience_messages(
         self, *, history: list[GameRecord[int, None, str, ContextoResult, list[str]]]
     ) -> Iterator[Message]:
-        for record in history:
-            assert record["game_info"] == self.game_info
-
-        yield self._make_system_message(max_guesses=self.game_info, num_trial=len(self._history))
+        yield self._make_system_message(num_trial=len(self._history))
 
         for index, record in enumerate(history):
             yield self._make_record_message(
+                max_guesses=record["game_info"],
                 trajectory=record["trajectory"],
                 summary=record["summary"],
                 reflection=record["reflection"],
@@ -148,11 +138,8 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
             *self._make_note_prompt(),
         )
 
-    def _make_system_message(self, *, max_guesses: int | None, num_trial: int) -> Message:
-        rule_hint: str = "\n".join(
-            f"> {line}" for line in make_game_rule(max_guesses=max_guesses).split("\n")
-        )
-
+    def _make_system_message(self, *, num_trial: int) -> Message:
+        rule_hint: str = "\n".join(f"> {line}" for line in CONTEXTO_GAME_RULE.split("\n"))
         trial_hint: str
 
         if num_trial == 0:
@@ -171,6 +158,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
     def _make_record_message(
         self,
         *,
+        max_guesses: int,
         trajectory: Iterable[Turn[None, str, ContextoResult]],
         summary: list[str],
         reflection: Reflection | None,
@@ -182,6 +170,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
         sections.extend(
             (
+                f"Maximum number of guesses: {'unlimited' if max_guesses <= 0 else max_guesses}"
                 "Your guess records:",
                 process_trajectory(trajectory=trajectory),
                 f"Secret word: {summary[0]}",
@@ -220,13 +209,17 @@ class ContextoAgentPlayer(
             "\n---\n".join(
                 [
                     "You are an intelligent AI good at understanding word relations.\n\n"
-                    f"{make_game_rule(max_guesses=game_info)}",
+                    f"{CONTEXTO_GAME_RULE}",
                     f"{experience.law}\n\n{experience.strategy}",
                 ]
             )
         )
 
-        yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
+        yield Message.human(
+            f"Maximum number of guesses: {'unlimited' if game_info <= 0 else game_info}",
+            "History:",
+            process_trajectory(trajectory=current_trajectory),
+        )
 
     @override
     def format_hint(self, *, hint: None) -> Iterator[str]:

@@ -116,11 +116,11 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
             self._history.clear()
 
     @abstractmethod
-    def process_game_info(self, *, game_info: GT) -> None:
+    def make_create_experience_messages(self) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
-    def make_create_experience_messages(self) -> Iterator[Message]:
+    def process_game_info(self, *, game_info: GT) -> None:
         raise NotImplementedError()
 
     @abstractmethod

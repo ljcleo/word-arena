@@ -26,10 +26,7 @@ class ContextoHintExperience(BaseModel):
         return ContextoHintExperience.example().model_dump_json()
 
 
-def make_game_rule(*, num_candidates: int | None) -> str:
-    num_candidates_str: str = "several" if num_candidates is None else str(num_candidates)
-
-    return f"""You are playing a game where you need to find a secret word.
+CONTEXTO_HINT_GAME_RULE: str = """You are playing a game where you need to find a secret word.
 
 The game holds a word list with 500 words, including the secret word,
 sorted by the similarity to the secret word.
@@ -40,7 +37,7 @@ The position of the secret word is 1; the position of the word closest to the se
 Word similarity is based on the context in which words are used on the internet,
 related to both meaning and proximity.
 
-Every time, the game provides {num_candidates_str} candidate words from the list that
+Every time, the game provides several candidate words from the list that
 you have not guessed before, but without their positions.
 
 You need to choose one of them as your next guess, then you will see its position in the list.
@@ -94,14 +91,10 @@ def process_trajectory(
     return "\n".join(sections), index
 
 
-class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], ContextoHintExperience]):
-    @override
-    def process_game_info(self, *, game_info: int) -> None:
-        pass
-
+class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], ContextoHintExperience]):
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
-        yield self._make_system_message(num_candidates=None, num_trial=0)
+        yield self._make_system_message(num_trial=0)
 
         yield Message.human(
             "Now, initialize some notes about the word similarity laws and possible strategies.",
@@ -109,15 +102,18 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
         )
 
     @override
+    def process_game_info(self, *, game_info: None) -> None:
+        pass
+
+    @override
     def make_reflection_messages(
         self,
         *,
-        game_info: int,
+        game_info: None,
         trajectory: Iterable[Turn[list[str], int, int]],
         summary: list[str],
     ) -> Iterator[Message]:
-        assert game_info == self.game_info
-        yield self._make_system_message(num_candidates=self.game_info, num_trial=1)
+        yield self._make_system_message(num_trial=1)
         yield self._make_record_message(trajectory=trajectory, summary=summary, reflection=None)
 
         yield Message.human(
@@ -130,12 +126,9 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
 
     @override
     def make_update_experience_messages(
-        self, *, history: list[GameRecord[int, list[str], int, int, list[str]]]
+        self, *, history: list[GameRecord[None, list[str], int, int, list[str]]]
     ) -> Iterator[Message]:
-        for record in history:
-            assert record["game_info"] == self.game_info
-
-        yield self._make_system_message(num_candidates=self.game_info, num_trial=len(self._history))
+        yield self._make_system_message(num_trial=len(self._history))
 
         for index, record in enumerate(history):
             yield self._make_record_message(
@@ -160,11 +153,8 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
             *self._make_note_prompt(),
         )
 
-    def _make_system_message(self, *, num_candidates: int | None, num_trial: int) -> Message:
-        rule_hint: str = "\n".join(
-            f"> {line}" for line in make_game_rule(num_candidates=num_candidates).split("\n")
-        )
-
+    def _make_system_message(self, *, num_trial: int) -> Message:
+        rule_hint: str = "\n".join(f"> {line}" for line in CONTEXTO_HINT_GAME_RULE.split("\n"))
         trial_hint: str
 
         if num_trial == 0:
@@ -217,7 +207,7 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
 
 
 class ContextoHintAgentPlayer(
-    BaseAgentPlayer[int, list[str], int, int, list[str], ContextoHintExperience]
+    BaseAgentPlayer[None, list[str], int, int, list[str], ContextoHintExperience]
 ):
     @override
     def format_hint(self, *, hint: list[str]) -> Iterator[str]:
@@ -228,7 +218,7 @@ class ContextoHintAgentPlayer(
     def make_guess_info_messages(
         self,
         *,
-        game_info: int,
+        game_info: None,
         experience: ContextoHintExperience,
         current_trajectory: Iterable[Turn[list[str], int, int]],
         hint: list[str],
@@ -237,7 +227,7 @@ class ContextoHintAgentPlayer(
             "\n---\n".join(
                 [
                     "You are an intelligent AI good at understanding word relations.\n\n"
-                    f"{make_game_rule(num_candidates=game_info)}",
+                    f"{CONTEXTO_HINT_GAME_RULE}",
                     f"{experience.law}\n\n{experience.strategy}",
                 ]
             )

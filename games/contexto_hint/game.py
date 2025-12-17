@@ -5,17 +5,16 @@ from typing import override
 from common.game import BaseGame
 
 
-class ContextoHintGame(BaseGame[int, list[str], int, int, list[str]]):
+class ContextoHintGame(BaseGame[None, list[str], int, int, list[str]]):
     def __init__(self, *, top_words: list[str], num_candidates: int, rng: Random) -> None:
         self._top_words: list[str] = top_words
         self._num_candidates: int = num_candidates
         self._rng: Random = rng
 
     @override
-    def start_game(self) -> int:
+    def start_game(self) -> None:
         self._used_pos: set[int] = set()
         self._best_pos: int = len(self._top_words)
-        return self._num_candidates
 
     @override
     def is_over(self) -> bool:
