@@ -5,7 +5,7 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.contexto.common import ContextoError, ContextoResult
+from games.contexto.common import ContextoResult, format_contexto_result
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, Reflection, Turn
 from players.agent.player import BaseAgentPlayer
@@ -56,13 +56,7 @@ def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]])
     for index, turn in enumerate(trajectory):
         analysis: Analysis | None = turn["analysis"]
         guess: str = turn["guess"]
-        result: ContextoResult = turn["result"]
-        result_str: str
-
-        if isinstance(result, ContextoError):
-            result_str = f"Reject -- {result.error}"
-        else:
-            result_str = f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
+        result: str = format_contexto_result(turn["result"])
 
         if analysis is not None:
             sections.extend(
@@ -72,13 +66,7 @@ def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]])
                 )
             )
 
-        sections.extend(
-            (
-                f"Guess {index + 1}",
-                f"Guess: {guess}",
-                f"Result: {result_str}",
-            )
-        )
+        sections.extend((f"Guess {index + 1}", f"Guess: {guess}", f"Result: {result}"))
 
     if index == -1:
         sections.append("(empty)")
@@ -232,6 +220,10 @@ class ContextoAgentPlayer(
         yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
 
     @override
+    def format_hint(self, *, hint: None) -> Iterator[str]:
+        yield from ()
+
+    @override
     def make_full_guess_prompt(
         self, *, hint: None, make_example: Callable[[str], str]
     ) -> Iterator[str]:
@@ -274,6 +266,10 @@ class ContextoAgentPlayer(
     @override
     def process_guess(self, *, hint: None, raw_guess: str) -> str:
         return raw_guess
+
+    @override
+    def format_result(self, *, hint: None, guess: str, result: ContextoResult) -> Iterator[str]:
+        yield f"Guess: {guess}; Result: {format_contexto_result(result)}"
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
         yield "Your guess should be a **single word with only lowercase letters and no hyphens**."

@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from typing import override
 
-from games.contexto.common import ContextoResult
+from games.contexto.common import ContextoResult, format_contexto_result
 from players.manual import BaseManualPlayer
 
 
@@ -16,4 +16,4 @@ class ContextoManualPlayer(BaseManualPlayer[int, None, str, ContextoResult]):
 
     @override
     def format_result(self, *, hint: None, guess: str, result: ContextoResult) -> Iterator[str]:
-        yield f"Guess: {guess}; Result: {result.model_dump_json()}"
+        yield f"Guess: {guess}; Result: {format_contexto_result(result)}"

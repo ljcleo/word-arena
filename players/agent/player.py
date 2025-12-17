@@ -42,6 +42,9 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BasePlayer[GT, PT, AT, 
 
     @override
     def guess(self, *, hint: PT) -> AT:
+        for section in self.format_hint(hint=hint):
+            print(section)
+
         messages: list[Message] = list(
             self.make_guess_info_messages(
                 game_info=self._memory.game_info,
@@ -106,8 +109,14 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BasePlayer[GT, PT, AT, 
 
     @override
     def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
-        print("Result:", result)
+        for section in self.format_result(hint=hint, guess=guess, result=result):
+            print(section)
+
         self._memory.digest(hint=hint, analysis=self._current_analysis, guess=guess, result=result)
+
+    @abstractmethod
+    def format_hint(self, *, hint: PT) -> Iterator[str]:
+        raise NotImplementedError()
 
     @abstractmethod
     def make_guess_info_messages(
@@ -142,4 +151,8 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BasePlayer[GT, PT, AT, 
 
     @abstractmethod
     def process_guess(self, *, hint: PT, raw_guess: str) -> AT:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def format_result(self, *, hint: PT, guess: AT, result: RT) -> Iterator[str]:
         raise NotImplementedError()

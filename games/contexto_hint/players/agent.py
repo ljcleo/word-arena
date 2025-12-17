@@ -218,6 +218,11 @@ class ContextoHintAgentPlayer(
     BaseAgentPlayer[int, list[str], int, int, list[str], ContextoHintExperience]
 ):
     @override
+    def format_hint(self, *, hint: list[str]) -> Iterator[str]:
+        yield "Candidates:"
+        yield self._make_options(hint=hint)
+
+    @override
     def make_guess_info_messages(
         self,
         *,
@@ -240,13 +245,7 @@ class ContextoHintAgentPlayer(
         turn_index: int
         trajectory_str, turn_index = process_trajectory(trajectory=current_trajectory, summary=None)
         yield Message.human("History:", trajectory_str)
-
-        options: str = "; ".join(
-            f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint)
-        )
-
-        print("Candidates:", options)
-        yield Message.human(f"Candidates of Guess {turn_index}:", options)
+        yield Message.human(f"Candidates of Guess {turn_index}:", self._make_options(hint=hint))
 
     @override
     def make_full_guess_prompt(
@@ -282,6 +281,13 @@ class ContextoHintAgentPlayer(
     @override
     def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
         return ord(raw_guess) - ord("A")
+
+    @override
+    def format_result(self, *, hint: list[str], guess: int, result: int) -> Iterator[str]:
+        yield f"Guess: {hint[guess]}; Position: {result + 1}"
+
+    def _make_options(self, *, hint: list[str]) -> str:
+        return "; ".join(f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint))
 
     def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
         yield f"For example, the choice is B if you choose {hint[1]}."

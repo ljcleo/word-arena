@@ -8,7 +8,7 @@ class ContextoHintManualPlayer(BaseManualPlayer[int, list[str], int, int]):
     @override
     def format_hint(self, *, hint: list[str]) -> Iterator[str]:
         yield "Candidates (Use Letter to Guess):"
-        yield " ".join(f"{chr(i + ord('A'))}: {candidate}" for i, candidate in enumerate(hint))
+        yield "; ".join(f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint))
 
     @override
     def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
