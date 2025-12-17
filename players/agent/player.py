@@ -1,13 +1,13 @@
 import enum
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel, create_model
 
-from agent.memory import BaseMemory, Turn
 from common.player import BasePlayer
 from llm.common import BaseLLM, Message
+from players.agent.memory import Analysis, BaseMemory, Turn
 
 
 @enum.unique
@@ -17,30 +17,13 @@ class PromptMode(enum.Enum):
     MULTI_TURN = enum.auto()
 
 
-class Analysis(BaseModel):
-    analysis: str
-    plan: str
-
-
-class AgentMemory[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
-    BaseMemory[GT, PT, Analysis, AT, RT, FT, TT, ET], ABC
-):
-    pass
-
-
-class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
-    BasePlayer[GT, PT, AT, RT], ABC
-):
+class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BasePlayer[GT, PT, AT, RT], ABC):
     def __init__(
-        self,
-        *,
-        model: BaseLLM,
-        memory: BaseMemory[GT, PT, Analysis, AT, RT, FT, TT, ET],
-        prompt_mode: PromptMode,
+        self, *, model: BaseLLM, memory: BaseMemory[GT, PT, AT, RT, FT, ET], prompt_mode: PromptMode
     ):
         self._model: BaseLLM = model
         self._prompt_mode: PromptMode = prompt_mode
-        self._memory: BaseMemory[GT, PT, Analysis, AT, RT, FT, TT, ET] = memory
+        self._memory: BaseMemory[GT, PT, AT, RT, FT, ET] = memory
         self._guess_model: type[BaseModel]
 
         if prompt_mode == PromptMode.DIRECT:
@@ -49,7 +32,7 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
             self._guess_model = create_model("Guess", guess=str)
 
     @property
-    def memory(self) -> BaseMemory[GT, PT, Analysis, AT, RT, FT, TT, ET]:
+    def memory(self) -> BaseMemory[GT, PT, AT, RT, FT, ET]:
         return self._memory
 
     @override
@@ -73,7 +56,14 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
         if self._prompt_mode == PromptMode.DIRECT:
             full_guess: BaseModel = self._model.parse(
                 *messages,
-                Message.human(*self.make_full_guess_prompt(hint=hint)),
+                Message.human(
+                    *self.make_full_guess_prompt(
+                        hint=hint,
+                        make_example=lambda e: self._guess_model(
+                            analysis=Analysis.example(), guess=e
+                        ).model_dump_json(),
+                    )
+                ),
                 format=self._guess_model,
             )
 
@@ -99,7 +89,12 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
             raw_guess = getattr(
                 self._model.parse(
                     *messages,
-                    Message.human(*self.make_simple_guess_prompt(hint=hint)),
+                    Message.human(
+                        *self.make_simple_guess_prompt(
+                            hint=hint,
+                            make_example=lambda e: self._guess_model(guess=e).model_dump_json(),
+                        )
+                    ),
                     format=self._guess_model,
                 ),
                 "guess",
@@ -120,13 +115,15 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
         *,
         game_info: GT,
         experience: ET,
-        current_trajectory: Iterable[Turn[PT, Analysis, AT, RT]],
+        current_trajectory: Iterable[Turn[PT, AT, RT]],
         hint: PT,
     ) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
-    def make_full_guess_prompt(self, *, hint: PT) -> Iterator[str]:
+    def make_full_guess_prompt(
+        self, *, hint: PT, make_example: Callable[[str], str]
+    ) -> Iterator[str]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -138,7 +135,9 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, TT: BaseModel, ET: BaseModel](
         raise NotImplementedError()
 
     @abstractmethod
-    def make_simple_guess_prompt(self, *, hint: PT) -> Iterator[str]:
+    def make_simple_guess_prompt(
+        self, *, hint: PT, make_example: Callable[[str], str]
+    ) -> Iterator[str]:
         raise NotImplementedError()
 
     @abstractmethod

@@ -1,21 +1,29 @@
-from collections.abc import Iterable, Iterator
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
 
-from agent.memory import GameRecord, Turn
-from agent.player import AgentMemory, Analysis, BaseAgentPlayer
 from llm.common import Message
-
-
-class ContextoHintReflection(BaseModel):
-    summary: str
-    lessons: str
+from players.agent.memory import Analysis, BaseMemory, GameRecord, Reflection, Turn
+from players.agent.player import BaseAgentPlayer
 
 
 class ContextoHintExperience(BaseModel):
     law: str
     strategy: str
+
+    @staticmethod
+    def example() -> ContextoHintExperience:
+        return ContextoHintExperience(
+            law="In summary, the word similarity obeys these laws: ...",
+            strategy="Follow these rules and strategies when guessing: ...",
+        )
+
+    @staticmethod
+    def example_str() -> str:
+        return ContextoHintExperience.example().model_dump_json()
 
 
 def make_game_rule(*, num_candidates: int) -> str:
@@ -39,7 +47,7 @@ It is guaranteed that there is a candidate word closer than the current best gue
 
 
 def process_trajectory(
-    *, trajectory: Iterable[Turn[list[str], Analysis, int, int]], summary: list[str] | None
+    *, trajectory: Iterable[Turn[list[str], int, int]], summary: list[str] | None
 ) -> tuple[str, int]:
     word_pos: dict[str, int] | None = (
         None if summary is None else {word: pos + 1 for pos, word in enumerate(summary)}
@@ -84,9 +92,7 @@ def process_trajectory(
     return "\n".join(sections), index
 
 
-class ContextoHintMemory(
-    AgentMemory[int, list[str], int, int, list[str], ContextoHintReflection, ContextoHintExperience]
-):
+class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], ContextoHintExperience]):
     @override
     def process_game_info(self, *, game_info: int) -> None:
         pass
@@ -97,10 +103,7 @@ class ContextoHintMemory(
 
         yield Message.human(
             "Now, initialize some notes about the word similarity laws and possible strategies.",
-            "The notes should help you choose the best word among the candidates.",
-            "Make your response clear and simple in JSON format like "
-            '`{"law": "In summary, the word similarity obeys these laws: ...", '
-            '"strategy": "Follow these rules and strategies when guessing: ..."}`.',
+            *self._make_note_prompt(),
         )
 
     @override
@@ -108,7 +111,7 @@ class ContextoHintMemory(
         self,
         *,
         game_info: int,
-        trajectory: Iterable[Turn[list[str], Analysis, int, int]],
+        trajectory: Iterable[Turn[list[str], int, int]],
         summary: list[str],
     ) -> Iterator[Message]:
         assert game_info == self.game_info
@@ -120,17 +123,12 @@ class ContextoHintMemory(
             "Make a summary of your guesses and summarize the lessons you have learned.",
             "Pay attention to the rounds where you failed to choose the word "
             "with the closest position among the candidates.",
-            "Make your response clear and simple in JSON format like "
-            '`{"summary": "In this trial, ...", "lessons": "..."}`.',
+            f"Make your response clear and simple in JSON format like `{Reflection.example()}`.",
         )
 
     @override
     def make_update_experience_messages(
-        self,
-        *,
-        history: list[
-            GameRecord[int, list[str], Analysis, int, int, list[str], ContextoHintReflection]
-        ],
+        self, *, history: list[GameRecord[int, list[str], int, int, list[str]]]
     ) -> Iterator[Message]:
         for record in history:
             assert record["game_info"] == self.game_info
@@ -157,10 +155,7 @@ class ContextoHintMemory(
 
         yield Message.human(
             "Now, update your notes about the word similarity laws and possible strategies.",
-            "The notes should help you choose the best word among the candidates.",
-            "Make your response clear and simple in JSON format like "
-            '`{"law": "In summary, the word similarity obeys these laws: ...", '
-            '"strategy": "Follow these rules and strategies when guessing: ..."}`.',
+            *self._make_note_prompt(),
         )
 
     def _make_system_message(self, *, num_candidates: int, num_trial: int) -> Message:
@@ -186,9 +181,9 @@ class ContextoHintMemory(
     def _make_record_message(
         self,
         *,
-        trajectory: Iterable[Turn[list[str], Analysis, int, int]],
+        trajectory: Iterable[Turn[list[str], int, int]],
         summary: list[str],
-        reflection: ContextoHintReflection | None,
+        reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
         sections: list[str] = []
@@ -210,11 +205,17 @@ class ContextoHintMemory(
 
         return Message.human(*sections)
 
+    def _make_note_prompt(self) -> Iterator[str]:
+        yield "The notes should help you choose the best word among the candidates."
+
+        yield (
+            "Make your response clear and simple in JSON format like "
+            f"`{ContextoHintExperience.example_str()}`."
+        )
+
 
 class ContextoHintAgentPlayer(
-    BaseAgentPlayer[
-        int, list[str], int, int, list[str], ContextoHintReflection, ContextoHintExperience
-    ]
+    BaseAgentPlayer[int, list[str], int, int, list[str], ContextoHintExperience]
 ):
     @override
     def make_guess_info_messages(
@@ -222,7 +223,7 @@ class ContextoHintAgentPlayer(
         *,
         game_info: int,
         experience: ContextoHintExperience,
-        current_trajectory: Iterable[Turn[list[str], Analysis, int, int]],
+        current_trajectory: Iterable[Turn[list[str], int, int]],
         hint: list[str],
     ) -> Iterator[Message]:
         yield Message.system(
@@ -237,9 +238,7 @@ class ContextoHintAgentPlayer(
 
         trajectory_str: str
         turn_index: int
-
         trajectory_str, turn_index = process_trajectory(trajectory=current_trajectory, summary=None)
-
         yield Message.human("History:", trajectory_str)
 
         options: str = "; ".join(
@@ -250,88 +249,39 @@ class ContextoHintAgentPlayer(
         yield Message.human(f"Candidates of Guess {turn_index}:", options)
 
     @override
-    def make_full_guess_prompt(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Analyze the situation, then plan and choose your next guess."
-        yield f"For example, the choice is B if you choose {hint[1]}."
-        yield 'Respond in JSON format like `{"analysis": "...", "plan": "...", "guess": "B"}`.'
+    def make_full_guess_prompt(
+        self, *, hint: list[str], make_example: Callable[[str], str]
+    ) -> Iterator[str]:
+        if self.memory.num_guesses == 0:
+            yield "Understand the game rules, then plan and make your choice."
+        else:
+            yield "Update your knowledge about the secret word, then plan and make your choice."
+
+        yield from self._make_guess_detail_prompt(hint=hint)
+        yield f"Respond in JSON format like `{make_example('B')}`."
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to analyze the situation."
+        if self.memory.num_guesses == 0:
+            yield "Write a paragraph to understand the game rules."
+        else:
+            yield "Write a paragraph to update your knowledge about the secret word."
 
     @override
     def make_plan_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to plan the next guess."
+        yield "Write a paragraph to plan your choice."
 
     @override
-    def make_simple_guess_prompt(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Choose your next guess."
-        yield f"For example, the choice is B if you choose {hint[1]}."
-        yield 'Respond in JSON format like `{"guess": "B"}`.'
+    def make_simple_guess_prompt(
+        self, *, hint: list[str], make_example: Callable[[str], str]
+    ) -> Iterator[str]:
+        yield "Make your choice."
+        yield from self._make_guess_detail_prompt(hint=hint)
+        yield f"Respond in JSON format like `{make_example('B')}`."
 
     @override
     def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
         return ord(raw_guess) - ord("A")
 
-
-def main() -> None:
-    from pathlib import Path
-    from time import time_ns
-
-    from agent.player import PromptMode
-    from games.contexto_hint.game import ContextoHintGameManager
-    from llm.openai import OpenAILLM
-
-    model: OpenAILLM = OpenAILLM(
-        api_key="sk-PInpH3EcNkJjwzqvB1EbBdF09e9b4b12A81fF0C325D55d71",
-        base_url="https://openkey.cloud/v1",
-        model=input("LLM Model: "),
-        max_tokens=32768,
-        timeout=7200,
-    )
-
-    player: ContextoHintAgentPlayer = ContextoHintAgentPlayer(
-        model=model,
-        memory=ContextoHintMemory(
-            model=model,
-            reflection_type=ContextoHintReflection,
-            experience_type=ContextoHintExperience,
-        ),
-        prompt_mode=(
-            PromptMode.MULTI_TURN
-            if input("Multi-turn? (y/n): ")[0].lower() == "y"
-            else PromptMode.DIRECT
-        )
-        if input("Analyze? (y/n): ")[0].lower() == "y"
-        else PromptMode.SIMPLE,
-    )
-
-    game_manager: ContextoHintGameManager = ContextoHintGameManager(
-        games_dir=Path("data/contexto_hint/games"), seed=time_ns()
-    )
-
-    if input("Train? (y/n): ")[0].lower() == "y":
-        num_train_loops: int = 3
-        num_in_loop_trials: int = 3
-
-        for _ in range(num_train_loops):
-            for i in range(num_in_loop_trials):
-                summary: list[str] = game_manager.create_game(game_id=None, num_candidates=5).play(
-                    player=player
-                )
-
-                player.memory.reflect(
-                    summary=summary, update_experience=i == num_in_loop_trials - 1
-                )
-
-    summary = game_manager.create_game(
-        game_id=int(input("Input Game ID: ")), num_candidates=5
-    ).play(player=player)
-
-    print("You Guessed", player.memory.num_guesses, "Times")
-    print("Top Words:", *summary[:10])
-    player.memory.reflect(summary=summary, update_experience=False)
-
-
-if __name__ == "__main__":
-    main()
+    def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
+        yield f"For example, the choice is B if you choose {hint[1]}."

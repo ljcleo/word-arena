@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import TypedDict
@@ -7,28 +9,51 @@ from pydantic import BaseModel
 from llm.common import BaseLLM, Message
 
 
-class Turn[PT, MT: BaseModel, AT, RT](TypedDict):
+class Analysis(BaseModel):
+    analysis: str
+    plan: str
+
+    @staticmethod
+    def example() -> Analysis:
+        return Analysis(analysis="...", plan="...")
+
+    @staticmethod
+    def example_str() -> str:
+        return Analysis.example().model_dump_json()
+
+
+class Turn[PT, AT, RT](TypedDict):
     hint: PT
-    analysis: MT | None
+    analysis: Analysis | None
     guess: AT
     result: RT
 
 
-class GameRecord[GT, PT, MT: BaseModel, AT, RT, FT, TT: BaseModel](TypedDict):
+class Reflection(BaseModel):
+    summary: str
+    lessons: str
+
+    @staticmethod
+    def example() -> Reflection:
+        return Reflection(summary="In this trial, ...", lessons="...")
+
+    @staticmethod
+    def example_str() -> str:
+        return Reflection.example().model_dump_json()
+
+
+class GameRecord[GT, PT, AT, RT, FT](TypedDict):
     game_info: GT
-    trajectory: list[Turn[PT, MT, AT, RT]]
+    trajectory: list[Turn[PT, AT, RT]]
     summary: FT
-    reflection: TT
+    reflection: Reflection
 
 
-class BaseMemory[GT, PT, MT: BaseModel, AT, RT, FT, TT: BaseModel, ET: BaseModel](ABC):
-    def __init__(
-        self, model: BaseLLM, reflection_type: type[TT], experience_type: type[ET]
-    ) -> None:
+class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
+    def __init__(self, model: BaseLLM, experience_type: type[ET]) -> None:
         self._model: BaseLLM = model
-        self._reflection_type: type[TT] = reflection_type
         self._experience_type: type[ET] = experience_type
-        self._history: list[GameRecord[GT, PT, MT, AT, RT, FT, TT]] = []
+        self._history: list[GameRecord[GT, PT, AT, RT, FT]] = []
 
     @property
     def game_info(self) -> GT:
@@ -43,29 +68,29 @@ class BaseMemory[GT, PT, MT: BaseModel, AT, RT, FT, TT: BaseModel, ET: BaseModel
         return len(self._trajectory)
 
     @property
-    def current_trajectory(self) -> Iterator[Turn[PT, MT, AT, RT]]:
+    def current_trajectory(self) -> Iterator[Turn[PT, AT, RT]]:
         yield from self._trajectory
 
     def prepare(self, *, game_info: GT) -> None:
         self._game_info: GT = game_info
-        self._trajectory: list[Turn[PT, MT, AT, RT]] = []
+        self._trajectory: list[Turn[PT, AT, RT]] = []
         self.process_game_info(game_info=game_info)
 
         self._experience: ET = self._model.parse(
             *self.make_create_experience_messages(), format=self._experience_type
         )
 
-    def digest(self, *, hint: PT, analysis: MT | None, guess: AT, result: RT) -> None:
+    def digest(self, *, hint: PT, analysis: Analysis | None, guess: AT, result: RT) -> None:
         self._trajectory.append(
             {"hint": hint, "analysis": analysis, "guess": guess, "result": result}
         )
 
     def reflect(self, *, summary: FT, update_experience: bool) -> None:
-        reflection: TT = self._model.parse(
+        reflection: Reflection = self._model.parse(
             *self.make_reflection_messages(
                 game_info=self.game_info, trajectory=self.current_trajectory, summary=summary
             ),
-            format=self._reflection_type,
+            format=Reflection,
         )
 
         print(f"Reflection: {reflection}")
@@ -99,12 +124,12 @@ class BaseMemory[GT, PT, MT: BaseModel, AT, RT, FT, TT: BaseModel, ET: BaseModel
 
     @abstractmethod
     def make_reflection_messages(
-        self, *, game_info: GT, trajectory: Iterable[Turn[PT, MT, AT, RT]], summary: FT
+        self, *, game_info: GT, trajectory: Iterable[Turn[PT, AT, RT]], summary: FT
     ) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
     def make_update_experience_messages(
-        self, *, history: list[GameRecord[GT, PT, MT, AT, RT, FT, TT]]
+        self, *, history: list[GameRecord[GT, PT, AT, RT, FT]]
     ) -> Iterator[Message]:
         raise NotImplementedError()
