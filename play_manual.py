@@ -59,7 +59,7 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
     from games.contexto_hint.game import ContextoHintGameManager
     from games.contexto_hint.players.manual import ContextoHintManualPlayer
 
-    class ContextoHintManualGym(BaseManualGym[int, list[str], int, int, list[str]]):
+    class ContextoHintManualGym(BaseManualGym[None, list[str], int, int, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoHintGameManager = ContextoHintGameManager(
                 games_dir=Path("./data/contexto_hint/games"), seed=seed
@@ -68,11 +68,11 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
             self._num_candidates: int = int(input("Number of Candidates: "))
 
         @override
-        def create_player(self) -> BaseManualPlayer[int, list[str], int, int]:
+        def create_player(self) -> BaseManualPlayer[None, list[str], int, int]:
             return ContextoHintManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[int, list[str], int, int, list[str]]:
+        def create_game(self) -> BaseGame[None, list[str], int, int, list[str]]:
             return self._game_manager.create_game(
                 game_id=int(input("Input Game ID: ")), num_candidates=self._num_candidates
             )

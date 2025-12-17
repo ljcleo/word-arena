@@ -94,7 +94,7 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
     )
 
     class ContextoHintAgentGym(
-        BaseAgentGym[int, list[str], int, int, list[str], ContextoHintExperience]
+        BaseAgentGym[None, list[str], int, int, list[str], ContextoHintExperience]
     ):
         def __init__(self) -> None:
             self._game_manager: ContextoHintGameManager = ContextoHintGameManager(
@@ -106,7 +106,7 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_player(
             self, *, model: BaseLLM, prompt_mode: PromptMode
-        ) -> BaseAgentPlayer[int, list[str], int, int, list[str], ContextoHintExperience]:
+        ) -> BaseAgentPlayer[None, list[str], int, int, list[str], ContextoHintExperience]:
             return ContextoHintAgentPlayer(
                 model=model,
                 memory=ContextoHintMemory(model=model, experience_type=ContextoHintExperience),
@@ -114,7 +114,7 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def create_game(self, *, select: bool) -> BaseGame[int, list[str], int, int, list[str]]:
+        def create_game(self, *, select: bool) -> BaseGame[None, list[str], int, int, list[str]]:
             return self._game_manager.create_game(
                 game_id=int(input("Input Game ID: ")) if select else None,
                 num_candidates=self._num_candidates,
