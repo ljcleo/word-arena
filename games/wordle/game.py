@@ -68,6 +68,6 @@ class WordleGameManager:
     def create_game(self, *, game_id: int | None) -> WordleGame:
         if game_id is None:
             game_id = self._rng.randrange(self._num_games)
+            print("Current Game ID:", game_id)
 
-        print("Current Game ID:", game_id)
         return WordleGame(word_list=self._word_list, game_id=game_id)

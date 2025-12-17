@@ -64,8 +64,7 @@ class ContextoHintGameManager:
     def create_game(self, *, game_id: int | None, num_candidates: int) -> ContextoHintGame:
         if game_id is None:
             game_id = self._rng.randrange(self._num_games)
-
-        print("Current Game ID:", game_id)
+            print("Current Game ID:", game_id)
 
         return ContextoHintGame(
             top_words=(self._games_dir / f"{game_id}.txt").read_text().strip().split(),

@@ -72,6 +72,6 @@ class ContextoGameManager:
     def create_game(self, *, game_id: int | None, max_guesses: int) -> ContextoGame:
         if game_id is None:
             game_id = self._rng.randrange(self._max_games + 1)
+            print("Current Game ID:", game_id)
 
-        print("Current Game ID:", game_id)
         return ContextoGame(game_id=game_id, max_guesses=max_guesses)
