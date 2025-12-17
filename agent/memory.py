@@ -39,6 +39,10 @@ class BaseMemory[GT, PT, MT: BaseModel, AT, RT, FT, TT: BaseModel, ET: BaseModel
         return self._experience
 
     @property
+    def num_guesses(self) -> int:
+        return len(self._trajectory)
+
+    @property
     def current_trajectory(self) -> Iterator[Turn[PT, MT, AT, RT]]:
         yield from self._trajectory
 

@@ -14,3 +14,4 @@ wheels/
 
 # Data
 data/**/games
+data/**/words.txt

@@ -8,3 +8,10 @@ dependencies = [
     "openai>=2.11.0",
     "tenacity>=9.1.2",
 ]
+
+[dependency-groups]
+crawl = [
+    "mitmproxy>=12.2.1",
+    "pyvirtualdisplay>=3.0",
+    "selenium>=4.39.0",
+]

@@ -4,7 +4,7 @@ from typing import override
 from pydantic import BaseModel
 
 from agent.memory import GameRecord, Turn
-from agent.player import AgentMemory, Analysis, BaseParallelAgentPlayer
+from agent.player import AgentMemory, Analysis, BaseAgentPlayer
 from games.contexto.common import ContextoError, ContextoResult
 from llm.common import Message
 
@@ -205,8 +205,8 @@ class ContextoMemory(
 
 
 class ContextoAgentPlayer(
-    BaseParallelAgentPlayer[
-        int, str, ContextoResult, list[str], ContextoReflection, ContextoExperience
+    BaseAgentPlayer[
+        int, None, str, ContextoResult, list[str], ContextoReflection, ContextoExperience
     ]
 ):
     @override
@@ -216,6 +216,7 @@ class ContextoAgentPlayer(
         game_info: int,
         experience: ContextoExperience,
         current_trajectory: Iterable[Turn[None, Analysis, str, ContextoResult]],
+        hint: None,
     ) -> Iterator[Message]:
         yield Message.system(
             "\n---\n".join(
@@ -230,44 +231,48 @@ class ContextoAgentPlayer(
         yield Message.human("History:", process_trajectory(trajectory=current_trajectory))
 
     @override
-    def make_full_guess_prompt(self) -> Iterator[str]:
-        yield "Analyze the situation, then plan and make your next guess."
-        yield from self._make_guess_detail_prompt()
+    def make_full_guess_prompt(self, *, hint: None) -> Iterator[str]:
+        if self.memory.num_guesses == 0:
+            yield "Understand the game rules, then plan and make your first guess."
+        else:
+            yield "Update your knowledge about the secret word, then plan and make your next guess."
 
-        yield (
-            "Respond in JSON format like "
-            '`{"analysis": "...", "plan": "...", "guesses": ["word1", ...]}`.'
-        )
+        yield from self._make_guess_detail_prompt()
+        yield 'Respond in JSON format like `{"analysis": "...", "plan": "...", "guess": "word"}`.'
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to analyze the situation."
+        if self.memory.num_guesses == 0:
+            yield "Write a paragraph to understand the game rules."
+        else:
+            yield "Write a paragraph to update your knowledge about the secret word."
 
     @override
     def make_plan_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to plan the next guess."
+        if self.memory.num_guesses == 0:
+            yield "Write a paragraph to plan the first guess."
+        else:
+            yield "Write a paragraph to plan the next guess."
+
         yield from self._make_guess_detail_prompt()
 
     @override
-    def make_simple_guess_prompt(self) -> Iterator[str]:
-        yield "Make your next guess."
+    def make_simple_guess_prompt(self, *, hint: None) -> Iterator[str]:
+        if self.memory.num_guesses == 0:
+            yield "Make your first guess."
+        else:
+            yield "Make your next guess."
+
         yield from self._make_guess_detail_prompt()
-        yield 'Respond in JSON format like `{"guesses": ["word1", ...]}`.'
+        yield 'Respond in JSON format like `{"guess": "word"}`.'
 
     @override
-    def process_guess(self, *, raw_guess: str) -> str:
+    def process_guess(self, *, hint: None, raw_guess: str) -> str:
         return raw_guess
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
-        max_parallel_guesses: str = (
-            "multiple"
-            if self.max_parallel_guesses is None
-            else f"at most {self.max_parallel_guesses}"
-        )
-
-        yield f"To speedup, you are allowed to make {max_parallel_guesses} guesses at once."
-        yield "Each guess should be a **single word with only lowercase letters and no hyphens**."
-        yield "Pay attention to the remaining trials --- don't always guess a lot of words."
+        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
+        yield "Pay attention to the number of remaining guesses."
 
 
 def main() -> None:
@@ -295,7 +300,6 @@ def main() -> None:
         else PromptMode.SIMPLE
     )
 
-    max_parallel_guesses: int = int(input("Max Parallel Guesses (0 For Unlimited): "))
     max_guesses: int = int(input("Max Guesses: "))
 
     player: ContextoAgentPlayer = ContextoAgentPlayer(
@@ -306,7 +310,6 @@ def main() -> None:
             experience_type=ContextoExperience,
         ),
         prompt_mode=prompt_mode,
-        max_parallel_guesses=None if max_parallel_guesses <= 0 else max_parallel_guesses,
     )
 
     game_manager: ContextoGameManager = ContextoGameManager(seed=time_ns())
@@ -328,7 +331,7 @@ def main() -> None:
         game_id=int(input("Input Game ID: ")), max_guesses=max_guesses
     ).play(player=player)
 
-    print("You Guessed", sum(1 for _ in player.memory.current_trajectory), "Times")
+    print("You Guessed", player.memory.num_guesses, "Times")
     print("Top Words:", *summary[:10])
     player.memory.reflect(summary=summary, update_experience=False)
 

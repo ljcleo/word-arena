@@ -328,7 +328,7 @@ def main() -> None:
         game_id=int(input("Input Game ID: ")), num_candidates=5
     ).play(player=player)
 
-    print("You Guessed", sum(1 for _ in player.memory.current_trajectory), "Times")
+    print("You Guessed", player.memory.num_guesses, "Times")
     print("Top Words:", *summary[:10])
     player.memory.reflect(summary=summary, update_experience=False)
 
