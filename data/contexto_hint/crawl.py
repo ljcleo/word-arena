@@ -26,17 +26,14 @@ if __name__ == "__main__":
     for game_id in range(2000):
         target_file: Path = target_dir / f"{game_id}.txt"
 
-        if target_file.exists():
-            print("Skip", game_id)
-            continue
+        if not target_file.exists():
+            top_words: list[str] | None = get_top(game_id)
 
-        top_words: list[str] | None = get_top(game_id)
+            if top_words is None:
+                print("Break", game_id)
+                break
 
-        if top_words is None:
-            print("Break", game_id)
-            break
-
-        target_file.write_text("\n".join(top_words))
-        print("Crawl", game_id)
+            target_file.write_text("\n".join(top_words))
+            print("Crawl", game_id)
 
     print("Done")
