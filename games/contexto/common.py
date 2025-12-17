@@ -16,7 +16,7 @@ type ContextoResult = ContextoResponse | ContextoError
 
 def format_contexto_result(result: ContextoResult, /) -> str:
     return (
-        f"Reject -- {result.error}"
+        f"Reject | {result.error}"
         if isinstance(result, ContextoError)
-        else f"Accept -- Lemmatized as {result.lemma}; Position {result.distance + 1}"
+        else f"Accept | Lemmatized as {result.lemma}; Position {result.distance + 1}"
     )

@@ -87,27 +87,33 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
 def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleResult
+    from games.wordle.common import WordleInfo, WordleResult
     from games.wordle.game import WordleGameManager
     from games.wordle.players.manual import WordleManualPlayer
 
-    class WordleManualGym(BaseManualGym[None, None, str, WordleResult, str]):
+    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleResult, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
                 word_list_file=Path("./data/wordle/words.txt"), seed=seed
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[None, None, str, WordleResult]:
+        def create_player(self) -> BaseManualPlayer[WordleInfo, None, str, WordleResult]:
             return WordleManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[None, None, str, WordleResult, str]:
-            return self._game_manager.create_game(game_id=int(input("Input Game ID: ")))
+        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleResult, list[str]]:
+            return self._game_manager.create_game(
+                target_ids=[
+                    int(input(f"Input Word {i + 1} ID: "))
+                    for i in range(int(input("Num Targets: ")))
+                ],
+                max_accept_guesses=int(input("Max Accept Guesses: ")),
+            )
 
         @override
-        def summarize(self, *, summary: str) -> None:
-            print("Answer:", summary)
+        def summarize(self, *, summary: list[str]) -> None:
+            print("Answer:", *summary)
 
     return WordleManualGym(seed=seed)
 
