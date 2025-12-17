@@ -55,6 +55,12 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         self._experience_type: type[ET] = experience_type
         self._history: list[GameRecord[GT, PT, AT, RT, FT]] = []
 
+        self._experience: ET = self._model.parse(
+            *self.make_create_experience_messages(), format=self._experience_type
+        )
+
+        print("Initial Experience:", self._experience, sep="\n\n")
+
     @property
     def game_info(self) -> GT:
         return self._game_info
@@ -75,10 +81,6 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         self._game_info: GT = game_info
         self._trajectory: list[Turn[PT, AT, RT]] = []
         self.process_game_info(game_info=game_info)
-
-        self._experience: ET = self._model.parse(
-            *self.make_create_experience_messages(), format=self._experience_type
-        )
 
     def digest(self, *, hint: PT, analysis: Analysis | None, guess: AT, result: RT) -> None:
         self._trajectory.append(
@@ -111,7 +113,6 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
             )
 
             print("New Experience:", self._experience, sep="\n\n")
-
             self._history.clear()
 
     @abstractmethod

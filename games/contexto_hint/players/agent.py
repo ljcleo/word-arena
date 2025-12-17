@@ -26,7 +26,9 @@ class ContextoHintExperience(BaseModel):
         return ContextoHintExperience.example().model_dump_json()
 
 
-def make_game_rule(*, num_candidates: int) -> str:
+def make_game_rule(*, num_candidates: int | None) -> str:
+    num_candidates_str: str = "several" if num_candidates is None else str(num_candidates)
+
     return f"""You are playing a game where you need to find a secret word.
 
 The game holds a word list with 500 words, including the secret word,
@@ -38,7 +40,7 @@ The position of the secret word is 1; the position of the word closest to the se
 Word similarity is based on the context in which words are used on the internet,
 related to both meaning and proximity.
 
-Every time, the game provides {num_candidates} candidate words from the list that
+Every time, the game provides {num_candidates_str} candidate words from the list that
 you have not guessed before, but without their positions.
 
 You need to choose one of them as your next guess, then you will see its position in the list.
@@ -99,7 +101,7 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
 
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
-        yield self._make_system_message(num_candidates=self.game_info, num_trial=0)
+        yield self._make_system_message(num_candidates=None, num_trial=0)
 
         yield Message.human(
             "Now, initialize some notes about the word similarity laws and possible strategies.",
@@ -158,7 +160,7 @@ class ContextoHintMemory(BaseMemory[int, list[str], int, int, list[str], Context
             *self._make_note_prompt(),
         )
 
-    def _make_system_message(self, *, num_candidates: int, num_trial: int) -> Message:
+    def _make_system_message(self, *, num_candidates: int | None, num_trial: int) -> Message:
         rule_hint: str = "\n".join(
             f"> {line}" for line in make_game_rule(num_candidates=num_candidates).split("\n")
         )

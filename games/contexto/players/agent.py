@@ -27,7 +27,16 @@ class ContextoExperience(BaseModel):
         return ContextoExperience.example().model_dump_json()
 
 
-def make_game_rule(*, max_guesses: int) -> str:
+def make_game_rule(*, max_guesses: int | None) -> str:
+    max_guesses_str: str = (
+        "You should try your best to minimize the number of guesses."
+        if max_guesses is None
+        else "You have unlimited guesses in total, "
+        "but you should try your best to minimize the number of guesses."
+        if max_guesses <= 0
+        else f"You have {max_guesses} guesses in total, so you should guess wisely."
+    )
+
     return f"""You are playing a game where you need to find a secret word.
 
 The game holds a word list with tens of thousands words, including the secret word,
@@ -46,7 +55,7 @@ otherwise you will see the reject reason, such as invalid format, word not in li
 
 Your guess must be a **single word with only lowercase letters and no hyphens**.
 
-You have {"unlimited" if max_guesses <= 0 else max_guesses} guesses in total."""
+{max_guesses_str}"""
 
 
 def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) -> str:
@@ -81,7 +90,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
-        yield self._make_system_message(max_guesses=self.game_info, num_trial=0)
+        yield self._make_system_message(max_guesses=None, num_trial=0)
 
         yield Message.human(
             "Now, initialize some notes about the word similarity laws and possible strategies.",
@@ -139,7 +148,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
             *self._make_note_prompt(),
         )
 
-    def _make_system_message(self, *, max_guesses: int, num_trial: int) -> Message:
+    def _make_system_message(self, *, max_guesses: int | None, num_trial: int) -> Message:
         rule_hint: str = "\n".join(
             f"> {line}" for line in make_game_rule(max_guesses=max_guesses).split("\n")
         )
