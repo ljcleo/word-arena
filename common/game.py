@@ -14,7 +14,7 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
             result: RT = self.process_guess(guess=guess)
             player.digest(hint=hint, guess=guess, result=result)
 
-        return self.summarize_game()
+        return self.get_final_result()
 
     @abstractmethod
     def start_game(self) -> GT:
@@ -33,5 +33,5 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def summarize_game(self) -> FT:
+    def get_final_result(self) -> FT:
         raise NotImplementedError()

@@ -51,13 +51,13 @@ It is guaranteed that there is a candidate word closer than the current best gue
 
 
 def format_trajectory(
-    *, trajectory: Iterable[Turn[list[str], int, int]], summary: list[str] | None
+    *, trajectory: Iterable[Turn[list[str], int, int]], final_result: list[str] | None
 ) -> Iterator[str]:
     yield "Guess History:"
     sections: list[str] = []
 
     word_pos: dict[str, int] | None = (
-        None if summary is None else {word: pos + 1 for pos, word in enumerate(summary)}
+        None if final_result is None else {word: pos + 1 for pos, word in enumerate(final_result)}
     )
 
     for index, turn in enumerate(trajectory):
@@ -165,14 +165,16 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
         if index is not None:
             sections.append(f"Trial {index}")
 
-        sections.extend(format_trajectory(trajectory=record.trajectory, summary=record.summary))
+        sections.extend(
+            format_trajectory(trajectory=record.trajectory, final_result=record.final_result)
+        )
         if record.latest_analysis is not None:
             sections.extend(format_analysis(analysis=record.latest_analysis))
 
         sections.extend(
             (
-                f"Secret Word: {record.summary[0]}",
-                f"Top 30 Words: {', '.join(record.summary[:30])}",
+                f"Secret Word: {record.final_result[0]}",
+                f"Top 30 Words: {', '.join(record.final_result[:30])}",
             )
         )
 
@@ -214,7 +216,7 @@ class ContextoHintAgentPlayer(
             )
         )
 
-        yield Message.human(*format_trajectory(trajectory=current_trajectory, summary=None))
+        yield Message.human(*format_trajectory(trajectory=current_trajectory, final_result=None))
         if latest_analysis is not None:
             yield Message.human(*format_analysis(analysis=latest_analysis))
 

@@ -9,9 +9,9 @@ from players.manual import BaseManualPlayer
 class BaseManualGym[GT, PT, AT, RT, FT](ABC):
     def play(self) -> None:
         player: BaseManualPlayer[GT, PT, AT, RT] = self.create_player()
-        summary: FT = self.create_game().play(player=player)
+        final_result: FT = self.create_game().play(player=player)
         print("You Guessed", player.num_guesses, "Times")
-        self.summarize(summary=summary)
+        self.report_final_result(final_result=final_result)
 
     @abstractmethod
     def create_player(self) -> BaseManualPlayer[GT, PT, AT, RT]:
@@ -22,7 +22,7 @@ class BaseManualGym[GT, PT, AT, RT, FT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def summarize(self, *, summary: FT) -> None:
+    def report_final_result(self, *, final_result: FT) -> None:
         raise NotImplementedError()
 
 
@@ -47,8 +47,8 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Top Words:", *summary[:10])
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Top Words:", *final_result[:10])
 
     return ContextoManualGym(seed=seed)
 
@@ -78,8 +78,8 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Top Words:", *summary[:10])
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Top Words:", *final_result[:10])
 
     return ContextoHintManualGym(seed=seed)
 
@@ -111,8 +111,8 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Answer:", *summary)
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Answer:", *final_result)
 
     return WordleManualGym(seed=seed)
 
@@ -145,8 +145,8 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Answer:", *summary)
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Answer:", *final_result)
 
     return LetrosoManualGym(seed=seed)
 

@@ -46,7 +46,7 @@ class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
             raise RuntimeError(f"Status code {response.status_code}")
 
     @override
-    def summarize_game(self) -> list[str]:
+    def get_final_result(self) -> list[str]:
         return httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"]
 
 

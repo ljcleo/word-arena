@@ -53,7 +53,7 @@ class ContextoHintGame(BaseGame[None, list[str], int, int, list[str]]):
         return pos
 
     @override
-    def summarize_game(self) -> list[str]:
+    def get_final_result(self) -> list[str]:
         return self._top_words
 
 

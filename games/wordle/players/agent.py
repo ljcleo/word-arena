@@ -158,7 +158,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleResult, list[str], Wo
         if record.latest_analysis is not None:
             sections.extend(format_analysis(analysis=record.latest_analysis))
 
-        sections.append(f"Secret Words: {'/'.join(record.summary)}")
+        sections.append(f"Secret Words: {'/'.join(record.final_result)}")
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 

@@ -50,7 +50,7 @@ class GameRecord[GT, PT, AT, RT, FT](BaseModel):
     game_info: GT
     trajectory: list[Turn[PT, AT, RT]]
     latest_analysis: Analysis | None
-    summary: FT
+    final_result: FT
 
 
 class GameSummary[GT, PT, AT, RT, FT](BaseModel):
@@ -95,12 +95,12 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         self._trajectory.append(Turn(hint=hint, guess=guess, result=result))
         self._latest_analysis = analysis
 
-    def reflect(self, *, summary: FT, update_experience: bool) -> None:
+    def reflect(self, *, final_result: FT, update_experience: bool) -> None:
         record: GameRecord[GT, PT, AT, RT, FT] = GameRecord(
             game_info=self.game_info,
             trajectory=self._trajectory,
             latest_analysis=self._latest_analysis,
-            summary=summary,
+            final_result=final_result,
         )
 
         reflection: Reflection = self._model.parse(

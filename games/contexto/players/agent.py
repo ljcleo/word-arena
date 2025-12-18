@@ -160,8 +160,8 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
         sections.extend(
             (
-                f"Secret Word: {record.summary[0]}",
-                f"Top 30 Words: {', '.join(record.summary[:30])}",
+                f"Secret Word: {record.final_result[0]}",
+                f"Top 30 Words: {', '.join(record.final_result[:30])}",
             )
         )
 

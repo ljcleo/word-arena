@@ -70,7 +70,7 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
         return WordleResponse(results=results)
 
     @override
-    def summarize_game(self) -> list[str]:
+    def get_final_result(self) -> list[str]:
         return self._answers
 
 

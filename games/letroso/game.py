@@ -99,7 +99,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
         return LetrosoResponse(results=results)
 
     @override
-    def summarize_game(self) -> list[str]:
+    def get_final_result(self) -> list[str]:
         return self._answers
 
 

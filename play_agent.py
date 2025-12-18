@@ -22,14 +22,14 @@ class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
             for _ in range(num_train_loops):
                 for i in range(num_in_loop_trials):
                     player.memory.reflect(
-                        summary=self.create_game(select=False).play(player=player),
+                        final_result=self.create_game(select=False).play(player=player),
                         update_experience=i == num_in_loop_trials - 1,
                     )
 
-        summary: FT = self.create_game(select=True).play(player=player)
+        final_result: FT = self.create_game(select=True).play(player=player)
         print("You Guessed", player.memory.num_guesses, "Times")
-        self.summarize(summary=summary)
-        player.memory.reflect(summary=summary, update_experience=False)
+        self.report_final_result(final_result=final_result)
+        player.memory.reflect(final_result=final_result, update_experience=False)
 
     @abstractmethod
     def create_player(
@@ -42,7 +42,7 @@ class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def summarize(self, *, summary: FT) -> None:
+    def report_final_result(self, *, final_result: FT) -> None:
         raise NotImplementedError()
 
 
@@ -77,8 +77,8 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Top Words:", *summary[:10])
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Top Words:", *final_result[:10])
 
     return ContextoAgentGym()
 
@@ -121,8 +121,8 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Top Words:", *summary[:10])
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Top Words:", *final_result[:10])
 
     return ContextoHintAgentGym()
 
@@ -170,8 +170,8 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def summarize(self, *, summary: list[str]) -> None:
-            print("Answer:", *summary)
+        def report_final_result(self, *, final_result: list[str]) -> None:
+            print("Answer:", *final_result)
 
     return WordleAgentGym(seed=seed)
 
