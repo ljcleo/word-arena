@@ -44,6 +44,9 @@ class ContextoHintGame(BaseGame[None, list[str], int, int, list[str]]):
 
     @override
     def process_guess(self, *, guess: int) -> int:
+        if not 0 <= guess < self._num_candidates:
+            return -1
+
         pos: int = self._candidate_pos[guess]
         self._used_pos.add(pos)
         self._best_pos = min(self._best_pos, pos)

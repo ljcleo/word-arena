@@ -59,7 +59,7 @@ def process_trajectory(
         hint: list[str] = turn["hint"]
         analysis: Analysis | None = turn["analysis"]
         guess: int = turn["guess"]
-        position: int = turn["result"] + 1
+        result: int = turn["result"]
         candidates: str
 
         if word_pos is None:
@@ -67,26 +67,18 @@ def process_trajectory(
         else:
             candidates = ", ".join(f"{word} (Position: {word_pos[word]})" for word in hint)
 
+        sections.extend((f"Guess {index + 1}", f"Candidates: {candidates}"))
         if analysis is not None:
-            sections.extend(
-                (
-                    f"Analysis Before Guess {index + 1}: {analysis.analysis}",
-                    f"Plan Before Guess {index + 1}: {analysis.plan}",
-                )
-            )
+            sections.extend((f"Analysis: {analysis.analysis}", f"Plan: {analysis.plan}"))
 
-        sections.extend(
-            (
-                f"Guess {index + 1}",
-                f"Candidates: {candidates}",
-                f"Guess: {hint[guess]}",
-                f"Position: {position}",
-            )
-        )
+        if result == -1:
+            sections.append("Got Invalid Guess Input")
+        else:
+            sections.extend((f"Guess: {hint[guess]}", f"Position: {result + 1}"))
 
     index += 2
     if index == 1:
-        sections.append("(empty)")
+        sections.append("(Empty)")
 
     return "\n".join(sections), index
 
@@ -140,12 +132,12 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
 
         yield Message.human(
             "Current Notes about Word Similarity Laws:",
-            "(no notes yet)" if self.experience is None else self.experience.law,
+            "(Empty)" if self.experience is None else self.experience.law,
         )
 
         yield Message.human(
             "Current Notes about Possible Strategies:",
-            "(no notes yet)" if self.experience is None else self.experience.strategy,
+            "(Empty)" if self.experience is None else self.experience.strategy,
         )
 
         yield Message.human(
@@ -272,11 +264,11 @@ class ContextoHintAgentPlayer(
 
     @override
     def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
-        return ord(raw_guess) - ord("A")
+        return ord(raw_guess) - ord("A") if len(raw_guess) == 1 else -1
 
     @override
     def format_result(self, *, hint: list[str], guess: int, result: int) -> Iterator[str]:
-        yield f"Guess: {hint[guess]}; Position: {result + 1}"
+        yield "Invalid Input" if result == -1 else f"Guess: {hint[guess]}; Position: {result + 1}"
 
     def _make_options(self, *, hint: list[str]) -> str:
         return "; ".join(f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint))

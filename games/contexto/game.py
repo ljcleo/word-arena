@@ -31,37 +31,23 @@ class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
     @override
     def process_guess(self, *, guess: str) -> ContextoResult:
         self._num_guesses += 1
-
         if not (guess.isalpha() and guess.islower()):
             return ContextoError(error="Your guess should only contain lowercase letters")
 
-        try:
-            response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{guess}")
-        except Exception:
-            raise
+        response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{guess}")
 
         if response.status_code == 200:
-            try:
-                result: ContextoResponse = ContextoResponse.model_validate_json(response.content)
-            except Exception as e:
-                return ContextoError(error=f"Cannot parse 200: {e}")
-
+            result: ContextoResponse = ContextoResponse.model_validate_json(response.content)
             self._best_pos = min(self._best_pos, result.distance)
             return result
         elif response.status_code == 404:
-            try:
-                return ContextoError.model_validate_json(response.content)
-            except Exception as e:
-                return ContextoError(error=f"Cannot parse 404: {e}")
+            return ContextoError.model_validate_json(response.content)
         else:
-            return ContextoError(error=f"Status code {response.status_code}")
+            raise RuntimeError(f"Status code {response.status_code}")
 
     @override
     def summarize_game(self) -> list[str]:
-        try:
-            return httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"]
-        except Exception:
-            raise
+        return httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"]
 
 
 class ContextoGameManager:
