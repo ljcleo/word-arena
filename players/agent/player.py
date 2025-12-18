@@ -17,13 +17,13 @@ class PromptMode(enum.Enum):
     MULTI_TURN = enum.auto()
 
 
-class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT, RT], ABC):
+class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseIOPlayer[IT, HT, GT, FT], ABC):
     def __init__(
-        self, *, model: BaseLLM, memory: BaseMemory[GT, PT, AT, RT, FT, ET], prompt_mode: PromptMode
+        self, *, model: BaseLLM, memory: BaseMemory[IT, HT, GT, FT, RT, ET], prompt_mode: PromptMode
     ):
         self._model: BaseLLM = model
         self._prompt_mode: PromptMode = prompt_mode
-        self._memory: BaseMemory[GT, PT, AT, RT, FT, ET] = memory
+        self._memory: BaseMemory[IT, HT, GT, FT, RT, ET] = memory
         self._guess_model: type[BaseModel]
 
         if prompt_mode == PromptMode.DIRECT:
@@ -32,16 +32,16 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT
             self._guess_model = create_model("Guess", guess=str)
 
     @property
-    def memory(self) -> BaseMemory[GT, PT, AT, RT, FT, ET]:
+    def memory(self) -> BaseMemory[IT, HT, GT, FT, RT, ET]:
         return self._memory
 
     @override
-    def prepare(self, *, game_info: GT) -> None:
+    def prepare(self, *, game_info: IT) -> None:
         self._memory.prepare(game_info=game_info)
         self._latest_analysis: Analysis | None = None
 
     @override
-    def make_raw_guess(self, *, hint: PT) -> str:
+    def make_raw_guess(self, *, hint: HT) -> str:
         messages: list[Message] = list(
             self.make_guess_info_messages(
                 game_info=self._memory.game_info,
@@ -119,7 +119,7 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT
         return raw_guess
 
     @override
-    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
+    def digest(self, *, hint: HT, guess: GT, feedback: FT) -> None:
         super().digest(hint=hint, guess=guess, feedback=feedback)
 
         self._memory.digest(
@@ -130,17 +130,17 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT
     def make_guess_info_messages(
         self,
         *,
-        game_info: GT,
+        game_info: IT,
         experience: ET,
-        current_trajectory: Iterable[Turn[PT, AT, RT]],
+        current_trajectory: Iterable[Turn[HT, GT, FT]],
         latest_analysis: Analysis | None,
-        hint: PT,
+        hint: HT,
     ) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
     def make_full_guess_prompt(
-        self, *, hint: PT, make_example: Callable[[str], str]
+        self, *, hint: HT, make_example: Callable[[str], str]
     ) -> Iterator[str]:
         raise NotImplementedError()
 
@@ -158,6 +158,6 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT
 
     @abstractmethod
     def make_simple_guess_prompt(
-        self, *, hint: PT, make_example: Callable[[str], str]
+        self, *, hint: HT, make_example: Callable[[str], str]
     ) -> Iterator[str]:
         raise NotImplementedError()

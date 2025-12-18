@@ -9,9 +9,9 @@ from llm.common import BaseLLM
 from players.agent.player import BaseAgentPlayer, PromptMode
 
 
-class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
+class BaseAgentGym[IT, HT, GT, FT, RT, ET: BaseModel](ABC):
     def play(self, model: BaseLLM, prompt_mode: PromptMode) -> None:
-        player: BaseAgentPlayer[GT, PT, AT, RT, FT, ET] = self.create_player(
+        player: BaseAgentPlayer[IT, HT, GT, FT, RT, ET] = self.create_player(
             model=model, prompt_mode=prompt_mode
         )
 
@@ -26,7 +26,7 @@ class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
                         update_experience=i == num_in_loop_trials - 1,
                     )
 
-        final_result: FT = self.create_game(select=True).play(player=player)
+        final_result: RT = self.create_game(select=True).play(player=player)
         print("You Guessed", player.memory.num_guesses, "Times")
         self.report_final_result(final_result=final_result)
         player.memory.reflect(final_result=final_result, update_experience=False)
@@ -34,15 +34,15 @@ class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
     @abstractmethod
     def create_player(
         self, *, model: BaseLLM, prompt_mode: PromptMode
-    ) -> BaseAgentPlayer[GT, PT, AT, RT, FT, ET]:
+    ) -> BaseAgentPlayer[IT, HT, GT, FT, RT, ET]:
         raise NotImplementedError()
 
     @abstractmethod
-    def create_game(self, *, select: bool) -> BaseGame[GT, PT, AT, RT, FT]:
+    def create_game(self, *, select: bool) -> BaseGame[IT, HT, GT, FT, RT]:
         raise NotImplementedError()
 
     @abstractmethod
-    def report_final_result(self, *, final_result: FT) -> None:
+    def report_final_result(self, *, final_result: RT) -> None:
         raise NotImplementedError()
 
 

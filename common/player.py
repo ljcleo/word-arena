@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 
 
-class BasePlayer[GT, PT, AT, RT](ABC):
+class BasePlayer[IT, HT, GT, FT](ABC):
     @abstractmethod
-    def prepare(self, *, game_info: GT) -> None:
+    def prepare(self, *, game_info: IT) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def guess(self, *, hint: PT) -> AT:
+    def guess(self, *, hint: HT) -> GT:
         raise NotImplementedError()
 
     @abstractmethod
-    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
+    def digest(self, *, hint: HT, guess: GT, feedback: FT) -> None:
         raise NotImplementedError()

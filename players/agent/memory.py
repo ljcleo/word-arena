@@ -27,10 +27,10 @@ class Analysis(BaseModel):
         return Analysis(past_analysis_summary="...", current_analysis="...", plan="...")
 
 
-class Turn[PT, AT, RT](BaseModel):
-    hint: PT
-    guess: AT
-    feedback: RT
+class Turn[HT, GT, FT](BaseModel):
+    hint: HT
+    guess: GT
+    feedback: FT
 
 
 class Reflection(BaseModel):
@@ -46,23 +46,23 @@ class Reflection(BaseModel):
         return Reflection.example().model_dump_json()
 
 
-class GameRecord[GT, PT, AT, RT, FT](BaseModel):
-    game_info: GT
-    trajectory: list[Turn[PT, AT, RT]]
+class GameRecord[IT, HT, GT, FT, RT](BaseModel):
+    game_info: IT
+    trajectory: list[Turn[HT, GT, FT]]
     latest_analysis: Analysis | None
-    final_result: FT
+    final_result: RT
 
 
-class GameSummary[GT, PT, AT, RT, FT](BaseModel):
-    record: GameRecord[GT, PT, AT, RT, FT]
+class GameSummary[IT, HT, GT, FT, RT](BaseModel):
+    record: GameRecord[IT, HT, GT, FT, RT]
     reflection: Reflection
 
 
-class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
+class BaseMemory[IT, HT, GT, FT, RT, ET: BaseModel](ABC):
     def __init__(self, model: BaseLLM, experience_type: type[ET]) -> None:
         self._model: BaseLLM = model
         self._experience_type: type[ET] = experience_type
-        self._history: list[GameSummary[GT, PT, AT, RT, FT]] = []
+        self._history: list[GameSummary[IT, HT, GT, FT, RT]] = []
 
         self._experience: ET = self._model.parse(
             *self.make_create_experience_messages(), format=self._experience_type
@@ -71,7 +71,7 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         print("Initial Experience:", self._experience, sep="\n\n")
 
     @property
-    def game_info(self) -> GT:
+    def game_info(self) -> IT:
         return self._game_info
 
     @property
@@ -83,20 +83,20 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         return len(self._trajectory)
 
     @property
-    def current_trajectory(self) -> Iterator[Turn[PT, AT, RT]]:
+    def current_trajectory(self) -> Iterator[Turn[HT, GT, FT]]:
         yield from self._trajectory
 
-    def prepare(self, *, game_info: GT) -> None:
-        self._game_info: GT = game_info
-        self._trajectory: list[Turn[PT, AT, RT]] = []
+    def prepare(self, *, game_info: IT) -> None:
+        self._game_info: IT = game_info
+        self._trajectory: list[Turn[HT, GT, FT]] = []
         self._latest_analysis: Analysis | None = None
 
-    def digest(self, *, hint: PT, analysis: Analysis | None, guess: AT, feedback: RT) -> None:
+    def digest(self, *, hint: HT, analysis: Analysis | None, guess: GT, feedback: FT) -> None:
         self._trajectory.append(Turn(hint=hint, guess=guess, feedback=feedback))
         self._latest_analysis = analysis
 
-    def reflect(self, *, final_result: FT, update_experience: bool) -> None:
-        record: GameRecord[GT, PT, AT, RT, FT] = GameRecord(
+    def reflect(self, *, final_result: RT, update_experience: bool) -> None:
+        record: GameRecord[IT, HT, GT, FT, RT] = GameRecord(
             game_info=self.game_info,
             trajectory=self._trajectory,
             latest_analysis=self._latest_analysis,
@@ -126,12 +126,12 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
 
     @abstractmethod
     def make_reflection_messages(
-        self, *, record: GameRecord[GT, PT, AT, RT, FT]
+        self, *, record: GameRecord[IT, HT, GT, FT, RT]
     ) -> Iterator[Message]:
         raise NotImplementedError()
 
     @abstractmethod
     def make_update_experience_messages(
-        self, *, history: list[GameSummary[GT, PT, AT, RT, FT]]
+        self, *, history: list[GameSummary[IT, HT, GT, FT, RT]]
     ) -> Iterator[Message]:
         raise NotImplementedError()

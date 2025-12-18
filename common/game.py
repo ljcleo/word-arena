@@ -3,21 +3,21 @@ from abc import ABC, abstractmethod
 from common.player import BasePlayer
 
 
-class BaseGame[GT, PT, AT, RT, FT](ABC):
-    def play(self, *, player: BasePlayer[GT, PT, AT, RT]) -> FT:
-        game_info: GT = self.start_game()
+class BaseGame[IT, HT, GT, FT, RT](ABC):
+    def play(self, *, player: BasePlayer[IT, HT, GT, FT]) -> RT:
+        game_info: IT = self.start_game()
         player.prepare(game_info=game_info)
 
         while not self.is_over():
-            hint: PT = self.get_guess_prompt()
-            guess: AT = player.guess(hint=hint)
-            feedback: RT = self.process_guess(guess=guess)
+            hint: HT = self.get_guess_prompt()
+            guess: GT = player.guess(hint=hint)
+            feedback: FT = self.process_guess(guess=guess)
             player.digest(hint=hint, guess=guess, feedback=feedback)
 
         return self.get_final_result()
 
     @abstractmethod
-    def start_game(self) -> GT:
+    def start_game(self) -> IT:
         raise NotImplementedError()
 
     @abstractmethod
@@ -25,13 +25,13 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_guess_prompt(self) -> PT:
+    def get_guess_prompt(self) -> HT:
         raise NotImplementedError()
 
     @abstractmethod
-    def process_guess(self, *, guess: AT) -> RT:
+    def process_guess(self, *, guess: GT) -> FT:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_final_result(self) -> FT:
+    def get_final_result(self) -> RT:
         raise NotImplementedError()

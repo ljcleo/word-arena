@@ -6,23 +6,23 @@ from common.game import BaseGame
 from players.manual import BaseManualPlayer
 
 
-class BaseManualGym[GT, PT, AT, RT, FT](ABC):
+class BaseManualGym[IT, HT, GT, FT, RT](ABC):
     def play(self) -> None:
-        player: BaseManualPlayer[GT, PT, AT, RT] = self.create_player()
-        final_result: FT = self.create_game().play(player=player)
+        player: BaseManualPlayer[IT, HT, GT, FT] = self.create_player()
+        final_result: RT = self.create_game().play(player=player)
         print("You Guessed", player.num_guesses, "Times")
         self.report_final_result(final_result=final_result)
 
     @abstractmethod
-    def create_player(self) -> BaseManualPlayer[GT, PT, AT, RT]:
+    def create_player(self) -> BaseManualPlayer[IT, HT, GT, FT]:
         raise NotImplementedError()
 
     @abstractmethod
-    def create_game(self) -> BaseGame[GT, PT, AT, RT, FT]:
+    def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
         raise NotImplementedError()
 
     @abstractmethod
-    def report_final_result(self, *, final_result: FT) -> None:
+    def report_final_result(self, *, final_result: RT) -> None:
         raise NotImplementedError()
 
 
