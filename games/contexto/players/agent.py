@@ -59,7 +59,7 @@ def format_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) 
     for index, turn in enumerate(trajectory):
         sections.extend((f"Guess {index + 1}", f"Guess: {turn.guess}", f"Result: {turn.result}"))
     if len(sections) == 0:
-        sections.append("(empty)")
+        sections.append("(Empty)")
 
     yield "\n".join(sections)
 
