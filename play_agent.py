@@ -127,9 +127,59 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
     return ContextoHintAgentGym()
 
 
+def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
+    from pathlib import Path
+
+    from games.wordle.common import WordleInfo, WordleResult
+    from games.wordle.game import WordleGameManager
+    from games.wordle.players.agent import WordleAgentPlayer, WordleExperience, WordleMemory
+
+    class WordleAgentGym(
+        BaseAgentGym[WordleInfo, None, str, WordleResult, list[str], WordleExperience]
+    ):
+        def __init__(self, *, seed: int) -> None:
+            self._game_manager: WordleGameManager = WordleGameManager(
+                word_list_file=Path("./data/wordle/words.txt"), seed=seed
+            )
+
+        @override
+        def create_player(
+            self, *, model: BaseLLM, prompt_mode: PromptMode
+        ) -> BaseAgentPlayer[WordleInfo, None, str, WordleResult, list[str], WordleExperience]:
+            return WordleAgentPlayer(
+                model=model,
+                memory=WordleMemory(model=model, experience_type=WordleExperience),
+                prompt_mode=prompt_mode,
+            )
+
+        @override
+        def create_game(
+            self, *, select: bool
+        ) -> BaseGame[WordleInfo, None, str, WordleResult, list[str]]:
+            return (
+                self._game_manager.create_game(
+                    target_ids=[
+                        int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                    ],
+                    max_guesses=int(input("Max Guesses: ")),
+                )
+                if select
+                else self._game_manager.create_random_game(
+                    param_candidates=[(1, 6), (2, 7), (4, 9), (8, 13)]
+                )
+            )
+
+        @override
+        def summarize(self, *, summary: list[str]) -> None:
+            print("Answer:", *summary)
+
+    return WordleAgentGym(seed=seed)
+
+
 AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
     "contexto": build_contexto_agent_gym,
     "contexto-hint": build_contexto_hint_agent_gym,
+    "wordle": build_wordle_agent_gym,
 }
 
 

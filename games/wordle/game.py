@@ -30,10 +30,8 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
 
     @override
     def is_over(self) -> bool:
-        return (
-            len(self._solved_targets) == self._num_targets
-            or self._num_guesses >= self._max_guesses > 0
-        )
+        num_remains: int = self._num_targets - len(self._solved_targets)
+        return num_remains == 0 or self._num_guesses + num_remains > self._max_guesses > 0
 
     @override
     def get_guess_prompt(self) -> None:
