@@ -5,9 +5,10 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.contexto.common import ContextoResult, format_contexto_result
+from games.contexto.common import ContextoResult
+from games.contexto.players.common import ContextoIOPlayer
 from llm.common import Message
-from players.agent.memory import Analysis, BaseMemory, GameRecord, Reflection, Turn
+from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
 from players.agent.player import BaseAgentPlayer
 
 
@@ -18,8 +19,7 @@ class ContextoExperience(BaseModel):
     @staticmethod
     def example() -> ContextoExperience:
         return ContextoExperience(
-            law="In summary, the word similarity obeys these laws: ...",
-            strategy="Follow these rules and strategies when guessing: ...",
+            law="...", strategy="Follow these rules and strategies when guessing: ..."
         )
 
     @staticmethod
@@ -48,29 +48,25 @@ Your guess must be a **single word with only lowercase letters and no hyphens**.
 You should try your best to minimize the number of guesses; there may be a guessing limit."""
 
 
-def process_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) -> str:
+def format_game_info(*, game_info: int) -> Iterator[str]:
+    yield f"Maximum number of guesses: {'unlimited' if game_info <= 0 else game_info}"
+
+
+def format_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) -> Iterator[str]:
+    yield "Guess History:"
     sections: list[str] = []
-    index: int = -1
 
     for index, turn in enumerate(trajectory):
-        analysis: Analysis | None = turn["analysis"]
-        guess: str = turn["guess"]
-        result: str = format_contexto_result(turn["result"])
-
-        if analysis is not None:
-            sections.extend(
-                (
-                    f"Analysis Before Guess {index + 1}: {analysis.analysis}",
-                    f"Plan Before Guess {index + 1}: {analysis.plan}",
-                )
-            )
-
-        sections.extend((f"Guess {index + 1}", f"Guess: {guess}", f"Result: {result}"))
-
-    if index == -1:
+        sections.extend((f"Guess {index + 1}", f"Guess: {turn.guess}", f"Result: {turn.result}"))
+    if len(sections) == 0:
         sections.append("(empty)")
 
-    return "\n".join(sections)
+    yield "\n".join(sections)
+
+
+def format_analysis(*, analysis: Analysis) -> Iterator[str]:
+    yield "Analysis from the Last Guess:"
+    yield str(analysis)
 
 
 class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], ContextoExperience]):
@@ -84,22 +80,11 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
         )
 
     @override
-    def process_game_info(self, *, game_info: int) -> None:
-        pass
-
-    @override
     def make_reflection_messages(
-        self,
-        *,
-        game_info: int,
-        trajectory: Iterable[Turn[None, str, ContextoResult]],
-        summary: list[str],
+        self, *, record: GameRecord[int, None, str, ContextoResult, list[str]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
-
-        yield self._make_record_message(
-            max_guesses=self.game_info, trajectory=trajectory, summary=summary, reflection=None
-        )
+        yield self._make_record_message(record=record, reflection=None)
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
@@ -110,27 +95,23 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
     @override
     def make_update_experience_messages(
-        self, *, history: list[GameRecord[int, None, str, ContextoResult, list[str]]]
+        self, *, history: list[GameSummary[int, None, str, ContextoResult, list[str]]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
-        for index, record in enumerate(history):
+        for index, summary in enumerate(history):
             yield self._make_record_message(
-                max_guesses=record["game_info"],
-                trajectory=record["trajectory"],
-                summary=record["summary"],
-                reflection=record["reflection"],
-                index=index + 1,
+                record=summary.record, reflection=summary.reflection, index=index + 1
             )
 
         yield Message.human(
             "Current Notes about Word Similarity Laws:",
-            "(no notes yet)" if self.experience is None else self.experience.law,
+            "(Empty)" if self.experience is None else self.experience.law,
         )
 
         yield Message.human(
             "Current Notes about Possible Strategies:",
-            "(no notes yet)" if self.experience is None else self.experience.strategy,
+            "(Empty)" if self.experience is None else self.experience.strategy,
         )
 
         yield Message.human(
@@ -158,9 +139,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
     def _make_record_message(
         self,
         *,
-        max_guesses: int,
-        trajectory: Iterable[Turn[None, str, ContextoResult]],
-        summary: list[str],
+        record: GameRecord[int, None, str, ContextoResult, list[str]],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -170,12 +149,18 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
         sections.extend(
             (
-                f"Maximum number of guesses: {'unlimited' if max_guesses <= 0 else max_guesses}"
-                "Your guess records:",
-                process_trajectory(trajectory=trajectory),
-                f"Secret word: {summary[0]}",
-                "Top 30 words:",
-                ", ".join(summary[:30]),
+                *format_game_info(game_info=record.game_info),
+                *format_trajectory(trajectory=record.trajectory),
+            )
+        )
+
+        if record.latest_analysis is not None:
+            sections.extend(format_analysis(analysis=record.latest_analysis))
+
+        sections.extend(
+            (
+                f"Secret Word: {record.summary[0]}",
+                f"Top 30 Words: {', '.join(record.summary[:30])}",
             )
         )
 
@@ -194,7 +179,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[int, None, str, ContextoResult, list[str], ContextoExperience]
+    BaseAgentPlayer[int, None, str, ContextoResult, list[str], ContextoExperience], ContextoIOPlayer
 ):
     @override
     def make_guess_info_messages(
@@ -203,6 +188,7 @@ class ContextoAgentPlayer(
         game_info: int,
         experience: ContextoExperience,
         current_trajectory: Iterable[Turn[None, str, ContextoResult]],
+        latest_analysis: Analysis | None,
         hint: None,
     ) -> Iterator[Message]:
         yield Message.system(
@@ -215,15 +201,11 @@ class ContextoAgentPlayer(
             )
         )
 
-        yield Message.human(
-            f"Maximum number of guesses: {'unlimited' if game_info <= 0 else game_info}",
-            "History:",
-            process_trajectory(trajectory=current_trajectory),
-        )
+        yield Message.human(*format_game_info(game_info=game_info))
+        yield Message.human(*format_trajectory(trajectory=current_trajectory))
 
-    @override
-    def format_hint(self, *, hint: None) -> Iterator[str]:
-        yield from ()
+        if latest_analysis is not None:
+            yield Message.human(*format_analysis(analysis=latest_analysis))
 
     @override
     def make_full_guess_prompt(
@@ -232,10 +214,17 @@ class ContextoAgentPlayer(
         if self.memory.num_guesses == 0:
             yield "Understand the game rules, then plan and make your first guess."
         else:
-            yield "Update your knowledge about the secret word, then plan and make your next guess."
+            yield (
+                "Summarize your past analysis and plans before this turn, "
+                "update your knowledge about the secret word, then plan and make your next guess."
+            )
 
         yield from self._make_guess_detail_prompt()
         yield f"Respond in JSON format like `{make_example('word')}`."
+
+    @override
+    def make_summarize_analysis_prompt(self) -> Iterator[str]:
+        yield "Write a paragraph to summarize your past analysis and plans before this turn."
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
@@ -264,14 +253,6 @@ class ContextoAgentPlayer(
 
         yield from self._make_guess_detail_prompt()
         yield f"Respond in JSON format like `{make_example('word')}`."
-
-    @override
-    def process_guess(self, *, hint: None, raw_guess: str) -> str:
-        return raw_guess
-
-    @override
-    def format_result(self, *, hint: None, guess: str, result: ContextoResult) -> Iterator[str]:
-        yield f"Guess: {guess}; Result: {format_contexto_result(result)}"
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
         yield "Your guess should be a **single word with only lowercase letters and no hyphens**."

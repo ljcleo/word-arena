@@ -5,8 +5,14 @@ from typing import override
 
 from pydantic import BaseModel
 
+from games.contexto_hint.players.common import (
+    ContextoHintIOPlayer,
+    index_to_option,
+    make_option,
+    make_options,
+)
 from llm.common import Message
-from players.agent.memory import Analysis, BaseMemory, GameRecord, Reflection, Turn
+from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
 from players.agent.player import BaseAgentPlayer
 
 
@@ -17,8 +23,7 @@ class ContextoHintExperience(BaseModel):
     @staticmethod
     def example() -> ContextoHintExperience:
         return ContextoHintExperience(
-            law="In summary, the word similarity obeys these laws: ...",
-            strategy="Follow these rules and strategies when guessing: ...",
+            law="...", strategy="Follow these rules and strategies when guessing: ..."
         )
 
     @staticmethod
@@ -45,42 +50,39 @@ You need to choose one of them as your next guess, then you will see its positio
 It is guaranteed that there is a candidate word closer than the current best guess."""
 
 
-def process_trajectory(
+def format_trajectory(
     *, trajectory: Iterable[Turn[list[str], int, int]], summary: list[str] | None
-) -> tuple[str, int]:
+) -> Iterator[str]:
+    yield "Guess History:"
+    sections: list[str] = []
+
     word_pos: dict[str, int] | None = (
         None if summary is None else {word: pos + 1 for pos, word in enumerate(summary)}
     )
 
-    sections: list[str] = []
-    index: int = -1
-
     for index, turn in enumerate(trajectory):
-        hint: list[str] = turn["hint"]
-        analysis: Analysis | None = turn["analysis"]
-        guess: int = turn["guess"]
-        result: int = turn["result"]
-        candidates: str
-
-        if word_pos is None:
-            candidates = ", ".join(hint)
-        else:
-            candidates = ", ".join(f"{word} (Position: {word_pos[word]})" for word in hint)
+        candidates: str = (
+            ", ".join(turn.hint)
+            if word_pos is None
+            else ", ".join(f"{word} (Position: {word_pos[word]})" for word in turn.hint)
+        )
 
         sections.extend((f"Guess {index + 1}", f"Candidates: {candidates}"))
-        if analysis is not None:
-            sections.extend((f"Analysis: {analysis.analysis}", f"Plan: {analysis.plan}"))
 
-        if result == -1:
+        if turn.result == -1:
             sections.append("Got Invalid Guess Input")
         else:
-            sections.extend((f"Guess: {hint[guess]}", f"Position: {result + 1}"))
+            sections.extend((f"Guess: {turn.hint[turn.guess]}", f"Position: {turn.result + 1}"))
 
-    index += 2
-    if index == 1:
+    if len(sections) == 0:
         sections.append("(Empty)")
 
-    return "\n".join(sections), index
+    yield "\n".join(sections)
+
+
+def format_analysis(*, analysis: Analysis) -> Iterator[str]:
+    yield "Analysis from the Last Guess:"
+    yield str(analysis)
 
 
 class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], ContextoHintExperience]):
@@ -94,19 +96,11 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
         )
 
     @override
-    def process_game_info(self, *, game_info: None) -> None:
-        pass
-
-    @override
     def make_reflection_messages(
-        self,
-        *,
-        game_info: None,
-        trajectory: Iterable[Turn[list[str], int, int]],
-        summary: list[str],
+        self, *, record: GameRecord[None, list[str], int, int, list[str]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
-        yield self._make_record_message(trajectory=trajectory, summary=summary, reflection=None)
+        yield self._make_record_message(record=record, reflection=None)
 
         yield Message.human(
             "Now, reflect on your performance in the game.",
@@ -118,16 +112,13 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
 
     @override
     def make_update_experience_messages(
-        self, *, history: list[GameRecord[None, list[str], int, int, list[str]]]
+        self, *, history: list[GameSummary[None, list[str], int, int, list[str]]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
-        for index, record in enumerate(history):
+        for index, summary in enumerate(history):
             yield self._make_record_message(
-                trajectory=record["trajectory"],
-                summary=record["summary"],
-                reflection=record["reflection"],
-                index=index + 1,
+                record=summary.record, reflection=summary.reflection, index=index + 1
             )
 
         yield Message.human(
@@ -165,8 +156,7 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
     def _make_record_message(
         self,
         *,
-        trajectory: Iterable[Turn[list[str], int, int]],
-        summary: list[str],
+        record: GameRecord[None, list[str], int, int, list[str]],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -174,18 +164,19 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
         if index is not None:
             sections.append(f"Trial {index}")
 
+        sections.extend(format_trajectory(trajectory=record.trajectory, summary=record.summary))
+        if record.latest_analysis is not None:
+            sections.extend(format_analysis(analysis=record.latest_analysis))
+
         sections.extend(
             (
-                "Your guess records:",
-                process_trajectory(trajectory=trajectory, summary=summary)[0],
-                f"Secret word: {summary[0]}",
-                "Top 30 words:",
-                ", ".join(summary[:30]),
+                f"Secret Word: {record.summary[0]}",
+                f"Top 30 Words: {', '.join(record.summary[:30])}",
             )
         )
 
         if reflection is not None:
-            sections.extend(("Your reflection:", reflection.model_dump_json()))
+            sections.extend(("Your Reflection:", reflection.model_dump_json()))
 
         return Message.human(*sections)
 
@@ -199,13 +190,9 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
 
 
 class ContextoHintAgentPlayer(
-    BaseAgentPlayer[None, list[str], int, int, list[str], ContextoHintExperience]
+    BaseAgentPlayer[None, list[str], int, int, list[str], ContextoHintExperience],
+    ContextoHintIOPlayer,
 ):
-    @override
-    def format_hint(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Candidates:"
-        yield self._make_options(hint=hint)
-
     @override
     def make_guess_info_messages(
         self,
@@ -213,6 +200,7 @@ class ContextoHintAgentPlayer(
         game_info: None,
         experience: ContextoHintExperience,
         current_trajectory: Iterable[Turn[list[str], int, int]],
+        latest_analysis: Analysis | None,
         hint: list[str],
     ) -> Iterator[Message]:
         yield Message.system(
@@ -225,23 +213,31 @@ class ContextoHintAgentPlayer(
             )
         )
 
-        trajectory_str: str
-        turn_index: int
-        trajectory_str, turn_index = process_trajectory(trajectory=current_trajectory, summary=None)
-        yield Message.human("History:", trajectory_str)
-        yield Message.human(f"Candidates of Guess {turn_index}:", self._make_options(hint=hint))
+        yield Message.human(*format_trajectory(trajectory=current_trajectory, summary=None))
+        if latest_analysis is not None:
+            yield Message.human(*format_analysis(analysis=latest_analysis))
+
+        yield Message.human("Candidates of the Next Guess:", make_options(hint=hint))
 
     @override
     def make_full_guess_prompt(
         self, *, hint: list[str], make_example: Callable[[str], str]
     ) -> Iterator[str]:
         if self.memory.num_guesses == 0:
-            yield "Understand the game rules, then plan and make your choice."
+            yield "Understand the game rules, plan for your next guess and make your choice."
         else:
-            yield "Update your knowledge about the secret word, then plan and make your choice."
+            yield (
+                "Summarize your past analysis and plans before this turn, "
+                "update your knowledge about the secret word, "
+                "plan your next guess and make your choice."
+            )
 
         yield from self._make_guess_detail_prompt(hint=hint)
         yield f"Respond in JSON format like `{make_example('B')}`."
+
+    @override
+    def make_summarize_analysis_prompt(self) -> Iterator[str]:
+        yield "Write a paragraph to summarize your past analysis and plans before this turn."
 
     @override
     def make_analyze_prompt(self) -> Iterator[str]:
@@ -252,7 +248,7 @@ class ContextoHintAgentPlayer(
 
     @override
     def make_plan_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to plan your choice."
+        yield "Write a paragraph to plan your next guess."
 
     @override
     def make_simple_guess_prompt(
@@ -262,16 +258,11 @@ class ContextoHintAgentPlayer(
         yield from self._make_guess_detail_prompt(hint=hint)
         yield f"Respond in JSON format like `{make_example('B')}`."
 
-    @override
-    def process_guess(self, *, hint: list[str], raw_guess: str) -> int:
-        return ord(raw_guess) - ord("A") if len(raw_guess) == 1 else -1
-
-    @override
-    def format_result(self, *, hint: list[str], guess: int, result: int) -> Iterator[str]:
-        yield "Invalid Input" if result == -1 else f"Guess: {hint[guess]}; Position: {result + 1}"
-
-    def _make_options(self, *, hint: list[str]) -> str:
-        return "; ".join(f"{chr(ord('A') + index)}: {word}" for index, word in enumerate(hint))
-
     def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
-        yield f"For example, the choice is B if you choose {hint[1]}."
+        example_id: int = 1
+        yield "You should reply the OPTION CHARACTER of the guessed word, NOT the word itself."
+
+        yield (
+            f"For example, reply `{index_to_option(example_id)}` "
+            f"if you choose `{make_option(example_id, hint[example_id])}`."
+        )
