@@ -18,3 +18,8 @@ class ContextoError(BaseModel):
 
 
 type ContextoFeedback = ContextoResponse | ContextoError
+
+
+class ContextoFinalResult(BaseModel):
+    best_pos: int
+    top_words: list[str]

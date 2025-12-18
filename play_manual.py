@@ -27,11 +27,11 @@ class BaseManualGym[IT, HT, GT, FT, RT](ABC):
 
 
 def build_contexto_manual_gym(seed: int) -> BaseManualGym:
-    from games.contexto.common import ContextoFeedback
+    from games.contexto.common import ContextoFeedback, ContextoFinalResult
     from games.contexto.game import ContextoGameManager
     from games.contexto.players.manual import ContextoManualPlayer
 
-    class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, list[str]]):
+    class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, ContextoFinalResult]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
             self._max_guesses: int = int(input("Max Guesses: "))
@@ -41,14 +41,15 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
             return ContextoManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[int, None, str, ContextoFeedback, list[str]]:
+        def create_game(self) -> BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]:
             return self._game_manager.create_game(
                 game_id=int(input("Game ID: ")), max_guesses=self._max_guesses
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Top Words:", *final_result[:10])
+        def report_final_result(self, *, final_result: ContextoFinalResult) -> None:
+            print("Best Position:", final_result.best_pos + 1)
+            print("Top Words:", *final_result.top_words[:10])
 
     return ContextoManualGym(seed=seed)
 

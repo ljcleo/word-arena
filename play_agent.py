@@ -47,11 +47,12 @@ class BaseAgentGym[IT, HT, GT, FT, RT, ET: BaseModel](ABC):
 
 
 def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
-    from games.contexto.game import ContextoFeedback, ContextoGameManager
+    from games.contexto.common import ContextoFeedback, ContextoFinalResult
+    from games.contexto.game import ContextoGameManager
     from games.contexto.players.agent import ContextoAgentPlayer, ContextoExperience, ContextoMemory
 
     class ContextoAgentGym(
-        BaseAgentGym[int, None, str, ContextoFeedback, list[str], ContextoExperience]
+        BaseAgentGym[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience]
     ):
         def __init__(self) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
@@ -60,7 +61,9 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_player(
             self, *, model: BaseLLM, prompt_mode: PromptMode
-        ) -> BaseAgentPlayer[int, None, str, ContextoFeedback, list[str], ContextoExperience]:
+        ) -> BaseAgentPlayer[
+            int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience
+        ]:
             return ContextoAgentPlayer(
                 model=model,
                 memory=ContextoMemory(model=model, experience_type=ContextoExperience),
@@ -70,15 +73,16 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_game(
             self, *, select: bool
-        ) -> BaseGame[int, None, str, ContextoFeedback, list[str]]:
+        ) -> BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]:
             return self._game_manager.create_game(
                 game_id=int(input("Input Game ID: ")) if select else None,
                 max_guesses=self._max_guesses,
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Top Words:", *final_result[:10])
+        def report_final_result(self, *, final_result: ContextoFinalResult) -> None:
+            print("Best Position:", final_result.best_pos + 1)
+            print("Top Words:", *final_result.top_words[:10])
 
     return ContextoAgentGym()
 

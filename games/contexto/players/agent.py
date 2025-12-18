@@ -5,7 +5,7 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.contexto.common import ContextoFeedback
+from games.contexto.common import ContextoFeedback, ContextoFinalResult
 from games.contexto.players.common import ContextoIOPlayer
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
@@ -72,7 +72,15 @@ def format_analysis(*, analysis: Analysis) -> Iterator[str]:
     yield str(analysis)
 
 
-class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], ContextoExperience]):
+def format_final_result(*, final_result: ContextoFinalResult) -> Iterator[str]:
+    yield f"Best Guess Position: {final_result.best_pos + 1}"
+    yield f"Secret Word: {final_result.top_words[0]}"
+    yield f"Top 30 Words: {', '.join(final_result.top_words[:30])}"
+
+
+class ContextoMemory(
+    BaseMemory[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience]
+):
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
         yield self._make_system_message(num_trial=0)
@@ -84,7 +92,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], Con
 
     @override
     def make_reflection_messages(
-        self, *, record: GameRecord[int, None, str, ContextoFeedback, list[str]]
+        self, *, record: GameRecord[int, None, str, ContextoFeedback, ContextoFinalResult]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
         yield self._make_record_message(record=record, reflection=None)
@@ -99,7 +107,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], Con
 
     @override
     def make_update_experience_messages(
-        self, *, history: list[GameSummary[int, None, str, ContextoFeedback, list[str]]]
+        self, *, history: list[GameSummary[int, None, str, ContextoFeedback, ContextoFinalResult]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
@@ -143,7 +151,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], Con
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, None, str, ContextoFeedback, list[str]],
+        record: GameRecord[int, None, str, ContextoFeedback, ContextoFinalResult],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -161,13 +169,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], Con
         if record.latest_analysis is not None:
             sections.extend(format_analysis(analysis=record.latest_analysis))
 
-        sections.extend(
-            (
-                f"Secret Word: {record.final_result[0]}",
-                f"Top 30 Words: {', '.join(record.final_result[:30])}",
-            )
-        )
-
+        sections.extend(format_final_result(final_result=record.final_result))
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 
@@ -183,7 +185,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], Con
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[int, None, str, ContextoFeedback, list[str], ContextoExperience],
+    BaseAgentPlayer[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience],
     ContextoIOPlayer,
 ):
     @override

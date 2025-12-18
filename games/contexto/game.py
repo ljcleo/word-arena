@@ -5,10 +5,15 @@ from typing import override
 import httpx
 
 from common.game import BaseGame
-from games.contexto.common import ContextoError, ContextoFeedback, ContextoResponse
+from games.contexto.common import (
+    ContextoError,
+    ContextoFeedback,
+    ContextoFinalResult,
+    ContextoResponse,
+)
 
 
-class ContextoGame(BaseGame[int, None, str, ContextoFeedback, list[str]]):
+class ContextoGame(BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]):
     def __init__(self, *, game_id: int, max_guesses: int) -> None:
         self._game_id: int = game_id
         self._max_guesses: int = max_guesses
@@ -46,8 +51,11 @@ class ContextoGame(BaseGame[int, None, str, ContextoFeedback, list[str]]):
             raise RuntimeError(f"Status code {response.status_code}")
 
     @override
-    def get_final_result(self) -> list[str]:
-        return httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"]
+    def get_final_result(self) -> ContextoFinalResult:
+        return ContextoFinalResult(
+            best_pos=self._best_pos,
+            top_words=httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"],
+        )
 
 
 class ContextoGameManager:
