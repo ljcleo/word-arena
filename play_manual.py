@@ -122,11 +122,13 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
 def build_letroso_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.letroso.common import LetrosoFeedback, LetrosoInfo
+    from games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
     from games.letroso.game import LetrosoGameManager
     from games.letroso.players.manual import LetrosoManualPlayer
 
-    class LetrosoManualGym(BaseManualGym[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
+    class LetrosoManualGym(
+        BaseManualGym[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]
+    ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: LetrosoGameManager = LetrosoGameManager(
                 word_list_file=Path("./data/letroso/words.txt"), seed=seed
@@ -137,7 +139,9 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
             return LetrosoManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]:
+        def create_game(
+            self,
+        ) -> BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
@@ -147,8 +151,9 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Answer:", *final_result)
+        def report_final_result(self, *, final_result: LetrosoFinalResult) -> None:
+            print("Found", final_result.num_found, "word(s)")
+            print("Answer:", *final_result.answers)
 
     return LetrosoManualGym(seed=seed)
 

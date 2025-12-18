@@ -22,3 +22,8 @@ class LetrosoError(BaseModel):
 
 
 type LetrosoFeedback = LetrosoResponse | LetrosoError
+
+
+class LetrosoFinalResult(BaseModel):
+    num_found: int
+    answers: list[str]

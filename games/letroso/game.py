@@ -5,10 +5,16 @@ from random import Random
 from typing import override
 
 from common.game import BaseGame
-from games.letroso.common import LetrosoError, LetrosoFeedback, LetrosoInfo, LetrosoResponse
+from games.letroso.common import (
+    LetrosoError,
+    LetrosoFeedback,
+    LetrosoFinalResult,
+    LetrosoInfo,
+    LetrosoResponse,
+)
 
 
-class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
+class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_letters: int, max_guesses: int
     ) -> None:
@@ -21,7 +27,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
 
     @override
     def start_game(self) -> LetrosoInfo:
-        self._solved_targets: set[int] = set()
+        self._found_targets: set[int] = set()
         self._num_guesses: int = 0
 
         return LetrosoInfo(
@@ -32,10 +38,8 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
 
     @override
     def is_over(self) -> bool:
-        return (
-            len(self._solved_targets) == self._num_targets
-            or self._num_guesses >= self._max_guesses > 0
-        )
+        num_remains: int = self._num_targets - len(self._found_targets)
+        return num_remains == 0 or self._num_guesses + num_remains > self._max_guesses > 0
 
     @override
     def get_guess_prompt(self) -> None:
@@ -54,7 +58,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
 
         for idx, answer in enumerate(self._answers):
             if guess == answer:
-                self._solved_targets.add(idx)
+                self._found_targets.add(idx)
 
             buffer: list[str] = []
             head_match: bool = False
@@ -99,8 +103,8 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
         return LetrosoResponse(patterns=patterns)
 
     @override
-    def get_final_result(self) -> list[str]:
-        return self._answers
+    def get_final_result(self) -> LetrosoFinalResult:
+        return LetrosoFinalResult(num_found=len(self._found_targets), answers=self._answers)
 
 
 class LetrosoGameManager:
