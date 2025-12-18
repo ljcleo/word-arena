@@ -88,11 +88,11 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
 def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleFeedback, WordleInfo
+    from games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
     from games.wordle.game import WordleGameManager
     from games.wordle.players.manual import WordleManualPlayer
 
-    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleFeedback, list[str]]):
+    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleFeedback, WordleFinalResult]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
                 word_list_file=Path("./data/wordle/words.txt"), seed=seed
@@ -103,7 +103,7 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
             return WordleManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]:
+        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResult]:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
@@ -112,8 +112,9 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Answer:", *final_result)
+        def report_final_result(self, *, final_result: WordleFinalResult) -> None:
+            print("Found", final_result.num_found, "word(s)")
+            print("Answer:", *final_result.answers)
 
     return WordleManualGym(seed=seed)
 

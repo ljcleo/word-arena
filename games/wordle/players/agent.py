@@ -5,7 +5,7 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.wordle.common import WordleFeedback, WordleInfo
+from games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
 from games.wordle.players.common import WordleIOPlayer
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
@@ -76,7 +76,14 @@ def format_analysis(*, analysis: Analysis) -> Iterator[str]:
     yield str(analysis)
 
 
-class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience]):
+def format_final_result(*, final_result: WordleFinalResult) -> Iterator[str]:
+    yield f"Found {final_result.num_found} word(s) before game halts"
+    yield f"Secret Words: {'/'.join(final_result.answers)}"
+
+
+class WordleMemory(
+    BaseMemory[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience]
+):
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
         yield self._make_system_message(num_trial=0)
@@ -87,7 +94,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], 
 
     @override
     def make_reflection_messages(
-        self, *, record: GameRecord[WordleInfo, None, str, WordleFeedback, list[str]]
+        self, *, record: GameRecord[WordleInfo, None, str, WordleFeedback, WordleFinalResult]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
         yield self._make_record_message(record=record, reflection=None)
@@ -104,7 +111,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], 
     def make_update_experience_messages(
         self,
         *,
-        history: list[GameSummary[WordleInfo, None, str, WordleFeedback, list[str]]],
+        history: list[GameSummary[WordleInfo, None, str, WordleFeedback, WordleFinalResult]],
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
@@ -143,7 +150,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], 
     def _make_record_message(
         self,
         *,
-        record: GameRecord[WordleInfo, None, str, WordleFeedback, list[str]],
+        record: GameRecord[WordleInfo, None, str, WordleFeedback, WordleFinalResult],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -161,7 +168,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], 
         if record.latest_analysis is not None:
             sections.extend(format_analysis(analysis=record.latest_analysis))
 
-        sections.append(f"Secret Words: {'/'.join(record.final_result)}")
+        sections.extend(format_final_result(final_result=record.final_result))
         if reflection is not None:
             sections.extend(("Your reflection:", reflection.model_dump_json()))
 
@@ -177,7 +184,7 @@ class WordleMemory(BaseMemory[WordleInfo, None, str, WordleFeedback, list[str], 
 
 
 class WordleAgentPlayer(
-    BaseAgentPlayer[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience],
+    BaseAgentPlayer[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience],
     WordleIOPlayer,
 ):
     @override

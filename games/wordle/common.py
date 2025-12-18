@@ -21,3 +21,8 @@ class WordleError(BaseModel):
 
 
 type WordleFeedback = WordleResponse | WordleError
+
+
+class WordleFinalResult(BaseModel):
+    num_found: int
+    answers: list[str]

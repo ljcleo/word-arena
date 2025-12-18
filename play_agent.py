@@ -134,12 +134,12 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
 def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleFeedback, WordleInfo
+    from games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
     from games.wordle.game import WordleGameManager
     from games.wordle.players.agent import WordleAgentPlayer, WordleExperience, WordleMemory
 
     class WordleAgentGym(
-        BaseAgentGym[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience]
+        BaseAgentGym[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience]
     ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
@@ -149,7 +149,9 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_player(
             self, *, model: BaseLLM, prompt_mode: PromptMode
-        ) -> BaseAgentPlayer[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience]:
+        ) -> BaseAgentPlayer[
+            WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience
+        ]:
             return WordleAgentPlayer(
                 model=model,
                 memory=WordleMemory(model=model, experience_type=WordleExperience),
@@ -159,7 +161,7 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_game(
             self, *, select: bool
-        ) -> BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]:
+        ) -> BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResult]:
             return (
                 self._game_manager.create_game(
                     target_ids=[
@@ -174,8 +176,9 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Answer:", *final_result)
+        def report_final_result(self, *, final_result: WordleFinalResult) -> None:
+            print("Found", final_result.num_found, "word(s)")
+            print("Answer:", *final_result.answers)
 
     return WordleAgentGym(seed=seed)
 

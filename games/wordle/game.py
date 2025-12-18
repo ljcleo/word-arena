@@ -5,10 +5,16 @@ from random import Random
 from typing import override
 
 from common.game import BaseGame
-from games.wordle.common import WordleError, WordleFeedback, WordleInfo, WordleResponse
+from games.wordle.common import (
+    WordleError,
+    WordleFeedback,
+    WordleInfo,
+    WordleResponse,
+    WordleFinalResult,
+)
 
 
-class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]):
+class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResult]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_guesses: int
     ) -> None:
@@ -24,13 +30,13 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]):
 
     @override
     def start_game(self) -> WordleInfo:
-        self._solved_targets: set[int] = set()
+        self._found_targets: set[int] = set()
         self._num_guesses: int = 0
         return WordleInfo(num_targets=self._num_targets, max_guesses=self._max_guesses)
 
     @override
     def is_over(self) -> bool:
-        num_remains: int = self._num_targets - len(self._solved_targets)
+        num_remains: int = self._num_targets - len(self._found_targets)
         return num_remains == 0 or self._num_guesses + num_remains > self._max_guesses > 0
 
     @override
@@ -50,7 +56,7 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]):
 
         for idx, answer in enumerate(self._answers):
             if guess == answer:
-                self._solved_targets.add(idx)
+                self._found_targets.add(idx)
 
             buffer: list[str] = ["." for _ in answer]
             counter: Counter = Counter(answer)
@@ -70,8 +76,8 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]):
         return WordleResponse(patterns=patterns)
 
     @override
-    def get_final_result(self) -> list[str]:
-        return self._answers
+    def get_final_result(self) -> WordleFinalResult:
+        return WordleFinalResult(num_found=len(self._found_targets), answers=self._answers)
 
 
 class WordleGameManager:
