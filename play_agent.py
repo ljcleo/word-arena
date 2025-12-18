@@ -47,11 +47,11 @@ class BaseAgentGym[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
 
 
 def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
-    from games.contexto.game import ContextoGameManager, ContextoResult
+    from games.contexto.game import ContextoFeedback, ContextoGameManager
     from games.contexto.players.agent import ContextoAgentPlayer, ContextoExperience, ContextoMemory
 
     class ContextoAgentGym(
-        BaseAgentGym[int, None, str, ContextoResult, list[str], ContextoExperience]
+        BaseAgentGym[int, None, str, ContextoFeedback, list[str], ContextoExperience]
     ):
         def __init__(self) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
@@ -60,7 +60,7 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_player(
             self, *, model: BaseLLM, prompt_mode: PromptMode
-        ) -> BaseAgentPlayer[int, None, str, ContextoResult, list[str], ContextoExperience]:
+        ) -> BaseAgentPlayer[int, None, str, ContextoFeedback, list[str], ContextoExperience]:
             return ContextoAgentPlayer(
                 model=model,
                 memory=ContextoMemory(model=model, experience_type=ContextoExperience),
@@ -70,7 +70,7 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_game(
             self, *, select: bool
-        ) -> BaseGame[int, None, str, ContextoResult, list[str]]:
+        ) -> BaseGame[int, None, str, ContextoFeedback, list[str]]:
             return self._game_manager.create_game(
                 game_id=int(input("Input Game ID: ")) if select else None,
                 max_guesses=self._max_guesses,
@@ -130,12 +130,12 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
 def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleInfo, WordleResult
+    from games.wordle.common import WordleFeedback, WordleInfo
     from games.wordle.game import WordleGameManager
     from games.wordle.players.agent import WordleAgentPlayer, WordleExperience, WordleMemory
 
     class WordleAgentGym(
-        BaseAgentGym[WordleInfo, None, str, WordleResult, list[str], WordleExperience]
+        BaseAgentGym[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience]
     ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
@@ -145,7 +145,7 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_player(
             self, *, model: BaseLLM, prompt_mode: PromptMode
-        ) -> BaseAgentPlayer[WordleInfo, None, str, WordleResult, list[str], WordleExperience]:
+        ) -> BaseAgentPlayer[WordleInfo, None, str, WordleFeedback, list[str], WordleExperience]:
             return WordleAgentPlayer(
                 model=model,
                 memory=WordleMemory(model=model, experience_type=WordleExperience),
@@ -155,7 +155,7 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         @override
         def create_game(
             self, *, select: bool
-        ) -> BaseGame[WordleInfo, None, str, WordleResult, list[str]]:
+        ) -> BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]:
             return (
                 self._game_manager.create_game(
                     target_ids=[

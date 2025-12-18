@@ -5,10 +5,10 @@ from random import Random
 from typing import override
 
 from common.game import BaseGame
-from games.letroso.common import LetrosoError, LetrosoInfo, LetrosoResponse, LetrosoResult
+from games.letroso.common import LetrosoError, LetrosoFeedback, LetrosoInfo, LetrosoResponse
 
 
-class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
+class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_letters: int, max_guesses: int
     ) -> None:
@@ -42,7 +42,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> LetrosoResult:
+    def process_guess(self, *, guess: str) -> LetrosoFeedback:
         self._num_guesses += 1
 
         if not (1 <= len(guess) <= self._max_letters and guess.isalpha() and guess.islower()):
@@ -50,7 +50,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
         elif guess not in self._word_list:
             return LetrosoError(error="Unknown word")
 
-        results: list[str] = []
+        patterns: list[str] = []
 
         for idx, answer in enumerate(self._answers):
             if guess == answer:
@@ -88,7 +88,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
                 else:
                     buffer.append(".")
 
-            results.append(
+            patterns.append(
                 "".join(
                     f"{'(' if head_match and i == 0 else '['}{s}"
                     f"{')' if tail_match and i == len(buffer) - 1 else ']'}"
@@ -96,7 +96,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]):
                 )
             )
 
-        return LetrosoResponse(results=results)
+        return LetrosoResponse(patterns=patterns)
 
     @override
     def get_final_result(self) -> list[str]:

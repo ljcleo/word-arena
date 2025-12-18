@@ -119,9 +119,12 @@ class BaseAgentPlayer[GT, PT, AT, RT, FT, ET: BaseModel](BaseIOPlayer[GT, PT, AT
         return raw_guess
 
     @override
-    def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
-        super().digest(hint=hint, guess=guess, result=result)
-        self._memory.digest(hint=hint, analysis=self._latest_analysis, guess=guess, result=result)
+    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
+        super().digest(hint=hint, guess=guess, feedback=feedback)
+
+        self._memory.digest(
+            hint=hint, analysis=self._latest_analysis, guess=guess, feedback=feedback
+        )
 
     @abstractmethod
     def make_guess_info_messages(

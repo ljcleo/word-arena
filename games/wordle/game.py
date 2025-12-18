@@ -5,10 +5,10 @@ from random import Random
 from typing import override
 
 from common.game import BaseGame
-from games.wordle.common import WordleError, WordleInfo, WordleResponse, WordleResult
+from games.wordle.common import WordleError, WordleFeedback, WordleInfo, WordleResponse
 
 
-class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
+class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_guesses: int
     ) -> None:
@@ -38,7 +38,7 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> WordleResult:
+    def process_guess(self, *, guess: str) -> WordleFeedback:
         self._num_guesses += 1
 
         if not (len(guess) == self._num_letters and guess.isalpha() and guess.islower()):
@@ -46,7 +46,7 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
         elif guess not in self._word_list:
             return WordleError(error="Unknown word")
 
-        results: list[str] = []
+        patterns: list[str] = []
 
         for idx, answer in enumerate(self._answers):
             if guess == answer:
@@ -65,9 +65,9 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
                     buffer[i] = "Y"
                     counter[x] -= 1
 
-            results.append("".join(buffer))
+            patterns.append("".join(buffer))
 
-        return WordleResponse(results=results)
+        return WordleResponse(patterns=patterns)
 
     @override
     def get_final_result(self) -> list[str]:

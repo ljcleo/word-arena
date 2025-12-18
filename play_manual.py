@@ -27,21 +27,21 @@ class BaseManualGym[GT, PT, AT, RT, FT](ABC):
 
 
 def build_contexto_manual_gym(seed: int) -> BaseManualGym:
-    from games.contexto.common import ContextoResult
+    from games.contexto.common import ContextoFeedback
     from games.contexto.game import ContextoGameManager
     from games.contexto.players.manual import ContextoManualPlayer
 
-    class ContextoManualGym(BaseManualGym[int, None, str, ContextoResult, list[str]]):
+    class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
             self._max_guesses: int = int(input("Max Guesses: "))
 
         @override
-        def create_player(self) -> BaseManualPlayer[int, None, str, ContextoResult]:
+        def create_player(self) -> BaseManualPlayer[int, None, str, ContextoFeedback]:
             return ContextoManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[int, None, str, ContextoResult, list[str]]:
+        def create_game(self) -> BaseGame[int, None, str, ContextoFeedback, list[str]]:
             return self._game_manager.create_game(
                 game_id=int(input("Game ID: ")), max_guesses=self._max_guesses
             )
@@ -87,22 +87,22 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
 def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleInfo, WordleResult
+    from games.wordle.common import WordleFeedback, WordleInfo
     from games.wordle.game import WordleGameManager
     from games.wordle.players.manual import WordleManualPlayer
 
-    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleResult, list[str]]):
+    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleFeedback, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
                 word_list_file=Path("./data/wordle/words.txt"), seed=seed
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[WordleInfo, None, str, WordleResult]:
+        def create_player(self) -> BaseManualPlayer[WordleInfo, None, str, WordleFeedback]:
             return WordleManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleResult, list[str]]:
+        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleFeedback, list[str]]:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
@@ -120,22 +120,22 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
 def build_letroso_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.letroso.common import LetrosoInfo, LetrosoResult
+    from games.letroso.common import LetrosoFeedback, LetrosoInfo
     from games.letroso.game import LetrosoGameManager
     from games.letroso.players.manual import LetrosoManualPlayer
 
-    class LetrosoManualGym(BaseManualGym[LetrosoInfo, None, str, LetrosoResult, list[str]]):
+    class LetrosoManualGym(BaseManualGym[LetrosoInfo, None, str, LetrosoFeedback, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: LetrosoGameManager = LetrosoGameManager(
                 word_list_file=Path("./data/letroso/words.txt"), seed=seed
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[LetrosoInfo, None, str, LetrosoResult]:
+        def create_player(self) -> BaseManualPlayer[LetrosoInfo, None, str, LetrosoFeedback]:
             return LetrosoManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]:
+        def create_game(self) -> BaseGame[LetrosoInfo, None, str, LetrosoFeedback, list[str]]:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))

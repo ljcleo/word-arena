@@ -69,10 +69,10 @@ def format_trajectory(
 
         sections.extend((f"Guess {index + 1}", f"Candidates: {candidates}"))
 
-        if turn.result == -1:
+        if turn.feedback == -1:
             sections.append("Got Invalid Guess Input")
         else:
-            sections.extend((f"Guess: {turn.hint[turn.guess]}", f"Position: {turn.result + 1}"))
+            sections.extend((f"Guess: {turn.hint[turn.guess]}", f"Position: {turn.feedback + 1}"))
 
     if len(sections) == 0:
         sections.append("(Empty)")

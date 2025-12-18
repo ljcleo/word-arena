@@ -5,7 +5,7 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.contexto.common import ContextoResult
+from games.contexto.common import ContextoFeedback
 from games.contexto.players.common import ContextoIOPlayer
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
@@ -52,12 +52,15 @@ def format_game_info(*, game_info: int) -> Iterator[str]:
     yield f"Maximum number of guesses: {'unlimited' if game_info <= 0 else game_info}"
 
 
-def format_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoResult]]) -> Iterator[str]:
+def format_trajectory(*, trajectory: Iterable[Turn[None, str, ContextoFeedback]]) -> Iterator[str]:
     yield "Guess History:"
     sections: list[str] = []
 
     for index, turn in enumerate(trajectory):
-        sections.extend((f"Guess {index + 1}", f"Guess: {turn.guess}", f"Result: {turn.result}"))
+        sections.extend(
+            (f"Guess {index + 1}", f"Guess: {turn.guess}", f"Feedback: {turn.feedback}")
+        )
+
     if len(sections) == 0:
         sections.append("(Empty)")
 
@@ -69,7 +72,7 @@ def format_analysis(*, analysis: Analysis) -> Iterator[str]:
     yield str(analysis)
 
 
-class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], ContextoExperience]):
+class ContextoMemory(BaseMemory[int, None, str, ContextoFeedback, list[str], ContextoExperience]):
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
         yield self._make_system_message(num_trial=0)
@@ -81,7 +84,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
     @override
     def make_reflection_messages(
-        self, *, record: GameRecord[int, None, str, ContextoResult, list[str]]
+        self, *, record: GameRecord[int, None, str, ContextoFeedback, list[str]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
         yield self._make_record_message(record=record, reflection=None)
@@ -96,7 +99,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
     @override
     def make_update_experience_messages(
-        self, *, history: list[GameSummary[int, None, str, ContextoResult, list[str]]]
+        self, *, history: list[GameSummary[int, None, str, ContextoFeedback, list[str]]]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
@@ -140,7 +143,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
     def _make_record_message(
         self,
         *,
-        record: GameRecord[int, None, str, ContextoResult, list[str]],
+        record: GameRecord[int, None, str, ContextoFeedback, list[str]],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -180,7 +183,8 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[int, None, str, ContextoResult, list[str], ContextoExperience], ContextoIOPlayer
+    BaseAgentPlayer[int, None, str, ContextoFeedback, list[str], ContextoExperience],
+    ContextoIOPlayer,
 ):
     @override
     def make_guess_info_messages(
@@ -188,7 +192,7 @@ class ContextoAgentPlayer(
         *,
         game_info: int,
         experience: ContextoExperience,
-        current_trajectory: Iterable[Turn[None, str, ContextoResult]],
+        current_trajectory: Iterable[Turn[None, str, ContextoFeedback]],
         latest_analysis: Analysis | None,
         hint: None,
     ) -> Iterator[Message]:

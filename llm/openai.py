@@ -38,7 +38,7 @@ class OpenAILLM(BaseLLM):
     @retry(wait=wait_random(max=1), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
     def parse[T: BaseModel](self, *messages: Message, format: type[T]) -> T:
-        result: T | None = (
+        parsed: T | None = (
             self._client.chat.completions.parse(
                 messages=list(map(self._convert, messages)),
                 model=self.model,
@@ -50,8 +50,8 @@ class OpenAILLM(BaseLLM):
             .message.parsed
         )
 
-        assert result is not None
-        return result
+        assert parsed is not None
+        return parsed
 
     @staticmethod
     def _convert(message: Message) -> ChatCompletionMessageParam:

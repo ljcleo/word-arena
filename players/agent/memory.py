@@ -30,7 +30,7 @@ class Analysis(BaseModel):
 class Turn[PT, AT, RT](BaseModel):
     hint: PT
     guess: AT
-    result: RT
+    feedback: RT
 
 
 class Reflection(BaseModel):
@@ -91,8 +91,8 @@ class BaseMemory[GT, PT, AT, RT, FT, ET: BaseModel](ABC):
         self._trajectory: list[Turn[PT, AT, RT]] = []
         self._latest_analysis: Analysis | None = None
 
-    def digest(self, *, hint: PT, analysis: Analysis | None, guess: AT, result: RT) -> None:
-        self._trajectory.append(Turn(hint=hint, guess=guess, result=result))
+    def digest(self, *, hint: PT, analysis: Analysis | None, guess: AT, feedback: RT) -> None:
+        self._trajectory.append(Turn(hint=hint, guess=guess, feedback=feedback))
         self._latest_analysis = analysis
 
     def reflect(self, *, final_result: FT, update_experience: bool) -> None:

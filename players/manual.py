@@ -14,8 +14,8 @@ class BaseManualPlayer[GT, PT, AT, RT](BaseIOPlayer[GT, PT, AT, RT], ABC):
         self._num_guesses: int = 0
 
     @override
-    def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
-        super().digest(hint=hint, guess=guess, result=result)
+    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
+        super().digest(hint=hint, guess=guess, feedback=feedback)
         self._num_guesses += 1
 
     @override

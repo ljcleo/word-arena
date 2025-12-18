@@ -28,5 +28,7 @@ class ContextoHintIOPlayer(BaseIOPlayer[None, list[str], int, int]):
         return ord(raw_guess) - ord("A") if len(raw_guess) == 1 else -1
 
     @override
-    def format_result(self, *, hint: list[str], guess: int, result: int) -> Iterator[str]:
-        yield "Invalid Input" if result == -1 else f"Guess: {hint[guess]}; Position: {result + 1}"
+    def format_feedback(self, *, hint: list[str], guess: int, feedback: int) -> Iterator[str]:
+        yield (
+            "Invalid Input" if feedback == -1 else f"Guess: {hint[guess]}; Position: {feedback + 1}"
+        )

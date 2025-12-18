@@ -17,4 +17,4 @@ class ContextoError(BaseModel):
         return f"Reject | {self.error}"
 
 
-type ContextoResult = ContextoResponse | ContextoError
+type ContextoFeedback = ContextoResponse | ContextoError

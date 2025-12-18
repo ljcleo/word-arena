@@ -5,10 +5,10 @@ from typing import override
 import httpx
 
 from common.game import BaseGame
-from games.contexto.common import ContextoError, ContextoResponse, ContextoResult
+from games.contexto.common import ContextoError, ContextoFeedback, ContextoResponse
 
 
-class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
+class ContextoGame(BaseGame[int, None, str, ContextoFeedback, list[str]]):
     def __init__(self, *, game_id: int, max_guesses: int) -> None:
         self._game_id: int = game_id
         self._max_guesses: int = max_guesses
@@ -29,7 +29,7 @@ class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> ContextoResult:
+    def process_guess(self, *, guess: str) -> ContextoFeedback:
         self._num_guesses += 1
         if not (guess.isalpha() and guess.islower()):
             return ContextoError(error="Your guess should only contain lowercase letters")
@@ -37,9 +37,9 @@ class ContextoGame(BaseGame[int, None, str, ContextoResult, list[str]]):
         response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{guess}")
 
         if response.status_code == 200:
-            result: ContextoResponse = ContextoResponse.model_validate_json(response.content)
-            self._best_pos = min(self._best_pos, result.distance)
-            return result
+            feedback: ContextoResponse = ContextoResponse.model_validate_json(response.content)
+            self._best_pos = min(self._best_pos, feedback.distance)
+            return feedback
         elif response.status_code == 404:
             return ContextoError.model_validate_json(response.content)
         else:

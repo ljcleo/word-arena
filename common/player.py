@@ -11,5 +11,5 @@ class BasePlayer[GT, PT, AT, RT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
+    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
         raise NotImplementedError()

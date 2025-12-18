@@ -1,11 +1,11 @@
 from collections.abc import Iterator
 from typing import override
 
-from games.contexto.common import ContextoResult
+from games.contexto.common import ContextoFeedback
 from players.common import BaseIOPlayer
 
 
-class ContextoIOPlayer(BaseIOPlayer[int, None, str, ContextoResult]):
+class ContextoIOPlayer(BaseIOPlayer[int, None, str, ContextoFeedback]):
     @override
     def format_hint(self, *, hint: None) -> Iterator[str]:
         yield from ()
@@ -15,5 +15,7 @@ class ContextoIOPlayer(BaseIOPlayer[int, None, str, ContextoResult]):
         return raw_guess
 
     @override
-    def format_result(self, *, hint: None, guess: str, result: ContextoResult) -> Iterator[str]:
-        yield f"Guess: {guess}; Result: {result}"
+    def format_feedback(
+        self, *, hint: None, guess: str, feedback: ContextoFeedback
+    ) -> Iterator[str]:
+        yield f"Guess: {guess}; Feedback: {feedback}"

@@ -16,8 +16,8 @@ class BaseIOPlayer[GT, PT, AT, RT](BasePlayer[GT, PT, AT, RT], ABC):
         return guess
 
     @override
-    def digest(self, *, hint: PT, guess: AT, result: RT) -> None:
-        for section in self.format_result(hint=hint, guess=guess, result=result):
+    def digest(self, *, hint: PT, guess: AT, feedback: RT) -> None:
+        for section in self.format_feedback(hint=hint, guess=guess, feedback=feedback):
             print(section)
 
     @abstractmethod
@@ -33,5 +33,5 @@ class BaseIOPlayer[GT, PT, AT, RT](BasePlayer[GT, PT, AT, RT], ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def format_result(self, *, hint: PT, guess: AT, result: RT) -> Iterator[str]:
+    def format_feedback(self, *, hint: PT, guess: AT, feedback: RT) -> Iterator[str]:
         raise NotImplementedError()

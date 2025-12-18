@@ -7,10 +7,10 @@ class WordleInfo(BaseModel):
 
 
 class WordleResponse(BaseModel):
-    results: list[str]
+    patterns: list[str]
 
     def __str__(self) -> str:
-        return f"Accept | {'/'.join(self.results)}"
+        return f"Accept | {'/'.join(self.patterns)}"
 
 
 class WordleError(BaseModel):
@@ -20,4 +20,4 @@ class WordleError(BaseModel):
         return f"Reject | {self.error}"
 
 
-type WordleResult = WordleResponse | WordleError
+type WordleFeedback = WordleResponse | WordleError

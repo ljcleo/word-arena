@@ -11,8 +11,8 @@ class BaseGame[GT, PT, AT, RT, FT](ABC):
         while not self.is_over():
             hint: PT = self.get_guess_prompt()
             guess: AT = player.guess(hint=hint)
-            result: RT = self.process_guess(guess=guess)
-            player.digest(hint=hint, guess=guess, result=result)
+            feedback: RT = self.process_guess(guess=guess)
+            player.digest(hint=hint, guess=guess, feedback=feedback)
 
         return self.get_final_result()
 

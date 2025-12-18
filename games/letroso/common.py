@@ -8,10 +8,10 @@ class LetrosoInfo(BaseModel):
 
 
 class LetrosoResponse(BaseModel):
-    results: list[str]
+    patterns: list[str]
 
     def __str__(self) -> str:
-        return f"Accept | {'/'.join(self.results)}"
+        return f"Accept | {'/'.join(self.patterns)}"
 
 
 class LetrosoError(BaseModel):
@@ -21,4 +21,4 @@ class LetrosoError(BaseModel):
         return f"Reject | {self.error}"
 
 
-type LetrosoResult = LetrosoResponse | LetrosoError
+type LetrosoFeedback = LetrosoResponse | LetrosoError
