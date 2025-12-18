@@ -27,7 +27,7 @@ class ContextoHintExperience(BaseModel):
         )
 
     @staticmethod
-    def example_str() -> str:
+    def example_json() -> str:
         return ContextoHintExperience.example().model_dump_json()
 
 
@@ -107,7 +107,8 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
             "Make a summary of your guesses and summarize the lessons you have learned.",
             "Pay attention to the rounds where you failed to choose the word "
             "with the closest position among the candidates.",
-            f"Make your response clear and simple in JSON format like `{Reflection.example()}`.",
+            "Make your response clear and simple in JSON format like "
+            f"`{Reflection.example_json()}`.",
         )
 
     @override
@@ -185,7 +186,7 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
 
         yield (
             "Make your response clear and simple in JSON format like "
-            f"`{ContextoHintExperience.example_str()}`."
+            f"`{ContextoHintExperience.example_json()}`."
         )
 
 

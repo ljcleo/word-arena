@@ -26,10 +26,6 @@ class Analysis(BaseModel):
     def example() -> Analysis:
         return Analysis(past_analysis_summary="...", current_analysis="...", plan="...")
 
-    @staticmethod
-    def example_str() -> str:
-        return Analysis.example().model_dump_json()
-
 
 class Turn[PT, AT, RT](BaseModel):
     hint: PT
@@ -46,7 +42,7 @@ class Reflection(BaseModel):
         return Reflection(summary="In this trial, ...", lessons="...")
 
     @staticmethod
-    def example_str() -> str:
+    def example_json() -> str:
         return Reflection.example().model_dump_json()
 
 

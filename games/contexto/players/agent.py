@@ -23,7 +23,7 @@ class ContextoExperience(BaseModel):
         )
 
     @staticmethod
-    def example_str() -> str:
+    def example_json() -> str:
         return ContextoExperience.example().model_dump_json()
 
 
@@ -90,7 +90,8 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
             "Now, reflect on your performance in the game.",
             "Make a summary of your guesses and summarize the lessons you have learned.",
             "Pay attention to the rounds where you guessed very close or very far words.",
-            f"Make your response clear and simple in JSON format like `{Reflection.example()}`.",
+            "Make your response clear and simple in JSON format like "
+            f"`{Reflection.example_json()}`.",
         )
 
     @override
@@ -174,7 +175,7 @@ class ContextoMemory(BaseMemory[int, None, str, ContextoResult, list[str], Conte
 
         yield (
             "Make your response clear and simple in JSON format like "
-            f"`{ContextoExperience.example_str()}`."
+            f"`{ContextoExperience.example_json()}`."
         )
 
 
