@@ -10,26 +10,29 @@ from games.wordle.common import WordleError, WordleInfo, WordleResponse, WordleR
 
 class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
     def __init__(
-        self, *, word_list: Sequence[str], target_ids: list[int], max_accept_guesses: int
+        self, *, word_list: Sequence[str], target_ids: list[int], max_guesses: int
     ) -> None:
         self._word_list: set[str] = set(word_list)
         self._answers: list[str] = [word_list[target_id] for target_id in target_ids]
-        self._max_accept_guesses: int = max_accept_guesses
+        self._max_guesses: int = max_guesses
+
+        self._num_targets: int = len(self._answers)
+        self._num_letters: int = len(self._answers[0])
+
+        for answer in self._answers:
+            assert len(answer) == self._num_letters
 
     @override
     def start_game(self) -> WordleInfo:
-        self._num_accept_guesses: int = 0
         self._solved_targets: set[int] = set()
-
-        return WordleInfo(
-            num_targets=len(self._answers), max_accept_guesses=self._max_accept_guesses
-        )
+        self._num_guesses: int = 0
+        return WordleInfo(num_targets=self._num_targets, max_guesses=self._max_guesses)
 
     @override
     def is_over(self) -> bool:
         return (
-            len(self._solved_targets) == len(self._answers)
-            or self._num_accept_guesses >= self._max_accept_guesses
+            len(self._solved_targets) == self._num_targets
+            or self._num_guesses >= self._max_guesses > 0
         )
 
     @override
@@ -38,19 +41,20 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleResult, list[str]]):
 
     @override
     def process_guess(self, *, guess: str) -> WordleResult:
-        if not (len(guess) == len(self._answers[0]) and guess.isalpha() and guess.islower()):
+        self._num_guesses += 1
+
+        if not (len(guess) == self._num_letters and guess.isalpha() and guess.islower()):
             return WordleError(error="Invalid guess")
         elif guess not in self._word_list:
             return WordleError(error="Unknown word")
 
-        self._num_accept_guesses += 1
         results: list[str] = []
 
         for idx, answer in enumerate(self._answers):
             if guess == answer:
                 self._solved_targets.add(idx)
 
-            buffer: list[str] = ["-"] * len(answer)
+            buffer: list[str] = ["." for _ in answer]
             counter: Counter = Counter(answer)
 
             for i, (x, y) in enumerate(zip(guess, answer)):
@@ -80,17 +84,14 @@ class WordleGameManager:
         self._num_games: int = len(self._word_list)
         self._rng: Random = Random(seed)
 
-    def create_game(self, *, target_ids: list[int], max_accept_guesses: int) -> WordleGame:
-        return WordleGame(
-            word_list=self._word_list, target_ids=target_ids, max_accept_guesses=max_accept_guesses
-        )
+    def create_game(self, *, target_ids: list[int], max_guesses: int) -> WordleGame:
+        return WordleGame(word_list=self._word_list, target_ids=target_ids, max_guesses=max_guesses)
 
     def create_random_game(self, *, param_candidates: list[tuple[int, int]]) -> WordleGame:
         num_targets: int
-        max_accept_guesses: int
-        num_targets, max_accept_guesses = self._rng.choice(param_candidates)
-
-        return self.create_game(
-            target_ids=self._rng.sample(range(self._num_games), num_targets),
-            max_accept_guesses=max_accept_guesses,
-        )
+        max_guesses: int
+        num_targets, max_guesses = self._rng.choice(param_candidates)
+        target_ids = self._rng.sample(range(self._num_games), num_targets)
+        print("Current Word IDs:", *target_ids)
+        print("Current Max Guesses:", max_guesses)
+        return self.create_game(target_ids=target_ids, max_guesses=max_guesses)

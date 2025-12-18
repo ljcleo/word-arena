@@ -6,17 +6,15 @@ class ContextoResponse(BaseModel):
     lemma: str
     distance: int
 
+    def __str__(self) -> str:
+        return f"Accept | Lemmatized as {self.lemma}; Position {self.distance + 1}"
+
 
 class ContextoError(BaseModel):
     error: str
 
+    def __str__(self) -> str:
+        return f"Reject | {self.error}"
+
 
 type ContextoResult = ContextoResponse | ContextoError
-
-
-def format_contexto_result(result: ContextoResult, /) -> str:
-    return (
-        f"Reject | {result.error}"
-        if isinstance(result, ContextoError)
-        else f"Accept | Lemmatized as {result.lemma}; Position {result.distance + 1}"
-    )

@@ -43,7 +43,7 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
         @override
         def create_game(self) -> BaseGame[int, None, str, ContextoResult, list[str]]:
             return self._game_manager.create_game(
-                game_id=int(input("Input Game ID: ")), max_guesses=self._max_guesses
+                game_id=int(input("Game ID: ")), max_guesses=self._max_guesses
             )
 
         @override
@@ -74,7 +74,7 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
         @override
         def create_game(self) -> BaseGame[None, list[str], int, int, list[str]]:
             return self._game_manager.create_game(
-                game_id=int(input("Input Game ID: ")), num_candidates=self._num_candidates
+                game_id=int(input("Game ID: ")), num_candidates=self._num_candidates
             )
 
         @override
@@ -105,10 +105,9 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
         def create_game(self) -> BaseGame[WordleInfo, None, str, WordleResult, list[str]]:
             return self._game_manager.create_game(
                 target_ids=[
-                    int(input(f"Input Word {i + 1} ID: "))
-                    for i in range(int(input("Num Targets: ")))
+                    int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
                 ],
-                max_accept_guesses=int(input("Max Accept Guesses: ")),
+                max_guesses=int(input("Max Guesses: ")),
             )
 
         @override
@@ -118,10 +117,45 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     return WordleManualGym(seed=seed)
 
 
+def build_letroso_manual_gym(seed: int) -> BaseManualGym:
+    from pathlib import Path
+
+    from games.letroso.common import LetrosoInfo, LetrosoResult
+    from games.letroso.game import LetrosoGameManager
+    from games.letroso.players.manual import LetrosoManualPlayer
+
+    class LetrosoManualGym(BaseManualGym[LetrosoInfo, None, str, LetrosoResult, list[str]]):
+        def __init__(self, *, seed: int) -> None:
+            self._game_manager: LetrosoGameManager = LetrosoGameManager(
+                word_list_file=Path("./data/letroso/words.txt"), seed=seed
+            )
+
+        @override
+        def create_player(self) -> BaseManualPlayer[LetrosoInfo, None, str, LetrosoResult]:
+            return LetrosoManualPlayer()
+
+        @override
+        def create_game(self) -> BaseGame[LetrosoInfo, None, str, LetrosoResult, list[str]]:
+            return self._game_manager.create_game(
+                target_ids=[
+                    int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                ],
+                max_letters=10,
+                max_guesses=int(input("Max Guesses: ")),
+            )
+
+        @override
+        def summarize(self, *, summary: list[str]) -> None:
+            print("Answer:", *summary)
+
+    return LetrosoManualGym(seed=seed)
+
+
 MANUAL_GYM_BUILDERS: dict[str, Callable[[int], BaseManualGym]] = {
     "contexto": build_contexto_manual_gym,
     "contexto-hint": build_contexto_hint_manual_gym,
     "wordle": build_wordle_manual_gym,
+    "letroso": build_letroso_manual_gym,
 }
 
 

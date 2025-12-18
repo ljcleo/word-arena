@@ -1,23 +1,24 @@
 from pydantic import BaseModel
 
 
-class WordleInfo(BaseModel):
+class LetrosoInfo(BaseModel):
     num_targets: int
+    max_letters: int
     max_guesses: int
 
 
-class WordleResponse(BaseModel):
+class LetrosoResponse(BaseModel):
     results: list[str]
 
     def __str__(self) -> str:
         return f"Accept | {'/'.join(self.results)}"
 
 
-class WordleError(BaseModel):
+class LetrosoError(BaseModel):
     error: str
 
     def __str__(self) -> str:
         return f"Reject | {self.error}"
 
 
-type WordleResult = WordleResponse | WordleError
+type LetrosoResult = LetrosoResponse | LetrosoError
