@@ -5,12 +5,7 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.contexto_hint.players.common import (
-    ContextoHintIOPlayer,
-    index_to_option,
-    make_option,
-    make_options,
-)
+from games.contexto_hint.players.common import ContextoHintIOPlayer, format_options
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
 from players.agent.player import BaseAgentPlayer
@@ -52,7 +47,7 @@ You need to choose one of them as your next guess, then you will see its positio
 It is guaranteed that there is a candidate word closer than the current best guess."""
 
 CONTEXTO_HINT_GUESS_FORMAT = (
-    "You should reply the OPTION CHARACTER of the guessed word, NOT the word itself."
+    "You should reply the index of the guessed word (as a string), NOT the word itself."
 )
 
 
@@ -225,7 +220,7 @@ class ContextoHintAgentPlayer(
         if latest_analysis is not None:
             yield Message.human(*format_analysis(analysis=latest_analysis))
 
-        yield Message.human("Candidates of the Next Guess:", make_options(hint=hint))
+        yield Message.human("Candidates of the Next Guess:", format_options(hint=hint))
 
     @override
     def make_full_guess_prompt(
@@ -241,7 +236,7 @@ class ContextoHintAgentPlayer(
             )
 
         yield from self._make_guess_detail_prompt(hint=hint)
-        yield f"Respond in JSON format like `{make_example('B')}`."
+        yield self._make_example(make_example=make_example)
 
     @override
     def make_summarize_analysis_prompt(self) -> Iterator[str]:
@@ -264,13 +259,12 @@ class ContextoHintAgentPlayer(
     ) -> Iterator[str]:
         yield "Make your choice."
         yield from self._make_guess_detail_prompt(hint=hint)
-        yield f"Respond in JSON format like `{make_example('B')}`."
+        yield self._make_example(make_example=make_example)
 
     def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
         yield CONTEXTO_HINT_GUESS_FORMAT
         example_id: int = 1
+        yield (f"For example, reply `{example_id + 1}` if you choose `{hint[example_id]}`.")
 
-        yield (
-            f"For example, reply `{index_to_option(example_id)}` "
-            f"if you choose `{make_option(example_id, hint[example_id])}`."
-        )
+    def _make_example(self, *, make_example: Callable[[str], str]) -> str:
+        return f"Respond in JSON format like `{make_example('1')}`."

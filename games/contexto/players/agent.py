@@ -228,7 +228,7 @@ class ContextoAgentPlayer(
             )
 
         yield from self._make_guess_detail_prompt()
-        yield f"Respond in JSON format like `{make_example('word')}`."
+        yield self._make_example(make_example=make_example)
 
     @override
     def make_summarize_analysis_prompt(self) -> Iterator[str]:
@@ -260,8 +260,11 @@ class ContextoAgentPlayer(
             yield "Make your next guess."
 
         yield from self._make_guess_detail_prompt()
-        yield f"Respond in JSON format like `{make_example('word')}`."
+        yield self._make_example(make_example=make_example)
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
         yield CONTEXTO_GUESS_FORMAT
         yield "Pay attention to the number of remaining guesses."
+
+    def _make_example(self, *, make_example: Callable[[str], str]) -> str:
+        return f"Respond in JSON format like `{make_example('word')}`."

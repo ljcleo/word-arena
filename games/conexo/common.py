@@ -6,9 +6,6 @@ class ConexoInfo(BaseModel):
     group_size: int
     max_guesses: int
 
-    def format_options(self) -> str:
-        return "; ".join(f"{index + 1}: {word}" for index, word in enumerate(self.words))
-
 
 class ConexoFeedback(BaseModel):
     accepted: bool

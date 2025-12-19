@@ -5,6 +5,10 @@ from games.conexo.common import ConexoFeedback, ConexoInfo
 from players.common import BaseIOPlayer
 
 
+def format_options(words: list[str]) -> str:
+    return "; ".join(f"{index + 1}: {word}" for index, word in enumerate(words))
+
+
 class ConexoIOPlayer(BaseIOPlayer[ConexoInfo, None, set[int], ConexoFeedback]):
     @override
     def prepare(self, *, game_info: ConexoInfo) -> None:
@@ -14,7 +18,7 @@ class ConexoIOPlayer(BaseIOPlayer[ConexoInfo, None, set[int], ConexoFeedback]):
     @override
     def format_game_info(self, *, game_info: ConexoInfo) -> Iterator[str]:
         yield "Words (Use Index to Guess):"
-        yield f"{game_info.format_options()}"
+        yield format_options(game_info.words)
 
     @override
     def format_hint(self, *, hint: None) -> Iterator[str]:
