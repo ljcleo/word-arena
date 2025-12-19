@@ -146,7 +146,7 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
                 ],
-                max_letters=10,
+                max_letters=int(input("Max Input Letters: ")),
                 max_guesses=int(input("Max Guesses: ")),
             )
 

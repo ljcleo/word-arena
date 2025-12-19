@@ -27,6 +27,8 @@ class ContextoExperience(BaseModel):
         return ContextoExperience.example().model_dump_json()
 
 
+CONTEXTO_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
+
 CONTEXTO_GAME_RULE = """You are playing a game where you need to find a secret word.
 
 The game holds a word list with tens of thousands words, including the secret word,
@@ -43,9 +45,11 @@ Every time, you choose a word as your next guess; the word will be lemmatized to
 If the word is accepted, you will see its lemma and the lemma's position in the list,
 otherwise you will see the reject reason, such as invalid format, word not in list, or taboo words.
 
-Your guess must be a **single word with only lowercase letters and no hyphens**.
-
 You should try your best to minimize the number of guesses; there may be a guessing limit."""
+
+CONTEXTO_GUESS_FORMAT = (
+    "Your guess must be a **single word with only lowercase letters and no hyphens**."
+)
 
 
 def format_game_info(*, game_info: int) -> Iterator[str]:
@@ -132,20 +136,19 @@ class ContextoMemory(
         )
 
     def _make_system_message(self, *, num_trial: int) -> Message:
-        rule_hint: str = "\n".join(f"> {line}" for line in CONTEXTO_GAME_RULE.split("\n"))
-        trial_hint: str
-
-        if num_trial == 0:
-            trial_hint = "Now, you are new to the game and have no trials yet."
-        elif num_trial == 1:
-            trial_hint = "Now, you have played this game once."
-        else:
-            trial_hint = f'Now, you have played this game {num_trial} times".'
-
         return Message.system(
-            "You are an intelligent AI good at understanding word relations.\n\n"
-            "The following section describes a word relation game:\n\n"
-            f"{rule_hint}\n\n{trial_hint}"
+            CONTEXTO_ROLE_DEF,
+            "The following section describes a word game:",
+            "\n".join(
+                f"> {line}" for line in (*CONTEXTO_GAME_RULE.split("\n"), "", CONTEXTO_GUESS_FORMAT)
+            ),
+            (
+                "Now, you are new to the game and have no trials yet."
+                if num_trial == 0
+                else "Now, you have played this game once."
+                if num_trial == 1
+                else f'Now, you have played this game {num_trial} times".'
+            ),
         )
 
     def _make_record_message(
@@ -199,13 +202,11 @@ class ContextoAgentPlayer(
         hint: None,
     ) -> Iterator[Message]:
         yield Message.system(
-            "\n---\n".join(
-                [
-                    "You are an intelligent AI good at understanding word relations.\n\n"
-                    f"{CONTEXTO_GAME_RULE}",
-                    f"{experience.law}\n\n{experience.strategy}",
-                ]
-            )
+            CONTEXTO_ROLE_DEF,
+            CONTEXTO_GAME_RULE,
+            "Here are some notes you have made:",
+            experience.law,
+            experience.strategy,
         )
 
         yield Message.human(*format_game_info(game_info=game_info))
@@ -262,5 +263,5 @@ class ContextoAgentPlayer(
         yield f"Respond in JSON format like `{make_example('word')}`."
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
-        yield "Your guess should be a **single word with only lowercase letters and no hyphens**."
+        yield CONTEXTO_GUESS_FORMAT
         yield "Pay attention to the number of remaining guesses."

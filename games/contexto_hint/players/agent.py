@@ -31,6 +31,8 @@ class ContextoHintExperience(BaseModel):
         return ContextoHintExperience.example().model_dump_json()
 
 
+CONTEXTO_HINT_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
+
 CONTEXTO_HINT_GAME_RULE: str = """You are playing a game where you need to find a secret word.
 
 The game holds a word list with 500 words, including the secret word,
@@ -48,6 +50,10 @@ you have not guessed before, but without their positions.
 You need to choose one of them as your next guess, then you will see its position in the list.
 
 It is guaranteed that there is a candidate word closer than the current best guess."""
+
+CONTEXTO_HINT_GUESS_FORMAT = (
+    "You should reply the OPTION CHARACTER of the guessed word, NOT the word itself."
+)
 
 
 def format_trajectory(
@@ -138,20 +144,20 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
         )
 
     def _make_system_message(self, *, num_trial: int) -> Message:
-        rule_hint: str = "\n".join(f"> {line}" for line in CONTEXTO_HINT_GAME_RULE.split("\n"))
-        trial_hint: str
-
-        if num_trial == 0:
-            trial_hint = "Now, you are new to the game and have no trials yet."
-        elif num_trial == 1:
-            trial_hint = "Now, you have played this game once."
-        else:
-            trial_hint = f'Now, you have played this game {num_trial} times".'
-
         return Message.system(
-            "You are an intelligent AI good at understanding word relations.\n\n"
-            "The following section describes a word relation game:\n\n"
-            f"{rule_hint}\n\n{trial_hint}"
+            CONTEXTO_HINT_ROLE_DEF,
+            "The following section describes a word game:",
+            "\n".join(
+                f"> {line}"
+                for line in (*CONTEXTO_HINT_GAME_RULE.split("\n"), "", CONTEXTO_HINT_GUESS_FORMAT)
+            ),
+            (
+                "Now, you are new to the game and have no trials yet."
+                if num_trial == 0
+                else "Now, you have played this game once."
+                if num_trial == 1
+                else f'Now, you have played this game {num_trial} times".'
+            ),
         )
 
     def _make_record_message(
@@ -168,6 +174,7 @@ class ContextoHintMemory(BaseMemory[None, list[str], int, int, list[str], Contex
         sections.extend(
             format_trajectory(trajectory=record.trajectory, final_result=record.final_result)
         )
+
         if record.latest_analysis is not None:
             sections.extend(format_analysis(analysis=record.latest_analysis))
 
@@ -207,13 +214,11 @@ class ContextoHintAgentPlayer(
         hint: list[str],
     ) -> Iterator[Message]:
         yield Message.system(
-            "\n---\n".join(
-                [
-                    "You are an intelligent AI good at understanding word relations.\n\n"
-                    f"{CONTEXTO_HINT_GAME_RULE}",
-                    f"{experience.law}\n\n{experience.strategy}",
-                ]
-            )
+            CONTEXTO_HINT_ROLE_DEF,
+            CONTEXTO_HINT_GAME_RULE,
+            "Here are some notes you have made:",
+            experience.law,
+            experience.strategy,
         )
 
         yield Message.human(*format_trajectory(trajectory=current_trajectory, final_result=None))
@@ -262,8 +267,8 @@ class ContextoHintAgentPlayer(
         yield f"Respond in JSON format like `{make_example('B')}`."
 
     def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
+        yield CONTEXTO_HINT_GUESS_FORMAT
         example_id: int = 1
-        yield "You should reply the OPTION CHARACTER of the guessed word, NOT the word itself."
 
         yield (
             f"For example, reply `{index_to_option(example_id)}` "

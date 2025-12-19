@@ -183,10 +183,62 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
     return WordleAgentGym(seed=seed)
 
 
+def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
+    from pathlib import Path
+
+    from games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
+    from games.letroso.game import LetrosoGameManager
+    from games.letroso.players.agent import LetrosoAgentPlayer, LetrosoExperience, LetrosoMemory
+
+    class LetrosoAgentGym(
+        BaseAgentGym[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience]
+    ):
+        def __init__(self, *, seed: int) -> None:
+            self._game_manager: LetrosoGameManager = LetrosoGameManager(
+                word_list_file=Path("./data/letroso/words.txt"), seed=seed
+            )
+
+        @override
+        def create_player(
+            self, *, model: BaseLLM, prompt_mode: PromptMode
+        ) -> BaseAgentPlayer[
+            LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+        ]:
+            return LetrosoAgentPlayer(
+                model=model,
+                memory=LetrosoMemory(model=model, experience_type=LetrosoExperience),
+                prompt_mode=prompt_mode,
+            )
+
+        @override
+        def create_game(
+            self, *, select: bool
+        ) -> BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]:
+            return (
+                self._game_manager.create_game(
+                    target_ids=[
+                        int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                    ],
+                    max_letters=int(input("Max Input Letters: ")),
+                    max_guesses=int(input("Max Guesses: ")),
+                )
+                if select
+                else self._game_manager.create_random_game(param_candidates=[(1, 10, 20)])
+            )
+
+        @override
+        def report_final_result(self, *, final_result: LetrosoFinalResult) -> None:
+            print("Found", final_result.num_found, "word(s)")
+            print("Answer:", *final_result.answers)
+
+    return LetrosoAgentGym(seed=seed)
+
+
 AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
     "contexto": build_contexto_agent_gym,
     "contexto-hint": build_contexto_hint_agent_gym,
     "wordle": build_wordle_agent_gym,
+    "letroso": build_letroso_agent_gym,
 }
 
 

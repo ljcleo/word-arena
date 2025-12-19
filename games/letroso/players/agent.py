@@ -5,39 +5,55 @@ from typing import override
 
 from pydantic import BaseModel
 
-from games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
-from games.wordle.players.common import WordleIOPlayer
+from games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
+from games.letroso.players.common import LetrosoIOPlayer
 from llm.common import Message
 from players.agent.memory import Analysis, BaseMemory, GameRecord, GameSummary, Reflection, Turn
 from players.agent.player import BaseAgentPlayer
 
 
-class WordleExperience(BaseModel):
+class LetrosoExperience(BaseModel):
     strategy: str
 
     @staticmethod
-    def example() -> WordleExperience:
-        return WordleExperience(strategy="Follow these rules and strategies when guessing: ...")
+    def example() -> LetrosoExperience:
+        return LetrosoExperience(strategy="Follow these rules and strategies when guessing: ...")
 
     @staticmethod
     def example_json() -> str:
-        return WordleExperience.example().model_dump_json()
+        return LetrosoExperience.example().model_dump_json()
 
 
-WORDLE_ROLE_DEF = "You are an intelligent AI with a good English vocabulary."
+LETROSO_ROLE_DEF = "You are an intelligent AI with a good English vocabulary."
 
-WORDLE_GAME_RULE = """You are playing a game where you need to find one or more secret words.
+LETROSO_GAME_RULE = """You are playing a game where you need to find one or more secret words.
 
-All secret words have 5 letters, and are selected from a large vocabulary that
-covers most of the 5-letter English words.
+All secret words are selected from a large vocabulary that covers most of the English words,
+yet their lengths may vary.
 
-Every time, you choose a 5-letter word as your next guess; the guess should be a valid English word.
+Every time, you choose a word as your next guess;
+the guess should be a valid English word with no more than a specific number of letters.
 
-If the word is accepted, you will see how it matches each secret word through a labeling string:
+If the word is accepted, you will see how it matches each secret word
+through a labeling string the same length as the guessed word:
 
-A `G` label means that the letter at that position is correct;
-a `Y` label means that the letter at that position should be at somewhere else;
-a `.` means that the letter is not in the secret word, or has appeared too many times.
+A `G` label means that the relative order of the letter at that position,
+compared to other `G`-labeled letters, is the same in the secret word;
+however, its absolute position in the secret word can be different.
+
+Furthermore, if multiple `G` labels are braced in `[]` into a `G` segment,
+then the corresponding letters appears together in the secret word, adjacent to each other;
+letters from different `G` segments are NOT adjacent to each other in the secret word,
+even if the `G` segments themselves are adjacent.
+
+A `Y` label means that the letter at that position appears in the secret word,
+but its relative order compared to `G`-labeled letters is incorrect;
+a `.` label means that the letter is not in the secret word, or has appeared too many times.
+
+A head `G` segment started by `(` instead of `[` means that the secret word starts with it,
+while a `[` start means that the secret word does NOT start with this segment;
+a tail `G` segment ended by `)` instead of `]` means that the secret word ends with it,
+while a `]` end means that the secret word does NOT end with this segment.
 
 If the word is rejected, you will see the reason, such as invalid format or word not in vocabulary.
 
@@ -48,11 +64,15 @@ There may be a guessing limit on the total number of guesses (including rejected
 and the game halts if the remaining guesses are not enough to find all secret words;
 therefore, you should try your best to minimize the number of guesses."""
 
-WORDLE_GUESS_FORMAT = "Your guess must be a **single word with 5 lowercase letters**."
+LETROSO_GUESS_FORMAT = (
+    "Your guess should be a "
+    "**single word with only lowercase letters no more than the length constraint**."
+)
 
 
-def format_game_info(*, game_info: WordleInfo) -> Iterator[str]:
+def format_game_info(*, game_info: LetrosoInfo) -> Iterator[str]:
     yield f"Number of secret words: {game_info.num_targets}"
+    yield f"Maximum number of letters in one guess: {game_info.max_letters}"
 
     yield (
         "Maximum number of guesses: "
@@ -60,7 +80,7 @@ def format_game_info(*, game_info: WordleInfo) -> Iterator[str]:
     )
 
 
-def format_trajectory(*, trajectory: Iterable[Turn[None, str, WordleFeedback]]) -> Iterator[str]:
+def format_trajectory(*, trajectory: Iterable[Turn[None, str, LetrosoFeedback]]) -> Iterator[str]:
     yield "Guess History"
     sections: list[str] = []
 
@@ -80,13 +100,13 @@ def format_analysis(*, analysis: Analysis) -> Iterator[str]:
     yield str(analysis)
 
 
-def format_final_result(*, final_result: WordleFinalResult) -> Iterator[str]:
+def format_final_result(*, final_result: LetrosoFinalResult) -> Iterator[str]:
     yield f"Found {final_result.num_found} word(s) before game halts"
     yield f"Secret Words: {'/'.join(final_result.answers)}"
 
 
-class WordleMemory(
-    BaseMemory[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience]
+class LetrosoMemory(
+    BaseMemory[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience]
 ):
     @override
     def make_create_experience_messages(self) -> Iterator[Message]:
@@ -98,7 +118,7 @@ class WordleMemory(
 
     @override
     def make_reflection_messages(
-        self, *, record: GameRecord[WordleInfo, None, str, WordleFeedback, WordleFinalResult]
+        self, *, record: GameRecord[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=1)
         yield self._make_record_message(record=record, reflection=None)
@@ -115,7 +135,7 @@ class WordleMemory(
     def make_update_experience_messages(
         self,
         *,
-        history: list[GameSummary[WordleInfo, None, str, WordleFeedback, WordleFinalResult]],
+        history: list[GameSummary[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]],
     ) -> Iterator[Message]:
         yield self._make_system_message(num_trial=len(self._history))
 
@@ -136,10 +156,10 @@ class WordleMemory(
 
     def _make_system_message(self, *, num_trial: int) -> Message:
         return Message.system(
-            WORDLE_ROLE_DEF,
+            LETROSO_ROLE_DEF,
             "The following section describes a word game:",
             "\n".join(
-                f"> {line}" for line in (*WORDLE_GAME_RULE.split("\n"), "", WORDLE_GUESS_FORMAT)
+                f"> {line}" for line in (*LETROSO_GAME_RULE.split("\n"), "", LETROSO_GUESS_FORMAT)
             ),
             (
                 "Now, you are new to the game and have no trials yet."
@@ -153,7 +173,7 @@ class WordleMemory(
     def _make_record_message(
         self,
         *,
-        record: GameRecord[WordleInfo, None, str, WordleFeedback, WordleFinalResult],
+        record: GameRecord[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult],
         reflection: Reflection | None,
         index: int | None = None,
     ) -> Message:
@@ -182,27 +202,27 @@ class WordleMemory(
 
         yield (
             "Make your response clear and simple in JSON format like "
-            f"`{WordleExperience.example_json()}`."
+            f"`{LetrosoExperience.example_json()}`."
         )
 
 
-class WordleAgentPlayer(
-    BaseAgentPlayer[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience],
-    WordleIOPlayer,
+class LetrosoAgentPlayer(
+    BaseAgentPlayer[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience],
+    LetrosoIOPlayer,
 ):
     @override
     def make_guess_info_messages(
         self,
         *,
-        game_info: WordleInfo,
-        experience: WordleExperience,
-        current_trajectory: Iterable[Turn[None, str, WordleFeedback]],
+        game_info: LetrosoInfo,
+        experience: LetrosoExperience,
+        current_trajectory: Iterable[Turn[None, str, LetrosoFeedback]],
         latest_analysis: Analysis | None,
         hint: None,
     ) -> Iterator[Message]:
         yield Message.system(
-            WORDLE_ROLE_DEF,
-            WORDLE_GAME_RULE,
+            LETROSO_ROLE_DEF,
+            LETROSO_GAME_RULE,
             "Here are some notes you have made:",
             experience.strategy,
         )
@@ -261,5 +281,5 @@ class WordleAgentPlayer(
         yield f"Respond in JSON format like `{make_example('word')}`."
 
     def _make_guess_detail_prompt(self) -> Iterator[str]:
-        yield WORDLE_GUESS_FORMAT
+        yield LETROSO_GUESS_FORMAT
         yield "Pay attention to the number of remaining guesses."
