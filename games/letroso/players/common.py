@@ -7,6 +7,10 @@ from players.common import BaseIOPlayer
 
 class LetrosoIOPlayer(BaseIOPlayer[LetrosoInfo, None, str, LetrosoFeedback]):
     @override
+    def format_game_info(self, *, game_info: LetrosoInfo) -> Iterator[str]:
+        yield from ()
+
+    @override
     def format_hint(self, *, hint: None) -> Iterator[str]:
         yield from ()
 

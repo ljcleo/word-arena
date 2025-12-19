@@ -7,6 +7,10 @@ from players.common import BaseIOPlayer
 
 class ContextoIOPlayer(BaseIOPlayer[int, None, str, ContextoFeedback]):
     @override
+    def format_game_info(self, *, game_info: int) -> Iterator[str]:
+        yield from ()
+
+    @override
     def format_hint(self, *, hint: None) -> Iterator[str]:
         yield from ()
 

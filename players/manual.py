@@ -11,6 +11,7 @@ class BaseManualPlayer[IT, HT, GT, FT](BaseIOPlayer[IT, HT, GT, FT], ABC):
 
     @override
     def prepare(self, *, game_info: IT) -> None:
+        super().prepare(game_info=game_info)
         self._num_guesses: int = 0
 
     @override

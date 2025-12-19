@@ -34,7 +34,6 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
     class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, ContextoFinalResult]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
-            self._max_guesses: int = int(input("Max Guesses: "))
 
         @override
         def create_player(self) -> BaseManualPlayer[int, None, str, ContextoFeedback]:
@@ -43,7 +42,7 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
         @override
         def create_game(self) -> BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]:
             return self._game_manager.create_game(
-                game_id=int(input("Game ID: ")), max_guesses=self._max_guesses
+                game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
             )
 
         @override
@@ -66,8 +65,6 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
                 games_dir=Path("./data/contexto_hint/games"), seed=seed
             )
 
-            self._num_candidates: int = int(input("Number of Candidates: "))
-
         @override
         def create_player(self) -> BaseManualPlayer[None, list[str], int, int]:
             return ContextoHintManualPlayer()
@@ -75,7 +72,7 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
         @override
         def create_game(self) -> BaseGame[None, list[str], int, int, list[str]]:
             return self._game_manager.create_game(
-                game_id=int(input("Game ID: ")), num_candidates=self._num_candidates
+                game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
             )
 
         @override
@@ -158,11 +155,50 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
     return LetrosoManualGym(seed=seed)
 
 
+def build_conexo_manual_gym(seed: int) -> BaseManualGym:
+    from pathlib import Path
+
+    from games.conexo.common import ConexoFeedback, ConexoFinalResult, ConexoInfo
+    from games.conexo.game import ConexoGameManager
+    from games.conexo.players.manual import ConexoManualPlayer
+
+    class ConexoManualGym(
+        BaseManualGym[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]
+    ):
+        def __init__(self, *, seed: int) -> None:
+            self._game_manager: ConexoGameManager = ConexoGameManager(
+                games_dir=Path("./data/conexo/games"), seed=seed
+            )
+
+        @override
+        def create_player(self) -> BaseManualPlayer[ConexoInfo, None, set[int], ConexoFeedback]:
+            return ConexoManualPlayer()
+
+        @override
+        def create_game(
+            self,
+        ) -> BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]:
+            return self._game_manager.create_game(
+                game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
+            )
+
+        @override
+        def report_final_result(self, *, final_result: ConexoFinalResult) -> None:
+            print("Found", final_result.num_found, "word(s)")
+            print("Groups:")
+
+            for group in final_result.groups:
+                print(f"- {group.theme}:", *group.words)
+
+    return ConexoManualGym(seed=seed)
+
+
 MANUAL_GYM_BUILDERS: dict[str, Callable[[int], BaseManualGym]] = {
     "contexto": build_contexto_manual_gym,
     "contexto-hint": build_contexto_hint_manual_gym,
     "wordle": build_wordle_manual_gym,
     "letroso": build_letroso_manual_gym,
+    "conexo": build_conexo_manual_gym,
 }
 
 

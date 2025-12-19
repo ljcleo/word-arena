@@ -7,6 +7,10 @@ from players.common import BaseIOPlayer
 
 class WordleIOPlayer(BaseIOPlayer[WordleInfo, None, str, WordleFeedback]):
     @override
+    def format_game_info(self, *, game_info: WordleInfo) -> Iterator[str]:
+        yield from ()
+
+    @override
     def format_hint(self, *, hint: None) -> Iterator[str]:
         yield from ()
 

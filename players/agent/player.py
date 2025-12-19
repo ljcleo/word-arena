@@ -37,6 +37,7 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseIOPlayer[IT, HT, GT
 
     @override
     def prepare(self, *, game_info: IT) -> None:
+        super().prepare(game_info=game_info)
         self._memory.prepare(game_info=game_info)
         self._latest_analysis: Analysis | None = None
 

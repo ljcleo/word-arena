@@ -19,8 +19,12 @@ def make_options(*, hint: list[str]) -> str:
 
 class ContextoHintIOPlayer(BaseIOPlayer[None, list[str], int, int]):
     @override
+    def format_game_info(self, *, game_info: None) -> Iterator[str]:
+        yield from ()
+
+    @override
     def format_hint(self, *, hint: list[str]) -> Iterator[str]:
-        yield "Candidates (Use Uppercase Letter to Guess):"
+        yield "Candidates (Use Uppercase Option to Guess):"
         yield make_options(hint=hint)
 
     @override
