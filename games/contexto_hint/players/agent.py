@@ -263,8 +263,8 @@ class ContextoHintAgentPlayer(
 
     def _make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
         yield CONTEXTO_HINT_GUESS_FORMAT
-        example_id: int = 1
-        yield (f"For example, reply `{example_id + 1}` if you choose `{hint[example_id]}`.")
+        example: int = 1
+        yield f"For example, reply `{example + 1}` if you choose `{hint[example]}`."
 
     def _make_example(self, *, make_example: Callable[[str], str]) -> str:
         return f"Respond in JSON format like `{make_example('1')}`."

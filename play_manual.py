@@ -184,8 +184,8 @@ def build_conexo_manual_gym(seed: int) -> BaseManualGym:
 
         @override
         def report_final_result(self, *, final_result: ConexoFinalResult) -> None:
-            print("Found", final_result.num_found, "word(s)")
-            print("Groups:")
+            print("Found", final_result.num_found, "Group(s)")
+            print("All Groups:")
 
             for group in final_result.groups:
                 print(f"- {group.theme}:", *group.words)

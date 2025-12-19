@@ -14,7 +14,9 @@ class ConexoFeedback(BaseModel):
     def __str__(self) -> str:
         if self.accepted:
             verdict: str = (
-                "Wrong Guess" if self.message is None else f"Correct; Group Theme: {self.message}"
+                "Not in the Same Group"
+                if self.message is None
+                else f"In the Same Group; Theme: {self.message}"
             )
 
             return f"Accept | {verdict}"

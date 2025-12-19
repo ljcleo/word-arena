@@ -17,6 +17,7 @@ class OpenAILLM(BaseLLM):
     model: str
     max_tokens: int
     timeout: int
+    use_dev_message: bool
 
     def __post_init__(self) -> None:
         self._client: OpenAI = OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -53,10 +54,12 @@ class OpenAILLM(BaseLLM):
         assert parsed is not None
         return parsed
 
-    @staticmethod
-    def _convert(message: Message) -> ChatCompletionMessageParam:
+    def _convert(self, message: Message) -> ChatCompletionMessageParam:
         if message.role == MessageType.SYSTEM:
-            return {"role": "system", "content": message.content}
+            if self.use_dev_message:
+                return {"role": "developer", "content": message.content}
+            else:
+                return {"role": "system", "content": message.content}
         elif message.role == MessageType.HUMAN:
             return {"role": "user", "content": message.content}
         elif message.role == MessageType.AI:

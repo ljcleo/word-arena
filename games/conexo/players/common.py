@@ -32,4 +32,8 @@ class ConexoIOPlayer(BaseIOPlayer[ConexoInfo, None, set[int], ConexoFeedback]):
     def format_feedback(
         self, *, hint: None, guess: set[int], feedback: ConexoFeedback
     ) -> Iterator[str]:
-        yield f"Guess: {', '.join(self._words[index] for index in guess)}; Feedback: {feedback}"
+        guess_str: str = ", ".join(
+            self._words[index] if 0 <= index < len(self._words) else "(N/A)" for index in guess
+        )
+
+        yield f"Guess: {guess_str}; Feedback: {feedback}"

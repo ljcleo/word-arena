@@ -39,10 +39,8 @@ class ConexoGame(BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFina
 
     @override
     def is_over(self) -> bool:
-        return (
-            len(self._found_groups) == self._num_groups
-            or self._num_guesses >= self._max_guesses > 0
-        )
+        num_remains: int = self._num_groups - len(self._found_groups)
+        return num_remains == 0 or self._num_guesses + num_remains > self._max_guesses > 0
 
     @override
     def get_guess_prompt(self) -> None:

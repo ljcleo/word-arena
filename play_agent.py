@@ -234,11 +234,63 @@ def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
     return LetrosoAgentGym(seed=seed)
 
 
+def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
+    from pathlib import Path
+
+    from games.conexo.common import ConexoFeedback, ConexoFinalResult, ConexoInfo
+    from games.conexo.game import ConexoGameManager
+    from games.conexo.players.agent import ConexoAgentPlayer, ConexoExperience, ConexoMemory
+
+    class ConexoAgentGym(
+        BaseAgentGym[
+            ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience
+        ]
+    ):
+        def __init__(self) -> None:
+            self._game_manager: ConexoGameManager = ConexoGameManager(
+                games_dir=Path("./data/conexo/games"), seed=seed
+            )
+
+            self._max_guesses: int = int(input("Max Guesses: "))
+
+        @override
+        def create_player(
+            self, *, model: BaseLLM, prompt_mode: PromptMode
+        ) -> BaseAgentPlayer[
+            ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience
+        ]:
+            return ConexoAgentPlayer(
+                model=model,
+                memory=ConexoMemory(model=model, experience_type=ConexoExperience),
+                prompt_mode=prompt_mode,
+            )
+
+        @override
+        def create_game(
+            self, *, select: bool
+        ) -> BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]:
+            return self._game_manager.create_game(
+                game_id=int(input("Input Game ID: ")) if select else None,
+                max_guesses=self._max_guesses,
+            )
+
+        @override
+        def report_final_result(self, *, final_result: ConexoFinalResult) -> None:
+            print("Found", final_result.num_found, "Group(s)")
+            print("All Groups:")
+
+            for group in final_result.groups:
+                print(f"- {group.theme}:", *group.words)
+
+    return ConexoAgentGym()
+
+
 AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
     "contexto": build_contexto_agent_gym,
     "contexto-hint": build_contexto_hint_agent_gym,
     "wordle": build_wordle_agent_gym,
     "letroso": build_letroso_agent_gym,
+    "conexo": build_conexo_agent_gym,
 }
 
 
@@ -258,6 +310,7 @@ def main():
             model=input("LLM Model: "),
             max_tokens=32768,
             timeout=7200,
+            use_dev_message=True,
         ),
         prompt_mode=(
             PromptMode.MULTI_TURN
