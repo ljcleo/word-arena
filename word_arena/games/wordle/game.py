@@ -1,7 +1,5 @@
 from collections import Counter
 from collections.abc import Sequence
-from pathlib import Path
-from random import Random
 from typing import override
 
 from ...common.game.base import BaseGame
@@ -9,9 +7,9 @@ from .common import (
     WordleError,
     WordleFeedback,
     WordleFinalResult,
+    WordleGuess,
     WordleInfo,
     WordleResponse,
-    WordleGuess,
 )
 
 
@@ -80,22 +78,3 @@ class WordleGame(BaseGame[WordleInfo, None, WordleGuess, WordleFeedback, WordleF
     @override
     def get_final_result(self) -> WordleFinalResult:
         return WordleFinalResult(found_indices=self._found_indices, answers=self._answers)
-
-
-class WordleGameManager:
-    def __init__(self, *, word_list_file: Path, seed: int) -> None:
-        with word_list_file.open(encoding="utf8") as f:
-            self._word_list: list[str] = list(map(str.strip, f))
-
-        self._num_games: int = len(self._word_list)
-        self._rng: Random = Random(seed)
-
-    def create_game(self, *, target_ids: list[int], max_guesses: int) -> WordleGame:
-        return WordleGame(word_list=self._word_list, target_ids=target_ids, max_guesses=max_guesses)
-
-    def create_random_game(self, *, param_candidates: Sequence[tuple[int, int]]) -> WordleGame:
-        num_targets: int
-        max_guesses: int
-        num_targets, max_guesses = self._rng.choice(param_candidates)
-        target_ids = self._rng.sample(range(self._num_games), num_targets)
-        return self.create_game(target_ids=target_ids, max_guesses=max_guesses)

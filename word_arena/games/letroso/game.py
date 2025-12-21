@@ -1,7 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
-from pathlib import Path
-from random import Random
+from collections.abc import Iterable, Sequence
 from typing import override
 
 from ...common.game.base import BaseGame
@@ -9,15 +7,20 @@ from .common import (
     LetrosoError,
     LetrosoFeedback,
     LetrosoFinalResult,
+    LetrosoGuess,
     LetrosoInfo,
     LetrosoResponse,
-    LetrosoGuess,
 )
 
 
 class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]):
     def __init__(
-        self, *, word_list: Sequence[str], target_ids: list[int], max_letters: int, max_guesses: int
+        self,
+        *,
+        word_list: Sequence[str],
+        target_ids: Iterable[int],
+        max_letters: int,
+        max_guesses: int,
     ) -> None:
         self._word_list: set[str] = set(word_list)
         self._answers: list[str] = [word_list[target_id] for target_id in target_ids]
@@ -107,35 +110,3 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
     @override
     def get_final_result(self) -> LetrosoFinalResult:
         return LetrosoFinalResult(found_indices=self._found_indices, answers=self._answers)
-
-
-class LetrosoGameManager:
-    def __init__(self, *, word_list_file: Path, seed: int) -> None:
-        with word_list_file.open(encoding="utf8") as f:
-            self._word_list: list[str] = list(map(str.strip, f))
-
-        self._num_games: int = len(self._word_list)
-        self._rng: Random = Random(seed)
-
-    def create_game(
-        self, *, target_ids: list[int], max_letters: int, max_guesses: int
-    ) -> LetrosoGame:
-        return LetrosoGame(
-            word_list=self._word_list,
-            target_ids=target_ids,
-            max_letters=max_letters,
-            max_guesses=max_guesses,
-        )
-
-    def create_random_game(
-        self, *, param_candidates: Sequence[tuple[int, int, int]]
-    ) -> LetrosoGame:
-        num_targets: int
-        max_letters: int
-        max_guesses: int
-        num_targets, max_letters, max_guesses = self._rng.choice(param_candidates)
-        target_ids = self._rng.sample(range(self._num_games), num_targets)
-
-        return self.create_game(
-            target_ids=target_ids, max_letters=max_letters, max_guesses=max_guesses
-        )

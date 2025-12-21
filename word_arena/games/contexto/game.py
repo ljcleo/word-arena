@@ -1,6 +1,3 @@
-from collections.abc import Sequence
-from datetime import date
-from random import Random
 from typing import override
 
 import httpx
@@ -66,17 +63,3 @@ class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, Contexto
             best_word=self._best_word,
             top_words=httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"],
         )
-
-
-class ContextoGameManager:
-    def __init__(self, *, seed: int) -> None:
-        self._max_games: int = (date.today() - date(2022, 9, 18)).days
-        self._rng: Random = Random(seed)
-
-    def create_game(self, *, game_id: int, max_guesses: int) -> ContextoGame:
-        return ContextoGame(game_id=game_id, max_guesses=max_guesses)
-
-    def create_random_game(self, *, param_candidates: Sequence[int]) -> ContextoGame:
-        game_id: int = self._rng.randrange(self._max_games + 1)
-        max_guesses: int = self._rng.choice(param_candidates)
-        return self.create_game(game_id=game_id, max_guesses=max_guesses)

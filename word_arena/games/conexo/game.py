@@ -1,9 +1,5 @@
 from collections.abc import Iterable, Mapping, Sequence
-from pathlib import Path
-from random import Random
 from typing import override
-
-from pydantic import BaseModel
 
 from ...common.game.base import BaseGame
 from .common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
@@ -73,36 +69,3 @@ class ConexoGame(BaseGame[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoF
             )
 
         return ConexoFinalResult(found_groups=found_groups, remaining_groups=remaining_groups)
-
-
-class ConexoGroupData(BaseModel):
-    indices: list[int]
-    theme: str
-
-
-class ConexoGameData(BaseModel):
-    id: int
-    words: list[str]
-    groups: list[ConexoGroupData]
-
-
-class ConexoGameManager:
-    def __init__(self, *, games_dir: Path, seed: int) -> None:
-        self._games_dir: Path = games_dir
-        self._num_games: int = sum(1 for _ in games_dir.iterdir())
-        self._rng: Random = Random(seed)
-
-    def create_game(self, *, game_id: int, max_guesses: int) -> ConexoGame:
-        with (self._games_dir / f"{game_id}.json").open("rb") as f:
-            game_data: ConexoGameData = ConexoGameData.model_validate_json(f.read())
-
-        return ConexoGame(
-            words=game_data.words,
-            groups={group.theme: group.indices for group in game_data.groups},
-            max_guesses=max_guesses,
-        )
-
-    def create_random_game(self, *, param_candidates: Sequence[int]) -> ConexoGame:
-        game_id: int = self._rng.randrange(self._num_games)
-        max_guesses: int = self._rng.choice(param_candidates)
-        return self.create_game(game_id=game_id, max_guesses=max_guesses)

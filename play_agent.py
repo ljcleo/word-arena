@@ -5,28 +5,39 @@ from typing import override
 from pydantic import BaseModel
 
 from word_arena.common.game.base import BaseGame
+from word_arena.common.game.generator import BaseGameGenerator
 from word_arena.common.llm.base import BaseLLM
 from word_arena.common.player.agent.player import BaseAgentPlayer, PromptMode
 
 
-class BaseAgentGym[IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](ABC):
+class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](ABC):
+    def __init__(
+        self, *, game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]]
+    ) -> None:
+        self._game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]] = (
+            game_generator
+        )
+
     def play(self, model: BaseLLM, prompt_mode: PromptMode) -> None:
         player: BaseAgentPlayer[IT, HT, GT, FT, RT, ET] = self.create_player(
             model=model, prompt_mode=prompt_mode
         )
 
         if input("Train? (y/n): ")[0].lower() == "y":
-            num_train_loops: int = 3
-            num_in_loop_trials: int = 3
+            num_train_loops: int = int(input("Number of Train Loops: "))
+            num_in_loop_trials: int = int(input("Number of In-loop Trials: "))
 
             for _ in range(num_train_loops):
                 for i in range(num_in_loop_trials):
                     player.memory.reflect(
-                        final_result=self.create_game(select=False).play(player=player),
+                        final_result=self._game_generator.create_random_game().play(player=player),
                         update_experience=i == num_in_loop_trials - 1,
                     )
 
-        final_result: RT = self.create_game(select=True).play(player=player)
+        final_result: RT = self._game_generator.create_game(config=self.create_config()).play(
+            player=player
+        )
+
         print("You Guessed", player.memory.num_guesses, "Times")
 
         for section in self.format_final_result(final_result=final_result):
@@ -41,7 +52,7 @@ class BaseAgentGym[IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def create_game(self, *, select: bool) -> BaseGame[IT, HT, GT, FT, RT]:
+    def create_config(self) -> CT:
         raise NotImplementedError()
 
     @abstractmethod
@@ -50,6 +61,8 @@ class BaseAgentGym[IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](ABC):
 
 
 def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
+    from collections.abc import Iterable
+
     from word_arena.games.contexto.common import (
         ContextoExperience,
         ContextoFeedback,
@@ -57,16 +70,29 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         ContextoGuess,
     )
     from word_arena.games.contexto.formatter import ContextoFinalResultFormatter
-    from word_arena.games.contexto.game import ContextoGame, ContextoGameManager
+    from word_arena.games.contexto.generator import (
+        ContextoConfig,
+        ContextoGameGenerator,
+        ContextoSetting,
+    )
     from word_arena.games.contexto.players.agent import ContextoAgentPlayer
 
     class ContextoAgentGym(
         BaseAgentGym[
-            int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
+            ContextoSetting,
+            ContextoConfig,
+            int,
+            None,
+            ContextoGuess,
+            ContextoFeedback,
+            ContextoFinalResult,
+            ContextoExperience,
         ]
     ):
-        def __init__(self, *, seed: int) -> None:
-            self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
+        def __init__(self, *, setting_pool: Iterable[ContextoSetting], seed: int) -> None:
+            super().__init__(
+                game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed)
+            )
 
         @override
         def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> ContextoAgentPlayer:
@@ -76,36 +102,50 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
             )
 
         @override
-        def create_game(self, *, select: bool) -> ContextoGame:
-            return (
-                self._game_manager.create_game(
-                    game_id=int(input("Input Game ID: ")), max_guesses=int(input("Max Guesses: "))
-                )
-                if select
-                else self._game_manager.create_random_game(param_candidates=(50,))
+        def create_config(self) -> ContextoConfig:
+            return ContextoConfig(
+                game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
             )
 
         @override
         def format_final_result(self, *, final_result: ContextoFinalResult) -> Iterator[str]:
             yield from ContextoFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return ContextoAgentGym(seed=seed)
+    return ContextoAgentGym(setting_pool=(ContextoSetting(max_guesses=50),), seed=seed)
 
 
 def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
+    from collections.abc import Iterable
     from pathlib import Path
 
     from word_arena.games.contexto_hint.common import ContextoHintExperience, ContextoHintGuess
     from word_arena.games.contexto_hint.formatter import ContextoHintFinalResultFormatter
-    from word_arena.games.contexto_hint.game import ContextoHintGame, ContextoHintGameManager
+    from word_arena.games.contexto_hint.generator import (
+        ContextoHintConfig,
+        ContextoHintGameGenerator,
+        ContextoHintSetting,
+    )
     from word_arena.games.contexto_hint.players.agent import ContextoHintAgentPlayer
 
     class ContextoHintAgentGym(
-        BaseAgentGym[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience]
+        BaseAgentGym[
+            ContextoHintSetting,
+            ContextoHintConfig,
+            None,
+            list[str],
+            ContextoHintGuess,
+            int,
+            list[str],
+            ContextoHintExperience,
+        ]
     ):
-        def __init__(self, *, seed: int) -> None:
-            self._game_manager: ContextoHintGameManager = ContextoHintGameManager(
-                games_dir=Path("./data/contexto_hint/games"), seed=seed
+        def __init__(
+            self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path
+        ) -> None:
+            super().__init__(
+                game_generator=ContextoHintGameGenerator(
+                    setting_pool=setting_pool, seed=seed, games_dir=games_dir
+                )
             )
 
         @override
@@ -115,14 +155,9 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
             return ContextoHintAgentPlayer(model=model, prompt_mode=prompt_mode)
 
         @override
-        def create_game(self, *, select: bool) -> ContextoHintGame:
-            return (
-                self._game_manager.create_game(
-                    game_id=int(input("Input Game ID: ")),
-                    num_candidates=int(input("Number of Candidates: ")),
-                )
-                if select
-                else self._game_manager.create_random_game(param_candidates=(5,))
+        def create_config(self) -> ContextoHintConfig:
+            return ContextoHintConfig(
+                game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
             )
 
         @override
@@ -131,10 +166,15 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
                 final_result=final_result
             )
 
-    return ContextoHintAgentGym(seed=seed)
+    return ContextoHintAgentGym(
+        setting_pool=(ContextoHintSetting(num_candidates=5),),
+        seed=seed,
+        games_dir=Path("./data/contexto_hint/games"),
+    )
 
 
 def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
+    from collections.abc import Iterable
     from pathlib import Path
 
     from word_arena.games.wordle.common import (
@@ -145,46 +185,61 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         WordleInfo,
     )
     from word_arena.games.wordle.formatter import WordleFinalResultFormatter
-    from word_arena.games.wordle.game import WordleGame, WordleGameManager
+    from word_arena.games.wordle.generator import WordleConfig, WordleGameGenerator, WordleSetting
     from word_arena.games.wordle.players.agent import WordleAgentPlayer
 
     class WordleAgentGym(
         BaseAgentGym[
-            WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleExperience
+            WordleSetting,
+            WordleConfig,
+            WordleInfo,
+            None,
+            WordleGuess,
+            WordleFeedback,
+            WordleFinalResult,
+            WordleExperience,
         ]
     ):
-        def __init__(self, *, seed: int) -> None:
-            self._game_manager: WordleGameManager = WordleGameManager(
-                word_list_file=Path("./data/wordle/words.txt"), seed=seed
+        def __init__(
+            self, *, setting_pool: Iterable[WordleSetting], seed: int, word_list_file: Path
+        ) -> None:
+            game_generator: WordleGameGenerator = WordleGameGenerator(
+                setting_pool=setting_pool, seed=seed, word_list_file=word_list_file
             )
+
+            super().__init__(game_generator=game_generator)
+            self._word_list: list[str] = game_generator._word_list
 
         @override
         def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> WordleAgentPlayer:
             return WordleAgentPlayer(model=model, prompt_mode=prompt_mode)
 
         @override
-        def create_game(self, *, select: bool) -> WordleGame:
-            return (
-                self._game_manager.create_game(
-                    target_ids=[
-                        int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
-                    ],
-                    max_guesses=int(input("Max Guesses: ")),
-                )
-                if select
-                else self._game_manager.create_random_game(
-                    param_candidates=((1, 6), (2, 7), (4, 9), (8, 13))
-                )
+        def create_config(self) -> WordleConfig:
+            return WordleConfig(
+                word_list=self._word_list,
+                target_ids=[
+                    int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                ],
+                max_guesses=int(input("Max Guesses: ")),
             )
 
         @override
         def format_final_result(self, *, final_result: WordleFinalResult) -> Iterator[str]:
             yield from WordleFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return WordleAgentGym(seed=seed)
+    return WordleAgentGym(
+        setting_pool=(
+            WordleSetting(num_targets=num_targets, max_guesses=num_targets + 5)
+            for num_targets in (1, 2, 4, 8, 16)
+        ),
+        seed=seed,
+        word_list_file=Path("./data/wordle/words.txt"),
+    )
 
 
 def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
+    from collections.abc import Iterable
     from pathlib import Path
 
     from word_arena.games.letroso.common import (
@@ -195,65 +250,95 @@ def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
         LetrosoInfo,
     )
     from word_arena.games.letroso.formatter import LetrosoFinalResultFormatter
-    from word_arena.games.letroso.game import LetrosoGame, LetrosoGameManager
+    from word_arena.games.letroso.generator import (
+        LetrosoConfig,
+        LetrosoGameGenerator,
+        LetrosoSetting,
+    )
     from word_arena.games.letroso.players.agent import LetrosoAgentPlayer
 
     class LetrosoAgentGym(
         BaseAgentGym[
-            LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+            LetrosoSetting,
+            LetrosoConfig,
+            LetrosoInfo,
+            None,
+            LetrosoGuess,
+            LetrosoFeedback,
+            LetrosoFinalResult,
+            LetrosoExperience,
         ]
     ):
-        def __init__(self, *, seed: int) -> None:
-            self._game_manager: LetrosoGameManager = LetrosoGameManager(
-                word_list_file=Path("./data/letroso/words.txt"), seed=seed
+        def __init__(
+            self, *, setting_pool: Iterable[LetrosoSetting], seed: int, word_list_file: Path
+        ) -> None:
+            game_generator: LetrosoGameGenerator = LetrosoGameGenerator(
+                setting_pool=setting_pool, seed=seed, word_list_file=word_list_file
             )
+
+            super().__init__(game_generator=game_generator)
+            self._word_list: list[str] = game_generator._word_list
 
         @override
         def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> LetrosoAgentPlayer:
             return LetrosoAgentPlayer(model=model, prompt_mode=prompt_mode)
 
         @override
-        def create_game(self, *, select: bool) -> LetrosoGame:
-            return (
-                self._game_manager.create_game(
-                    target_ids=[
-                        int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
-                    ],
-                    max_letters=int(input("Max Input Letters: ")),
-                    max_guesses=int(input("Max Guesses: ")),
-                )
-                if select
-                else self._game_manager.create_random_game(param_candidates=((1, 10, 20),))
+        def create_config(self) -> LetrosoConfig:
+            return LetrosoConfig(
+                word_list=self._word_list,
+                target_ids=[
+                    int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                ],
+                max_letters=int(input("Max Input Letters: ")),
+                max_guesses=int(input("Max Guesses: ")),
             )
 
         @override
         def format_final_result(self, *, final_result: LetrosoFinalResult) -> Iterator[str]:
             yield from LetrosoFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return LetrosoAgentGym(seed=seed)
+    return LetrosoAgentGym(
+        setting_pool=(LetrosoSetting(num_targets=1, max_letters=10, max_guesses=20),),
+        seed=seed,
+        word_list_file=Path("./data/letroso/words.txt"),
+    )
 
 
 def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
+    from collections.abc import Iterable
     from pathlib import Path
 
     from word_arena.games.conexo.common import (
         ConexoExperience,
         ConexoFeedback,
         ConexoFinalResult,
+        ConexoGuess,
         ConexoInfo,
     )
     from word_arena.games.conexo.formatter import ConexoFinalResultFormatter
-    from word_arena.games.conexo.game import ConexoGame, ConexoGameManager, ConexoGuess
+    from word_arena.games.conexo.generator import ConexoConfig, ConexoGameGenerator, ConexoSetting
     from word_arena.games.conexo.players.agent import ConexoAgentPlayer
 
     class ConexoAgentGym(
         BaseAgentGym[
-            ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
+            ConexoSetting,
+            ConexoConfig,
+            ConexoInfo,
+            None,
+            ConexoGuess,
+            ConexoFeedback,
+            ConexoFinalResult,
+            ConexoExperience,
         ]
     ):
-        def __init__(self, seed: int) -> None:
-            self._game_manager: ConexoGameManager = ConexoGameManager(
-                games_dir=Path("./data/conexo/games"), seed=seed
+        def __init__(
+            self, *, setting_pool: Iterable[ConexoSetting], seed: int, games_dir: Path
+        ) -> None:
+            super().__init__(
+                game_generator=ConexoGameGenerator(
+                    setting_pool=setting_pool, seed=seed, games_dir=games_dir
+                )
             )
 
         @override
@@ -261,21 +346,20 @@ def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
             return ConexoAgentPlayer(model=model, prompt_mode=prompt_mode)
 
         @override
-        def create_game(self, *, select: bool) -> ConexoGame:
-            return (
-                self._game_manager.create_game(
-                    game_id=int(input("Input Game ID: ")),
-                    max_guesses=int(input("Max Guesses: ")),
-                )
-                if select
-                else self._game_manager.create_random_game(param_candidates=(20,))
+        def create_config(self) -> ConexoConfig:
+            return ConexoConfig(
+                game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
             )
 
         @override
         def format_final_result(self, *, final_result: ConexoFinalResult) -> Iterator[str]:
             yield from ConexoFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return ConexoAgentGym(seed=seed)
+    return ConexoAgentGym(
+        setting_pool=(ConexoSetting(max_guesses=20),),
+        seed=seed,
+        games_dir=Path("./data/conexo/games"),
+    )
 
 
 AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {

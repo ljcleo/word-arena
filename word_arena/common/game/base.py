@@ -4,7 +4,7 @@ from ..player.base import BasePlayer
 
 
 class BaseGame[IT, HT, GT, FT, RT](ABC):
-    def play(self, *, player: BasePlayer[IT, HT, GT, FT]) -> RT:
+    def play(self, *, player: BasePlayer) -> RT:
         game_info: IT = self.start_game()
         player.prepare(game_info=game_info)
 

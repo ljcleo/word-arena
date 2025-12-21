@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
-from typing import Iterable, override
+from collections.abc import Iterable, Iterator
+from typing import override
 
 from pydantic import BaseModel
 
