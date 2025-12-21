@@ -13,7 +13,7 @@ from ..common.llm.common import Message, MessageType
 
 
 @dataclass(kw_only=True)
-class OpenAILLM(BaseLLM):
+class OpenaiLLM(BaseLLM):
     api_key: str
     base_url: str
     model: str

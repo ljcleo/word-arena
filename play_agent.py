@@ -374,14 +374,14 @@ AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
 def main():
     from time import time_ns
 
-    from word_arena.llms.openai import OpenAILLM
+    from word_arena.llms.openai import OpenaiLLM
 
     games: list[str] = list(AGENT_GYM_BUILDERS.keys())
     for index, game in enumerate(games):
         print(f"{index + 1}. {game}")
 
     AGENT_GYM_BUILDERS[games[int(input("Game Index: ")) - 1]](time_ns()).play(
-        model=OpenAILLM(
+        model=OpenaiLLM(
             api_key="sk-PInpH3EcNkJjwzqvB1EbBdF09e9b4b12A81fF0C325D55d71",
             base_url="https://openkey.cloud/v1",
             model=input("LLM Model: "),
