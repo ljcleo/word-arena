@@ -6,10 +6,16 @@ from typing import override
 import httpx
 
 from ...common.game.base import BaseGame
-from .common import ContextoError, ContextoFeedback, ContextoFinalResult, ContextoResponse
+from .common import (
+    ContextoError,
+    ContextoFeedback,
+    ContextoFinalResult,
+    ContextoGuess,
+    ContextoResponse,
+)
 
 
-class ContextoGame(BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]):
+class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult]):
     def __init__(self, *, game_id: int, max_guesses: int) -> None:
         self._game_id: int = game_id
         self._max_guesses: int = max_guesses
@@ -31,12 +37,14 @@ class ContextoGame(BaseGame[int, None, str, ContextoFeedback, ContextoFinalResul
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> ContextoFeedback:
+    def process_guess(self, *, guess: ContextoGuess) -> ContextoFeedback:
         self._num_guesses += 1
-        if not (guess.isalpha() and guess.islower()):
+        word: str = guess.word
+
+        if not (word.isalpha() and word.islower()):
             return ContextoError(error="Your guess should only contain lowercase letters")
 
-        response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{guess}")
+        response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{word}")
 
         if response.status_code == 200:
             feedback: ContextoResponse = ContextoResponse.model_validate_json(response.content)

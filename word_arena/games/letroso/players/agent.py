@@ -5,9 +5,14 @@ from ....common.llm.base import BaseLLM
 from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
-from ..common import LetrosoExperience, LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
+from ..common import (
+    LetrosoExperience,
+    LetrosoFeedback,
+    LetrosoFinalResult,
+    LetrosoGuess,
+    LetrosoInfo,
+)
 from ..formatter import LetrosoAgentFormatter
-from .log import LetrosoLogPlayer
 
 LETROSO_ROLE_DEF = "You are an intelligent AI with a good English vocabulary."
 
@@ -26,18 +31,18 @@ A `G` label means that the relative order of the letter at that position,
 compared to other `G`-labeled letters, is the same in the secret word;
 however, its absolute position in the secret word can be different.
 
-Furthermore, if multiple `G` labels are braced in `[]` into a `G` segment,
-then the corresponding letters appears together in the secret word, adjacent to each other;
-letters from different `G` segments are NOT adjacent to each other in the secret word,
-even if the `G` segments themselves are adjacent.
-
 A `Y` label means that the letter at that position appears in the secret word,
 but its relative order compared to `G`-labeled letters is incorrect;
 a `.` label means that the letter is not in the secret word, or has appeared too many times.
 
-A head `G` segment started by `(` instead of `[` means that the secret word starts with it,
+Furthermore, if multiple labels are braced in `[]` (e.g., `[GGG]`), they form a segment,
+and the corresponding letters appears together in the secret word, adjacent to each other;
+letters from different segments are NOT adjacent to each other in the secret word,
+even if the segments themselves are adjacent (e.g., `[G][G]`).
+
+A head segment started by `(` instead of `[` means that the secret word starts with it,
 while a `[` start means that the secret word does NOT start with this segment;
-a tail `G` segment ended by `)` instead of `]` means that the secret word ends with it,
+a tail segment ended by `)` instead of `]` means that the secret word ends with it,
 while a `]` end means that the secret word does NOT end with this segment.
 
 If the word is rejected, you will see the reason, such as invalid format or word not in vocabulary.
@@ -56,7 +61,9 @@ LETROSO_GUESS_FORMAT = (
 
 
 class LetrosoAgentMemory(
-    BaseAgentMemory[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience]
+    BaseAgentMemory[
+        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+    ]
 ):
     def __init__(self, *, model: BaseLLM):
         super().__init__(
@@ -92,14 +99,16 @@ class LetrosoAgentMemory(
 
 
 class LetrosoAgentPlayer(
-    BaseAgentPlayer[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience],
-    LetrosoLogPlayer,
+    BaseAgentPlayer[
+        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+    ],
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
             memory=LetrosoAgentMemory(model=model),
             model=model,
             prompt_mode=prompt_mode,
+            guess_cls=LetrosoGuess,
             agent_formatter_cls=LetrosoAgentFormatter,
         )
 
@@ -152,5 +161,5 @@ class LetrosoAgentPlayer(
         yield "Pay attention to the number of remaining guesses."
 
     @override
-    def get_raw_guess_example(self, *, hint: None) -> str:
-        return "word"
+    def get_guess_example(self, *, hint: None) -> LetrosoGuess:
+        return LetrosoGuess(word="word")

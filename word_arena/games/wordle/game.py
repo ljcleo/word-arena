@@ -5,10 +5,17 @@ from random import Random
 from typing import override
 
 from ...common.game.base import BaseGame
-from .common import WordleError, WordleFeedback, WordleFinalResult, WordleInfo, WordleResponse
+from .common import (
+    WordleError,
+    WordleFeedback,
+    WordleFinalResult,
+    WordleInfo,
+    WordleResponse,
+    WordleGuess,
+)
 
 
-class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResult]):
+class WordleGame(BaseGame[WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_guesses: int
     ) -> None:
@@ -38,29 +45,30 @@ class WordleGame(BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResu
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> WordleFeedback:
+    def process_guess(self, *, guess: WordleGuess) -> WordleFeedback:
         self._num_guesses += 1
+        word: str = guess.word
 
-        if not (len(guess) == self._num_letters and guess.isalpha() and guess.islower()):
+        if not (len(word) == self._num_letters and word.isalpha() and word.islower()):
             return WordleError(error="Invalid guess")
-        elif guess not in self._word_list:
+        elif word not in self._word_list:
             return WordleError(error="Unknown word")
 
         patterns: list[str] = []
 
         for index, answer in enumerate(self._answers):
-            if guess == answer:
+            if word == answer:
                 self._found_indices.add(index)
 
             buffer: list[str] = ["." for _ in answer]
             counter: Counter = Counter(answer)
 
-            for i, (x, y) in enumerate(zip(guess, answer)):
+            for i, (x, y) in enumerate(zip(word, answer)):
                 if x == y:
                     buffer[i] = "G"
                     counter[y] -= 1
 
-            for i, x in enumerate(guess):
+            for i, x in enumerate(word):
                 if buffer[i] != "G" and counter[x] > 0:
                     buffer[i] = "Y"
                     counter[x] -= 1

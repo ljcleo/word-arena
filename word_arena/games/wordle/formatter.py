@@ -8,12 +8,13 @@ from .common import (
     WordleExperience,
     WordleFeedback,
     WordleFinalResult,
+    WordleGuess,
     WordleInfo,
     WordleResponse,
 )
 
 
-class WordleInGameFormatter(BaseInGameFormatter[WordleInfo, None, str, WordleFeedback]):
+class WordleInGameFormatter(BaseInGameFormatter[WordleInfo, None, WordleGuess, WordleFeedback]):
     @override
     @staticmethod
     def format_game_info(*, game_info: WordleInfo) -> Iterator[str]:
@@ -31,13 +32,13 @@ class WordleInGameFormatter(BaseInGameFormatter[WordleInfo, None, str, WordleFee
 
     @override
     @staticmethod
-    def format_guess(*, game_info: WordleInfo, hint: None, guess: str) -> Iterator[str]:
-        yield f"Guess: {guess}"
+    def format_guess(*, game_info: WordleInfo, hint: None, guess: WordleGuess) -> Iterator[str]:
+        yield f"Guess: {guess.word}"
 
     @override
     @staticmethod
     def format_feedback(
-        *, game_info: WordleInfo, hint: None, guess: str, feedback: WordleFeedback
+        *, game_info: WordleInfo, hint: None, guess: WordleGuess, feedback: WordleFeedback
     ) -> Iterator[str]:
         yield " ".join(
             (
@@ -78,14 +79,16 @@ class WordleFinalResultFormatter(BaseFinalResultFormatter[WordleFinalResult]):
 
 
 class WordleAgentFormatter(
-    BaseAgentFormatter[WordleInfo, None, str, WordleFeedback, WordleFinalResult, WordleExperience]
+    BaseAgentFormatter[
+        WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleExperience
+    ]
 ):
     @override
     @staticmethod
     def format_turn(
         *,
         game_info: WordleInfo,
-        turn: Turn[None, str, WordleFeedback],
+        turn: Turn[None, WordleGuess, WordleFeedback],
         final_result: WordleFinalResult | None,
     ) -> Iterator[str]:
         yield from WordleInGameFormatter.format_guess(

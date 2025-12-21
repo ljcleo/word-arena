@@ -29,12 +29,18 @@ class BaseManualGym[IT, HT, GT, FT, RT](ABC):
 
 
 def build_contexto_manual_gym(seed: int) -> BaseManualGym:
-    from word_arena.games.contexto.common import ContextoFeedback, ContextoFinalResult
+    from word_arena.games.contexto.common import (
+        ContextoFeedback,
+        ContextoFinalResult,
+        ContextoGuess,
+    )
     from word_arena.games.contexto.formatter import ContextoFinalResultFormatter
     from word_arena.games.contexto.game import ContextoGame, ContextoGameManager
     from word_arena.games.contexto.players.manual import ContextoManualPlayer
 
-    class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, ContextoFinalResult]):
+    class ContextoManualGym(
+        BaseManualGym[int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult]
+    ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
 
@@ -58,11 +64,12 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
 def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
+    from word_arena.games.contexto_hint.common import ContextoHintGuess
     from word_arena.games.contexto_hint.formatter import ContextoHintFinalResultFormatter
     from word_arena.games.contexto_hint.game import ContextoHintGame, ContextoHintGameManager
     from word_arena.games.contexto_hint.players.manual import ContextoHintManualPlayer
 
-    class ContextoHintManualGym(BaseManualGym[None, list[str], int, int, list[str]]):
+    class ContextoHintManualGym(BaseManualGym[None, list[str], ContextoHintGuess, int, list[str]]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoHintGameManager = ContextoHintGameManager(
                 games_dir=Path("./data/contexto_hint/games"), seed=seed
@@ -90,12 +97,19 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
 def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from word_arena.games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
+    from word_arena.games.wordle.common import (
+        WordleFeedback,
+        WordleFinalResult,
+        WordleGuess,
+        WordleInfo,
+    )
     from word_arena.games.wordle.formatter import WordleFinalResultFormatter
     from word_arena.games.wordle.game import WordleGame, WordleGameManager
     from word_arena.games.wordle.players.manual import WordleManualPlayer
 
-    class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleFeedback, WordleFinalResult]):
+    class WordleManualGym(
+        BaseManualGym[WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult]
+    ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: WordleGameManager = WordleGameManager(
                 word_list_file=Path("./data/wordle/words.txt"), seed=seed
@@ -124,13 +138,18 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
 def build_letroso_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from word_arena.games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
+    from word_arena.games.letroso.common import (
+        LetrosoFeedback,
+        LetrosoFinalResult,
+        LetrosoGuess,
+        LetrosoInfo,
+    )
     from word_arena.games.letroso.formatter import LetrosoFinalResultFormatter
     from word_arena.games.letroso.game import LetrosoGame, LetrosoGameManager
     from word_arena.games.letroso.players.manual import LetrosoManualPlayer
 
     class LetrosoManualGym(
-        BaseManualGym[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]
+        BaseManualGym[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
     ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: LetrosoGameManager = LetrosoGameManager(
@@ -161,13 +180,18 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
 def build_conexo_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from word_arena.games.conexo.common import ConexoFeedback, ConexoFinalResult, ConexoInfo
+    from word_arena.games.conexo.common import (
+        ConexoFeedback,
+        ConexoFinalResult,
+        ConexoGuess,
+        ConexoInfo,
+    )
     from word_arena.games.conexo.formatter import ConexoFinalResultFormatter
     from word_arena.games.conexo.game import ConexoGame, ConexoGameManager
     from word_arena.games.conexo.players.manual import ConexoManualPlayer
 
     class ConexoManualGym(
-        BaseManualGym[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]
+        BaseManualGym[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult]
     ):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ConexoGameManager = ConexoGameManager(

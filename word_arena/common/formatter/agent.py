@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 
-from pydantic import BaseModel
-
 from ..memory.common import Analysis, GameRecord, GameSummary, Reflection, Turn
 from .base import BaseFinalResultFormatter, BaseInGameFormatter
 
 
-class BaseAgentFormatter[IT, HT, GT, FT, RT, ET: BaseModel](ABC):
+class BaseAgentFormatter[IT, HT, GT, FT, RT, ET](ABC):
     @staticmethod
     def format_analysis(*, analysis: Analysis) -> Iterator[str]:
         yield "Analysis from the Last Guess:"

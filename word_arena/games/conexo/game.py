@@ -6,10 +6,10 @@ from typing import override
 from pydantic import BaseModel
 
 from ...common.game.base import BaseGame
-from .common import ConexoFeedback, ConexoFinalResult, ConexoInfo, ConexoWordGroup
+from .common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
 
 
-class ConexoGame(BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]):
+class ConexoGame(BaseGame[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult]):
     def __init__(
         self, *, words: Sequence[str], groups: Mapping[str, Iterable[int]], max_guesses: int
     ) -> None:
@@ -47,15 +47,17 @@ class ConexoGame(BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFina
         pass
 
     @override
-    def process_guess(self, *, guess: set[int]) -> ConexoFeedback:
+    def process_guess(self, *, guess: ConexoGuess) -> ConexoFeedback:
         self._num_guesses += 1
-        if not (len(guess) == self._group_size and guess.issubset(self._remaining_indices)):
+        indices: set[int] = set(guess.indices)
+
+        if not (len(indices) == self._group_size and indices.issubset(self._remaining_indices)):
             return ConexoFeedback(accepted=False, message="Invalid guess")
 
-        for theme, indices in self._groups.items():
-            if indices == guess:
+        for theme, theme_indices in self._groups.items():
+            if theme_indices == indices:
                 self._found_themes.add(theme)
-                self._remaining_indices -= guess
+                self._remaining_indices -= indices
                 return ConexoFeedback(accepted=True, message=theme)
 
         return ConexoFeedback(accepted=True, message=None)

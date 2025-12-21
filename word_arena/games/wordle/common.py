@@ -6,6 +6,10 @@ class WordleInfo(BaseModel):
     max_guesses: int
 
 
+class WordleGuess(BaseModel):
+    word: str
+
+
 class WordleResponse(BaseModel):
     patterns: list[str]
 

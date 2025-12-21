@@ -5,9 +5,8 @@ from ....common.llm.base import BaseLLM
 from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
-from ..common import ContextoHintExperience
+from ..common import ContextoHintExperience, ContextoHintGuess
 from ..formatter import ContextoHintAgentFormatter
-from .log import ContextoHintLogPlayer
 
 CONTEXTO_HINT_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -22,20 +21,18 @@ The position of the secret word is 1; the position of the word closest to the se
 Word similarity is based on the context in which words are used on the internet,
 related to both meaning and proximity.
 
-Every time, the game provides several candidate words from the list that
+Every time, the game provides several candidate words (indexed from 0) from the list that
 you have not guessed before, but without their positions.
 
 You need to choose one of them as your next guess, then you will see its position in the list.
 
 It is guaranteed that there is a candidate word closer than the current best guess."""
 
-CONTEXTO_HINT_GUESS_FORMAT = (
-    "You should reply the index of the guessed word (as a string), NOT the word itself."
-)
+CONTEXTO_HINT_GUESS_FORMAT = "You should reply the index of the guessed word, NOT the word itself."
 
 
 class ContextoHintAgentMemory(
-    BaseAgentMemory[None, list[str], int, int, list[str], ContextoHintExperience]
+    BaseAgentMemory[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience]
 ):
     def __init__(self, *, model: BaseLLM):
         super().__init__(
@@ -76,14 +73,14 @@ class ContextoHintAgentMemory(
 
 
 class ContextoHintAgentPlayer(
-    BaseAgentPlayer[None, list[str], int, int, list[str], ContextoHintExperience],
-    ContextoHintLogPlayer,
+    BaseAgentPlayer[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience],
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
             memory=ContextoHintAgentMemory(model=model),
             model=model,
             prompt_mode=prompt_mode,
+            guess_cls=ContextoHintGuess,
             agent_formatter_cls=ContextoHintAgentFormatter,
         )
 
@@ -129,8 +126,8 @@ class ContextoHintAgentPlayer(
     def make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:
         yield CONTEXTO_HINT_GUESS_FORMAT
         example: int = len(hint) - 1
-        yield f"For example, reply `{example + 1}` if you choose `{hint[example]}`."
+        yield f"For example, reply {example} if you choose {hint[example]}."
 
     @override
-    def get_raw_guess_example(self, *, hint: list[str]) -> str:
-        return str(len(hint) - 1)
+    def get_guess_example(self, *, hint: list[str]) -> ContextoHintGuess:
+        return ContextoHintGuess(index=len(hint) - 1)

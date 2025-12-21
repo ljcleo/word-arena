@@ -26,7 +26,7 @@ class BaseLogPlayer[IT, HT, GT, FT](BasePlayer[IT, HT, GT, FT], ABC):
         for section in self.in_game_formatter_cls.format_hint(game_info=self._game_info, hint=hint):
             print(section)
 
-        guess: GT = self.process_guess(hint=hint, raw_guess=self.make_raw_guess(hint=hint))
+        guess: GT = self.make_guess(hint=hint)
 
         for section in self.in_game_formatter_cls.format_guess(
             game_info=self._game_info, hint=hint, guess=guess
@@ -43,9 +43,5 @@ class BaseLogPlayer[IT, HT, GT, FT](BasePlayer[IT, HT, GT, FT], ABC):
             print(section)
 
     @abstractmethod
-    def make_raw_guess(self, *, hint: HT) -> str:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def process_guess(self, *, hint: HT, raw_guess: str) -> GT:
+    def make_guess(self, *, hint: HT) -> GT:
         raise NotImplementedError()

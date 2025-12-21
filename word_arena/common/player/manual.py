@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import override
 
 from .log import BaseLogPlayer
@@ -20,5 +20,11 @@ class BaseManualPlayer[IT, HT, GT, FT](BaseLogPlayer[IT, HT, GT, FT], ABC):
         self._num_guesses += 1
 
     @override
-    def make_raw_guess(self, *, hint: HT) -> str:
-        return input(f"Input Guess {self._num_guesses + 1}: ")
+    def make_guess(self, *, hint: HT) -> GT:
+        return self.parse_guess(
+            hint=hint, guess_str=input(f"Input Guess {self._num_guesses + 1}: ")
+        )
+
+    @abstractmethod
+    def parse_guess(self, *, hint: HT, guess_str: str) -> GT:
+        raise NotImplementedError()

@@ -12,39 +12,38 @@ from .common import PromptMode
 from .memory import BaseAgentMemory
 
 
-class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, GT, FT], ABC):
+class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
+    BaseLogPlayer[IT, HT, GT, FT], ABC
+):
     def __init__(
         self,
         *,
         memory: BaseAgentMemory[IT, HT, GT, FT, RT, ET],
         model: BaseLLM,
         prompt_mode: PromptMode,
+        guess_cls: type[GT],
         agent_formatter_cls: type[BaseAgentFormatter[IT, HT, GT, FT, RT, ET]],
     ):
         super().__init__(in_game_formatter_cls=agent_formatter_cls.get_in_game_formatter_cls())
         self._memory: BaseAgentMemory[IT, HT, GT, FT, RT, ET] = memory
         self._model: BaseLLM = model
         self._prompt_mode: PromptMode = prompt_mode
-        self._guess_model: type[BaseModel]
+        self._guess_cls: type[GT] = guess_cls
 
         self._agent_formatter_cls: type[BaseAgentFormatter[IT, HT, GT, FT, RT, ET]] = (
             agent_formatter_cls
         )
 
         if prompt_mode == PromptMode.DIRECT:
-            self._guess_model = create_model("Guess", analysis=Analysis, guess=str)
-        else:
-            self._guess_model = create_model("Guess", guess=str)
+            self._guess_model: type[BaseModel] = create_model(
+                "Guess", analysis=Analysis, guess=guess_cls
+            )
 
         self.memory.init_experience()
 
     @property
     def memory(self) -> BaseAgentMemory[IT, HT, GT, FT, RT, ET]:
         return self._memory
-
-    @property
-    def agent_formatter_cls(self) -> type[BaseAgentFormatter[IT, HT, GT, FT, RT, ET]]:
-        return self._agent_formatter_cls
 
     @override
     def prepare(self, *, game_info: IT) -> None:
@@ -53,11 +52,19 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
         self._latest_analysis: Analysis | None = None
 
     @override
-    def make_raw_guess(self, *, hint: HT) -> str:
+    def digest(self, *, hint: HT, guess: GT, feedback: FT) -> None:
+        super().digest(hint=hint, guess=guess, feedback=feedback)
+
+        self.memory.digest(
+            hint=hint, analysis=self._latest_analysis, guess=guess, feedback=feedback
+        )
+
+    @override
+    def make_guess(self, *, hint: HT) -> GT:
         messages: list[Message] = [
             Message.system(*self._make_system_prompt()),
             Message.human(
-                *self.agent_formatter_cls.format_in_game_record(
+                *self._agent_formatter_cls.format_in_game_record(
                     game_info=self.memory.game_info,
                     trajectory=self.memory.current_trajectory,
                     latest_analysis=self._latest_analysis,
@@ -67,7 +74,7 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
         ]
 
         self._latest_analysis = None
-        raw_guess: str
+        guess: GT
 
         if self._prompt_mode == PromptMode.DIRECT:
             messages.append(
@@ -76,7 +83,7 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
 
             full_guess: BaseModel = self._model.parse(*messages, format=self._guess_model)
             self._latest_analysis = getattr(full_guess, "analysis")
-            raw_guess = getattr(full_guess, "guess")
+            guess = getattr(full_guess, "guess")
             assert self._latest_analysis is not None
         else:
             if self._prompt_mode == PromptMode.MULTI_TURN:
@@ -110,22 +117,15 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
                 Message.human(*self.make_simple_guess_prompt(), *self._make_guess_prompt(hint=hint))
             )
 
-            raw_guess = getattr(self._model.parse(*messages, format=self._guess_model), "guess")
+            guess = self._model.parse(*messages, format=self._guess_cls)
 
         if self._latest_analysis is not None:
-            for section in self.agent_formatter_cls.format_analysis(analysis=self._latest_analysis):
+            for section in self._agent_formatter_cls.format_analysis(
+                analysis=self._latest_analysis
+            ):
                 print(section)
 
-        print("AI Guess:", raw_guess)
-        return raw_guess
-
-    @override
-    def digest(self, *, hint: HT, guess: GT, feedback: FT) -> None:
-        super().digest(hint=hint, guess=guess, feedback=feedback)
-
-        self.memory.digest(
-            hint=hint, analysis=self._latest_analysis, guess=guess, feedback=feedback
-        )
+        return guess
 
     @abstractmethod
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -160,7 +160,7 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
         raise NotImplementedError()
 
     @abstractmethod
-    def get_raw_guess_example(self, *, hint: HT) -> str:
+    def get_guess_example(self, *, hint: HT) -> GT:
         raise NotImplementedError()
 
     def _make_system_prompt(self) -> Iterator[str]:
@@ -171,15 +171,12 @@ class BaseAgentPlayer[IT, HT, GT, FT, RT, ET: BaseModel](BaseLogPlayer[IT, HT, G
 
     def _make_guess_prompt(self, *, hint: HT) -> Iterator[str]:
         yield from self.make_guess_detail_prompt(hint=hint)
-        raw_guess_example: str = self.get_raw_guess_example(hint=hint)
+        guess_example: BaseModel = self.get_guess_example(hint=hint)
 
-        guess_example: BaseModel = (
-            self._guess_model(
+        if self._prompt_mode == PromptMode.DIRECT:
+            guess_example = self._guess_model(
                 analysis=Analysis(past_analysis_summary="...", current_analysis="...", plan="..."),
-                guess=raw_guess_example,
+                guess=guess_example,
             )
-            if self._prompt_mode == PromptMode.DIRECT
-            else self._guess_model(guess=raw_guess_example)
-        )
 
         yield (f"Respond in JSON format like `{guess_example.model_dump_json()}`.")

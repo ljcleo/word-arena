@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 
-from pydantic import BaseModel
-
 from .common import Analysis, GameRecord, GameSummary, Reflection, Turn
 
 
-class BaseMemory[IT, HT, GT, FT, RT, ET: BaseModel](ABC):
+class BaseMemory[IT, HT, GT, FT, RT, ET](ABC):
     def __init__(self) -> None:
         self._history: list[GameSummary[IT, HT, GT, FT, RT]] = []
 

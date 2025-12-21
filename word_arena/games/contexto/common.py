@@ -1,6 +1,10 @@
 from pydantic import BaseModel
 
 
+class ContextoGuess(BaseModel):
+    word: str
+
+
 class ContextoResponse(BaseModel):
     word: str
     lemma: str

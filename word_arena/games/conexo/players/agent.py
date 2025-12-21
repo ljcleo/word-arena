@@ -5,9 +5,8 @@ from ....common.llm.base import BaseLLM
 from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
-from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoInfo
+from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
 from ..formatter import ConexoAgentFormatter
-from .log import ConexoLogPlayer
 
 CONEXO_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -18,7 +17,7 @@ each group has a common theme that shall cover all words in the group,
 which can be lexical, semantic, conceptual, phrasal (can form phrases with the same word),
 or any general co-membership (e.g., work titles by the same artist).
 
-At the beginning, the game provides the group size and words from all groups,
+At the beginning, the game provides the group size and words from all groups (indexed from 0),
 but not the groups themselves; it is guaranteed that each word belongs to exactly one group.
 
 Every time, you choose as many words as the group size to form a guess,
@@ -32,14 +31,13 @@ There may be a guessing limit on the total number of guesses (including rejected
 and the game halts if the remaining guesses are not enough to find all word groups;
 therefore, you should try your best to minimize the number of guesses."""
 
-CONEXO_GUESS_FORMAT = (
-    "You should reply the indices of the guessed words as a string "
-    "where two indices are separated by a single space, NOT the words themselves."
-)
+CONEXO_GUESS_FORMAT = "You should reply the indices of the guessed words, NOT the words themselves."
 
 
 class ConexoAgentMemory(
-    BaseAgentMemory[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience]
+    BaseAgentMemory[
+        ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
+    ]
 ):
     def __init__(self, *, model: BaseLLM):
         super().__init__(
@@ -78,15 +76,15 @@ class ConexoAgentMemory(
 
 class ConexoAgentPlayer(
     BaseAgentPlayer[
-        ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience
+        ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
     ],
-    ConexoLogPlayer,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
             memory=ConexoAgentMemory(model=model),
             model=model,
             prompt_mode=prompt_mode,
+            guess_cls=ConexoGuess,
             agent_formatter_cls=ConexoAgentFormatter,
         )
 
@@ -143,12 +141,12 @@ class ConexoAgentPlayer(
         example: range = range(self.memory.game_info.group_size)
 
         yield (
-            f"For example, reply `{' '.join(map(str, example))}` if you choose these words: "
-            f"`{', '.join(self.memory.game_info.words[index] for index in example)}`."
+            f"For example, reply {', '.join(map(str, example))} if you choose "
+            f"{', '.join(self.memory.game_info.words[index] for index in example)}."
         )
 
         yield "Pay attention to the number of remaining guesses."
 
     @override
-    def get_raw_guess_example(self, *, hint: None) -> str:
-        return " ".join(map(str, range(self.memory.game_info.group_size)))
+    def get_guess_example(self, *, hint: None) -> ConexoGuess:
+        return ConexoGuess(indices=list(range(self.memory.game_info.group_size)))

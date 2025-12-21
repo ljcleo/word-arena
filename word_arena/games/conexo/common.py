@@ -7,6 +7,10 @@ class ConexoInfo(BaseModel):
     max_guesses: int
 
 
+class ConexoGuess(BaseModel):
+    indices: list[int]
+
+
 class ConexoFeedback(BaseModel):
     accepted: bool
     message: str | None

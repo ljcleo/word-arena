@@ -7,6 +7,10 @@ class LetrosoInfo(BaseModel):
     max_guesses: int
 
 
+class LetrosoGuess(BaseModel):
+    word: str
+
+
 class LetrosoResponse(BaseModel):
     patterns: list[str]
 

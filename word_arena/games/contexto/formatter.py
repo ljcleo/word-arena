@@ -4,10 +4,16 @@ from typing import override
 from ...common.formatter.agent import BaseAgentFormatter
 from ...common.formatter.base import BaseFinalResultFormatter, BaseInGameFormatter
 from ...common.memory.common import Turn
-from .common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoResponse
+from .common import (
+    ContextoExperience,
+    ContextoFeedback,
+    ContextoFinalResult,
+    ContextoResponse,
+    ContextoGuess,
+)
 
 
-class ContextoInGameFormatter(BaseInGameFormatter[int, None, str, ContextoFeedback]):
+class ContextoInGameFormatter(BaseInGameFormatter[int, None, ContextoGuess, ContextoFeedback]):
     @override
     @staticmethod
     def format_game_info(*, game_info: int) -> Iterator[str]:
@@ -20,13 +26,13 @@ class ContextoInGameFormatter(BaseInGameFormatter[int, None, str, ContextoFeedba
 
     @override
     @staticmethod
-    def format_guess(*, game_info: int, hint: None, guess: str) -> Iterator[str]:
-        yield f"Guess: {guess}"
+    def format_guess(*, game_info: int, hint: None, guess: ContextoGuess) -> Iterator[str]:
+        yield f"Guess: {guess.word}"
 
     @override
     @staticmethod
     def format_feedback(
-        *, game_info: int, hint: None, guess: str, feedback: ContextoFeedback
+        *, game_info: int, hint: None, guess: ContextoGuess, feedback: ContextoFeedback
     ) -> Iterator[str]:
         yield " ".join(
             (
@@ -54,14 +60,16 @@ class ContextoFinalResultFormatter(BaseFinalResultFormatter[ContextoFinalResult]
 
 
 class ContextoAgentFormatter(
-    BaseAgentFormatter[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience]
+    BaseAgentFormatter[
+        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
+    ]
 ):
     @override
     @staticmethod
     def format_turn(
         *,
         game_info: int,
-        turn: Turn[None, str, ContextoFeedback],
+        turn: Turn[None, ContextoGuess, ContextoFeedback],
         final_result: ContextoFinalResult | None,
     ) -> Iterator[str]:
         yield from ContextoInGameFormatter.format_guess(

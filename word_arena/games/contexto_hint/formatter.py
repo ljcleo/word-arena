@@ -4,10 +4,10 @@ from typing import override
 from ...common.formatter.agent import BaseAgentFormatter
 from ...common.formatter.base import BaseFinalResultFormatter, BaseInGameFormatter
 from ...common.memory.common import Turn
-from .common import ContextoHintExperience
+from .common import ContextoHintExperience, ContextoHintGuess
 
 
-class ContextoHintInGameFormatter(BaseInGameFormatter[None, list[str], int, int]):
+class ContextoHintInGameFormatter(BaseInGameFormatter[None, list[str], ContextoHintGuess, int]):
     @override
     @staticmethod
     def format_game_info(*, game_info: None) -> Iterator[str]:
@@ -17,23 +17,31 @@ class ContextoHintInGameFormatter(BaseInGameFormatter[None, list[str], int, int]
     @staticmethod
     def format_hint(*, game_info: None, hint: list[str]) -> Iterator[str]:
         yield " ".join(
+            ("Options:", "; ".join(f"{index}. {word}" for index, word in enumerate(hint)))
+        )
+
+    @override
+    @staticmethod
+    def format_guess(
+        *, game_info: None, hint: list[str], guess: ContextoHintGuess
+    ) -> Iterator[str]:
+        yield " ".join(
             (
-                "Options (Use Index to Guess):",
-                "; ".join(f"{index + 1}. {word}" for index, word in enumerate(hint)),
+                "Guess:",
+                ContextoHintInGameFormatter._format_guess_index(hint=hint, index=guess.index),
             )
         )
 
     @override
     @staticmethod
-    def format_guess(*, game_info: None, hint: list[str], guess: int) -> Iterator[str]:
-        yield f"Guess: {hint[guess] if 0 <= guess < len(hint) else '(N/A)'}"
-
-    @override
-    @staticmethod
     def format_feedback(
-        *, game_info: None, hint: list[str], guess: int, feedback: int
+        *, game_info: None, hint: list[str], guess: ContextoHintGuess, feedback: int
     ) -> Iterator[str]:
         yield "Feedback: Invalid guess" if feedback < 0 else f"Feedback: Position {feedback + 1}"
+
+    @staticmethod
+    def _format_guess_index(*, hint: list[str], index: int) -> str:
+        return f"{index} ({hint[index] if 0 <= index < len(hint) else 'N/A'})"
 
 
 class ContextoHintFinalResultFormatter(BaseFinalResultFormatter[list[str]]):
@@ -44,12 +52,15 @@ class ContextoHintFinalResultFormatter(BaseFinalResultFormatter[list[str]]):
 
 
 class ContextoHintAgentFormatter(
-    BaseAgentFormatter[None, list[str], int, int, list[str], ContextoHintExperience]
+    BaseAgentFormatter[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience]
 ):
     @override
     @staticmethod
     def format_turn(
-        *, game_info: None, turn: Turn[list[str], int, int], final_result: list[str] | None
+        *,
+        game_info: None,
+        turn: Turn[list[str], ContextoHintGuess, int],
+        final_result: list[str] | None,
     ) -> Iterator[str]:
         word_pos: dict[str, int] | None = (
             None
@@ -60,9 +71,12 @@ class ContextoHintAgentFormatter(
         yield " ".join(
             (
                 "Options:",
-                ", ".join(turn.hint)
-                if word_pos is None
-                else ", ".join(f"{word} (Position: {word_pos[word]})" for word in turn.hint),
+                "; ".join(
+                    f"{index}. {word}"
+                    if word_pos is None
+                    else f"{index}. {word} (Position: {word_pos[word]})"
+                    for index, word in enumerate(turn.hint)
+                ),
             )
         )
 
@@ -84,10 +98,10 @@ class ContextoHintAgentFormatter(
 
     @override
     @staticmethod
-    def get_in_game_formatter_cls() -> type[BaseInGameFormatter[None, list[str], int, int]]:
+    def get_in_game_formatter_cls() -> type[ContextoHintInGameFormatter]:
         return ContextoHintInGameFormatter
 
     @override
     @staticmethod
-    def get_final_result_formatter_cls() -> type[BaseFinalResultFormatter[list[str]]]:
+    def get_final_result_formatter_cls() -> type[ContextoHintFinalResultFormatter]:
         return ContextoHintFinalResultFormatter

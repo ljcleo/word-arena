@@ -8,12 +8,13 @@ from .common import (
     LetrosoExperience,
     LetrosoFeedback,
     LetrosoFinalResult,
+    LetrosoGuess,
     LetrosoInfo,
     LetrosoResponse,
 )
 
 
-class LetrosoInGameFormatter(BaseInGameFormatter[LetrosoInfo, None, str, LetrosoFeedback]):
+class LetrosoInGameFormatter(BaseInGameFormatter[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback]):
     @override
     @staticmethod
     def format_game_info(*, game_info: LetrosoInfo) -> Iterator[str]:
@@ -32,13 +33,13 @@ class LetrosoInGameFormatter(BaseInGameFormatter[LetrosoInfo, None, str, Letroso
 
     @override
     @staticmethod
-    def format_guess(*, game_info: LetrosoInfo, hint: None, guess: str) -> Iterator[str]:
-        yield f"Guess: {guess}"
+    def format_guess(*, game_info: LetrosoInfo, hint: None, guess: LetrosoGuess) -> Iterator[str]:
+        yield f"Guess: {guess.word}"
 
     @override
     @staticmethod
     def format_feedback(
-        *, game_info: LetrosoInfo, hint: None, guess: str, feedback: LetrosoFeedback
+        *, game_info: LetrosoInfo, hint: None, guess: LetrosoGuess, feedback: LetrosoFeedback
     ) -> Iterator[str]:
         yield " ".join(
             (
@@ -80,7 +81,7 @@ class LetrosoFinalResultFormatter(BaseFinalResultFormatter[LetrosoFinalResult]):
 
 class LetrosoAgentFormatter(
     BaseAgentFormatter[
-        LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
     ]
 ):
     @override
@@ -88,7 +89,7 @@ class LetrosoAgentFormatter(
     def format_turn(
         *,
         game_info: LetrosoInfo,
-        turn: Turn[None, str, LetrosoFeedback],
+        turn: Turn[None, LetrosoGuess, LetrosoFeedback],
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[str]:
         yield from LetrosoInGameFormatter.format_guess(

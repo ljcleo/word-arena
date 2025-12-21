@@ -5,9 +5,8 @@ from ....common.llm.base import BaseLLM
 from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
-from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult
+from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoGuess
 from ..formatter import ContextoAgentFormatter
-from .log import ContextoLogPlayer
 
 CONTEXTO_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -35,7 +34,9 @@ CONTEXTO_GUESS_FORMAT = (
 
 
 class ContextoAgentMemory(
-    BaseAgentMemory[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience]
+    BaseAgentMemory[
+        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
+    ]
 ):
     def __init__(self, *, model: BaseLLM):
         super().__init__(
@@ -73,14 +74,16 @@ class ContextoAgentMemory(
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience],
-    ContextoLogPlayer,
+    BaseAgentPlayer[
+        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
+    ]
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
             memory=ContextoAgentMemory(model=model),
             model=model,
             prompt_mode=prompt_mode,
+            guess_cls=ContextoGuess,
             agent_formatter_cls=ContextoAgentFormatter,
         )
 
@@ -133,5 +136,5 @@ class ContextoAgentPlayer(
         yield "Pay attention to the number of remaining guesses."
 
     @override
-    def get_raw_guess_example(self, *, hint: None) -> str:
-        return "word"
+    def get_guess_example(self, *, hint: None) -> ContextoGuess:
+        return ContextoGuess(word="word")

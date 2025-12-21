@@ -4,18 +4,22 @@ from typing import override
 from ...common.formatter.agent import BaseAgentFormatter
 from ...common.formatter.base import BaseFinalResultFormatter, BaseInGameFormatter
 from ...common.memory.common import Turn
-from .common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoInfo, ConexoWordGroup
+from .common import (
+    ConexoExperience,
+    ConexoFeedback,
+    ConexoFinalResult,
+    ConexoGuess,
+    ConexoInfo,
+    ConexoWordGroup,
+)
 
 
-class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, set[int], ConexoFeedback]):
+class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, ConexoGuess, ConexoFeedback]):
     @override
     @staticmethod
     def format_game_info(*, game_info: ConexoInfo) -> Iterator[str]:
         yield " ".join(
-            (
-                "Words:",
-                "; ".join(f"{index + 1}. {word}" for index, word in enumerate(game_info.words)),
-            )
+            ("Words:", "; ".join(f"{index}. {word}" for index, word in enumerate(game_info.words)))
         )
 
         yield f"Group Size: {game_info.group_size}"
@@ -32,13 +36,13 @@ class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, set[int], Cone
 
     @override
     @staticmethod
-    def format_guess(*, game_info: ConexoInfo, hint: None, guess: set[int]) -> Iterator[str]:
+    def format_guess(*, game_info: ConexoInfo, hint: None, guess: ConexoGuess) -> Iterator[str]:
         yield " ".join(
             (
                 "Guess:",
                 ", ".join(
-                    game_info.words[index] if 0 <= index < len(game_info.words) else "(N/A)"
-                    for index in guess
+                    ConexoInGameFormatter._format_guess_index(words=game_info.words, index=index)
+                    for index in guess.indices
                 ),
             )
         )
@@ -46,7 +50,7 @@ class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, set[int], Cone
     @override
     @staticmethod
     def format_feedback(
-        *, game_info: ConexoInfo, hint: None, guess: set[int], feedback: ConexoFeedback
+        *, game_info: ConexoInfo, hint: None, guess: ConexoGuess, feedback: ConexoFeedback
     ) -> Iterator[str]:
         if feedback.accepted:
             yield " | ".join(
@@ -59,6 +63,10 @@ class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, set[int], Cone
             )
         else:
             yield f"Feedback: Reject | {feedback.message}"
+
+    @staticmethod
+    def _format_guess_index(*, words: list[str], index: int) -> str:
+        return f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
 
 
 class ConexoFinalResultFormatter(BaseFinalResultFormatter[ConexoFinalResult]):
@@ -93,7 +101,7 @@ class ConexoFinalResultFormatter(BaseFinalResultFormatter[ConexoFinalResult]):
 
 class ConexoAgentFormatter(
     BaseAgentFormatter[
-        ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience
+        ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
     ]
 ):
     @override
@@ -101,7 +109,7 @@ class ConexoAgentFormatter(
     def format_turn(
         *,
         game_info: ConexoInfo,
-        turn: Turn[None, set[int], ConexoFeedback],
+        turn: Turn[None, ConexoGuess, ConexoFeedback],
         final_result: ConexoFinalResult | None,
     ) -> Iterator[str]:
         yield from ConexoInGameFormatter.format_guess(

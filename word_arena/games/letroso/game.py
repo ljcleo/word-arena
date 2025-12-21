@@ -5,10 +5,17 @@ from random import Random
 from typing import override
 
 from ...common.game.base import BaseGame
-from .common import LetrosoError, LetrosoFeedback, LetrosoFinalResult, LetrosoInfo, LetrosoResponse
+from .common import (
+    LetrosoError,
+    LetrosoFeedback,
+    LetrosoFinalResult,
+    LetrosoInfo,
+    LetrosoResponse,
+    LetrosoGuess,
+)
 
 
-class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]):
+class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]):
     def __init__(
         self, *, word_list: Sequence[str], target_ids: list[int], max_letters: int, max_guesses: int
     ) -> None:
@@ -40,18 +47,19 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinal
         pass
 
     @override
-    def process_guess(self, *, guess: str) -> LetrosoFeedback:
+    def process_guess(self, *, guess: LetrosoGuess) -> LetrosoFeedback:
         self._num_guesses += 1
+        word: str = guess.word
 
-        if not (1 <= len(guess) <= self._max_letters and guess.isalpha() and guess.islower()):
+        if not (1 <= len(word) <= self._max_letters and word.isalpha() and word.islower()):
             return LetrosoError(error="Invalid guess")
-        elif guess not in self._word_list:
+        elif word not in self._word_list:
             return LetrosoError(error="Unknown word")
 
         patterns: list[str] = []
 
         for index, answer in enumerate(self._answers):
-            if guess == answer:
+            if word == answer:
                 self._found_indices.add(index)
 
             buffer: list[str] = []
@@ -61,7 +69,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinal
             next_counter: Counter = Counter(answer)
             pivot: int = 0
 
-            for i, c in enumerate(guess):
+            for i, c in enumerate(word):
                 if next_counter[c] > 0:
                     if answer[pivot] == c and len(buffer) > 0 and buffer[-1][-1] == "G":
                         buffer[-1] = f"{buffer[-1]}G"
@@ -75,7 +83,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinal
 
                     if i == 0 and pivot == 0:
                         head_match = True
-                    if i == len(guess) - 1 and pivot == len(answer) - 1:
+                    if i == len(word) - 1 and pivot == len(answer) - 1:
                         tail_match = True
 
                     next_counter[answer[pivot]] -= 1
