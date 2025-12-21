@@ -40,6 +40,8 @@ class WordleAgentMemory(
         WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleExperience
     ]
 ):
+    NOTE_PROMPT: str = "notes about the possible strategies"
+
     def __init__(self, *, model: BaseLLM):
         super().__init__(
             model=model,
@@ -58,11 +60,11 @@ class WordleAgentMemory(
 
     @override
     def make_create_experience_prompt(self) -> Iterator[str]:
-        yield "Now, initialize some notes about the possible strategies."
+        yield f"Now, initialize some {self.NOTE_PROMPT}."
 
     @override
     def make_update_experience_prompt(self) -> Iterator[str]:
-        yield "Now, update your notes about the possible strategies."
+        yield f"Now, create an updated version of your {self.NOTE_PROMPT}."
 
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
