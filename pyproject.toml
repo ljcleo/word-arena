@@ -1,7 +1,7 @@
 [project]
-name = "contexto"
+name = "word-arena"
 version = "0.1.0"
-description = "Add your description here"
+description = "Word game arena for humans and LLMs"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -14,4 +14,7 @@ crawl = [
     "mitmproxy>=12.2.1",
     "pyvirtualdisplay>=3.0",
     "selenium>=4.39.0",
+]
+dev = [
+    "ipykernel>=7.1.0",
 ]
