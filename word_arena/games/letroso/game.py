@@ -119,15 +119,14 @@ class LetrosoGameManager:
             max_guesses=max_guesses,
         )
 
-    def create_random_game(self, *, param_candidates: list[tuple[int, int, int]]) -> LetrosoGame:
+    def create_random_game(
+        self, *, param_candidates: Sequence[tuple[int, int, int]]
+    ) -> LetrosoGame:
         num_targets: int
         max_letters: int
         max_guesses: int
         num_targets, max_letters, max_guesses = self._rng.choice(param_candidates)
         target_ids = self._rng.sample(range(self._num_games), num_targets)
-        print("Current Word IDs:", *target_ids)
-        print("Current Max Letters:", max_letters)
-        print("Current Max Guesses:", max_guesses)
 
         return self.create_game(
             target_ids=target_ids, max_letters=max_letters, max_guesses=max_guesses

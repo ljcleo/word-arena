@@ -62,9 +62,8 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
     class ContextoAgentGym(
         BaseAgentGym[int, None, str, ContextoFeedback, ContextoFinalResult, ContextoExperience]
     ):
-        def __init__(self) -> None:
+        def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
-            self._max_guesses: int = int(input("Max Guesses: "))
 
         @override
         def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> ContextoAgentPlayer:
@@ -75,16 +74,19 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
 
         @override
         def create_game(self, *, select: bool) -> ContextoGame:
-            return self._game_manager.create_game(
-                game_id=int(input("Input Game ID: ")) if select else None,
-                max_guesses=self._max_guesses,
+            return (
+                self._game_manager.create_game(
+                    game_id=int(input("Input Game ID: ")), max_guesses=int(input("Max Guesses: "))
+                )
+                if select
+                else self._game_manager.create_random_game(param_candidates=(50,))
             )
 
         @override
         def format_final_result(self, *, final_result: ContextoFinalResult) -> Iterator[str]:
             yield from ContextoFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return ContextoAgentGym()
+    return ContextoAgentGym(seed=seed)
 
 
 def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
@@ -98,12 +100,10 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
     class ContextoHintAgentGym(
         BaseAgentGym[None, list[str], int, int, list[str], ContextoHintExperience]
     ):
-        def __init__(self) -> None:
+        def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoHintGameManager = ContextoHintGameManager(
                 games_dir=Path("./data/contexto_hint/games"), seed=seed
             )
-
-            self._num_candidates: int = int(input("Number of Candidates: "))
 
         @override
         def create_player(
@@ -113,9 +113,13 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
 
         @override
         def create_game(self, *, select: bool) -> ContextoHintGame:
-            return self._game_manager.create_game(
-                game_id=int(input("Input Game ID: ")) if select else None,
-                num_candidates=self._num_candidates,
+            return (
+                self._game_manager.create_game(
+                    game_id=int(input("Input Game ID: ")),
+                    num_candidates=int(input("Number of Candidates: ")),
+                )
+                if select
+                else self._game_manager.create_random_game(param_candidates=(5,))
             )
 
         @override
@@ -124,7 +128,7 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
                 final_result=final_result
             )
 
-    return ContextoHintAgentGym()
+    return ContextoHintAgentGym(seed=seed)
 
 
 def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
@@ -169,7 +173,7 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
                 )
                 if select
                 else self._game_manager.create_random_game(
-                    param_candidates=[(1, 6), (2, 7), (4, 9), (8, 13)]
+                    param_candidates=((1, 6), (2, 7), (4, 9), (8, 13))
                 )
             )
 
@@ -216,7 +220,7 @@ def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
                     max_guesses=int(input("Max Guesses: ")),
                 )
                 if select
-                else self._game_manager.create_random_game(param_candidates=[(1, 10, 20)])
+                else self._game_manager.create_random_game(param_candidates=((1, 10, 20),))
             )
 
         @override
@@ -244,12 +248,10 @@ def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
             ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult, ConexoExperience
         ]
     ):
-        def __init__(self) -> None:
+        def __init__(self, seed: int) -> None:
             self._game_manager: ConexoGameManager = ConexoGameManager(
                 games_dir=Path("./data/conexo/games"), seed=seed
             )
-
-            self._max_guesses: int = int(input("Max Guesses: "))
 
         @override
         def create_player(
@@ -264,16 +266,20 @@ def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
 
         @override
         def create_game(self, *, select: bool) -> ConexoGame:
-            return self._game_manager.create_game(
-                game_id=int(input("Input Game ID: ")) if select else None,
-                max_guesses=self._max_guesses,
+            return (
+                self._game_manager.create_game(
+                    game_id=int(input("Input Game ID: ")),
+                    max_guesses=int(input("Max Guesses: ")),
+                )
+                if select
+                else self._game_manager.create_random_game(param_candidates=(20,))
             )
 
         @override
         def format_final_result(self, *, final_result: ConexoFinalResult) -> Iterator[str]:
             yield from ConexoFinalResultFormatter.format_final_result(final_result=final_result)
 
-    return ConexoAgentGym()
+    return ConexoAgentGym(seed=seed)
 
 
 AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {

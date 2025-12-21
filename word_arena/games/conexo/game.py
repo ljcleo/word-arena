@@ -90,11 +90,7 @@ class ConexoGameManager:
         self._num_games: int = sum(1 for _ in games_dir.iterdir())
         self._rng: Random = Random(seed)
 
-    def create_game(self, *, game_id: int | None, max_guesses: int) -> ConexoGame:
-        if game_id is None:
-            game_id = self._rng.randrange(self._num_games)
-            print("Current Game ID:", game_id)
-
+    def create_game(self, *, game_id: int, max_guesses: int) -> ConexoGame:
         with (self._games_dir / f"{game_id}.json").open("rb") as f:
             game_data: ConexoGameData = ConexoGameData.model_validate_json(f.read())
 
@@ -103,3 +99,8 @@ class ConexoGameManager:
             groups={group.theme: group.indices for group in game_data.groups},
             max_guesses=max_guesses,
         )
+
+    def create_random_game(self, *, param_candidates: Sequence[int]) -> ConexoGame:
+        game_id: int = self._rng.randrange(self._num_games)
+        max_guesses: int = self._rng.choice(param_candidates)
+        return self.create_game(game_id=game_id, max_guesses=max_guesses)

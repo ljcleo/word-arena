@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import date
 from random import Random
 from typing import override
@@ -64,9 +65,10 @@ class ContextoGameManager:
         self._max_games: int = (date.today() - date(2022, 9, 18)).days
         self._rng: Random = Random(seed)
 
-    def create_game(self, *, game_id: int | None, max_guesses: int) -> ContextoGame:
-        if game_id is None:
-            game_id = self._rng.randrange(self._max_games + 1)
-            print("Current Game ID:", game_id)
-
+    def create_game(self, *, game_id: int, max_guesses: int) -> ContextoGame:
         return ContextoGame(game_id=game_id, max_guesses=max_guesses)
+
+    def create_random_game(self, *, param_candidates: Sequence[int]) -> ContextoGame:
+        game_id: int = self._rng.randrange(self._max_games + 1)
+        max_guesses: int = self._rng.choice(param_candidates)
+        return self.create_game(game_id=game_id, max_guesses=max_guesses)

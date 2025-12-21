@@ -85,11 +85,9 @@ class WordleGameManager:
     def create_game(self, *, target_ids: list[int], max_guesses: int) -> WordleGame:
         return WordleGame(word_list=self._word_list, target_ids=target_ids, max_guesses=max_guesses)
 
-    def create_random_game(self, *, param_candidates: list[tuple[int, int]]) -> WordleGame:
+    def create_random_game(self, *, param_candidates: Sequence[tuple[int, int]]) -> WordleGame:
         num_targets: int
         max_guesses: int
         num_targets, max_guesses = self._rng.choice(param_candidates)
         target_ids = self._rng.sample(range(self._num_games), num_targets)
-        print("Current Word IDs:", *target_ids)
-        print("Current Max Guesses:", max_guesses)
         return self.create_game(target_ids=target_ids, max_guesses=max_guesses)

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from random import Random
 from typing import override
@@ -6,10 +7,10 @@ from ...common.game.base import BaseGame
 
 
 class ContextoHintGame(BaseGame[None, list[str], int, int, list[str]]):
-    def __init__(self, *, top_words: list[str], num_candidates: int, rng: Random) -> None:
+    def __init__(self, *, top_words: list[str], num_candidates: int, seed: int) -> None:
         self._top_words: list[str] = top_words
         self._num_candidates: int = num_candidates
-        self._rng: Random = rng
+        self._rng: Random = Random(seed)
 
     @override
     def start_game(self) -> None:
@@ -63,13 +64,14 @@ class ContextoHintGameManager:
         self._num_games: int = sum(1 for _ in games_dir.iterdir())
         self._rng: Random = Random(seed)
 
-    def create_game(self, *, game_id: int | None, num_candidates: int) -> ContextoHintGame:
-        if game_id is None:
-            game_id = self._rng.randrange(self._num_games)
-            print("Current Game ID:", game_id)
-
+    def create_game(self, *, game_id: int, num_candidates: int) -> ContextoHintGame:
         return ContextoHintGame(
             top_words=(self._games_dir / f"{game_id}.txt").read_text().strip().split(),
             num_candidates=num_candidates,
-            rng=self._rng,
+            seed=self._rng.randrange(1 << 32),
         )
+
+    def create_random_game(self, *, param_candidates: Sequence[int]) -> ContextoHintGame:
+        game_id: int = self._rng.randrange(self._num_games)
+        num_candidates: int = self._rng.choice(param_candidates)
+        return self.create_game(game_id=game_id, num_candidates=num_candidates)
