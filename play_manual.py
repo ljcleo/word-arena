@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import override
 
-from common.game import BaseGame
-from players.manual import BaseManualPlayer
+from word_arena.common.game.base import BaseGame
+from word_arena.common.player.manual import BaseManualPlayer
 
 
 class BaseManualGym[IT, HT, GT, FT, RT](ABC):
@@ -11,7 +11,9 @@ class BaseManualGym[IT, HT, GT, FT, RT](ABC):
         player: BaseManualPlayer[IT, HT, GT, FT] = self.create_player()
         final_result: RT = self.create_game().play(player=player)
         print("You Guessed", player.num_guesses, "Times")
-        self.report_final_result(final_result=final_result)
+
+        for section in self.format_final_result(final_result=final_result):
+            print(section)
 
     @abstractmethod
     def create_player(self) -> BaseManualPlayer[IT, HT, GT, FT]:
@@ -22,33 +24,33 @@ class BaseManualGym[IT, HT, GT, FT, RT](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def report_final_result(self, *, final_result: RT) -> None:
+    def format_final_result(self, *, final_result: RT) -> Iterator[str]:
         raise NotImplementedError()
 
 
 def build_contexto_manual_gym(seed: int) -> BaseManualGym:
-    from games.contexto.common import ContextoFeedback, ContextoFinalResult
-    from games.contexto.game import ContextoGameManager
-    from games.contexto.players.manual import ContextoManualPlayer
+    from word_arena.games.contexto.common import ContextoFeedback, ContextoFinalResult
+    from word_arena.games.contexto.formatter import ContextoFinalResultFormatter
+    from word_arena.games.contexto.game import ContextoGame, ContextoGameManager
+    from word_arena.games.contexto.players.manual import ContextoManualPlayer
 
     class ContextoManualGym(BaseManualGym[int, None, str, ContextoFeedback, ContextoFinalResult]):
         def __init__(self, *, seed: int) -> None:
             self._game_manager: ContextoGameManager = ContextoGameManager(seed=seed)
 
         @override
-        def create_player(self) -> BaseManualPlayer[int, None, str, ContextoFeedback]:
+        def create_player(self) -> ContextoManualPlayer:
             return ContextoManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[int, None, str, ContextoFeedback, ContextoFinalResult]:
+        def create_game(self) -> ContextoGame:
             return self._game_manager.create_game(
                 game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
             )
 
         @override
-        def report_final_result(self, *, final_result: ContextoFinalResult) -> None:
-            print("Best Position:", final_result.best_pos + 1)
-            print("Top Words:", *final_result.top_words[:10])
+        def format_final_result(self, *, final_result: ContextoFinalResult) -> Iterator[str]:
+            yield from ContextoFinalResultFormatter.format_final_result(final_result=final_result)
 
     return ContextoManualGym(seed=seed)
 
@@ -56,8 +58,9 @@ def build_contexto_manual_gym(seed: int) -> BaseManualGym:
 def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.contexto_hint.game import ContextoHintGameManager
-    from games.contexto_hint.players.manual import ContextoHintManualPlayer
+    from word_arena.games.contexto_hint.formatter import ContextoHintFinalResultFormatter
+    from word_arena.games.contexto_hint.game import ContextoHintGame, ContextoHintGameManager
+    from word_arena.games.contexto_hint.players.manual import ContextoHintManualPlayer
 
     class ContextoHintManualGym(BaseManualGym[None, list[str], int, int, list[str]]):
         def __init__(self, *, seed: int) -> None:
@@ -66,18 +69,20 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[None, list[str], int, int]:
+        def create_player(self) -> ContextoHintManualPlayer:
             return ContextoHintManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[None, list[str], int, int, list[str]]:
+        def create_game(self) -> ContextoHintGame:
             return self._game_manager.create_game(
                 game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
             )
 
         @override
-        def report_final_result(self, *, final_result: list[str]) -> None:
-            print("Top Words:", *final_result[:10])
+        def format_final_result(self, *, final_result: list[str]) -> Iterator[str]:
+            yield from ContextoHintFinalResultFormatter.format_final_result(
+                final_result=final_result
+            )
 
     return ContextoHintManualGym(seed=seed)
 
@@ -85,9 +90,10 @@ def build_contexto_hint_manual_gym(seed: int) -> BaseManualGym:
 def build_wordle_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
-    from games.wordle.game import WordleGameManager
-    from games.wordle.players.manual import WordleManualPlayer
+    from word_arena.games.wordle.common import WordleFeedback, WordleFinalResult, WordleInfo
+    from word_arena.games.wordle.formatter import WordleFinalResultFormatter
+    from word_arena.games.wordle.game import WordleGame, WordleGameManager
+    from word_arena.games.wordle.players.manual import WordleManualPlayer
 
     class WordleManualGym(BaseManualGym[WordleInfo, None, str, WordleFeedback, WordleFinalResult]):
         def __init__(self, *, seed: int) -> None:
@@ -96,11 +102,11 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[WordleInfo, None, str, WordleFeedback]:
+        def create_player(self) -> WordleManualPlayer:
             return WordleManualPlayer()
 
         @override
-        def create_game(self) -> BaseGame[WordleInfo, None, str, WordleFeedback, WordleFinalResult]:
+        def create_game(self) -> WordleGame:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
@@ -109,9 +115,8 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def report_final_result(self, *, final_result: WordleFinalResult) -> None:
-            print("Found", final_result.num_found, "word(s)")
-            print("Answer:", *final_result.answers)
+        def format_final_result(self, *, final_result: WordleFinalResult) -> Iterator[str]:
+            yield from WordleFinalResultFormatter.format_final_result(final_result=final_result)
 
     return WordleManualGym(seed=seed)
 
@@ -119,9 +124,10 @@ def build_wordle_manual_gym(seed: int) -> BaseManualGym:
 def build_letroso_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
-    from games.letroso.game import LetrosoGameManager
-    from games.letroso.players.manual import LetrosoManualPlayer
+    from word_arena.games.letroso.common import LetrosoFeedback, LetrosoFinalResult, LetrosoInfo
+    from word_arena.games.letroso.formatter import LetrosoFinalResultFormatter
+    from word_arena.games.letroso.game import LetrosoGame, LetrosoGameManager
+    from word_arena.games.letroso.players.manual import LetrosoManualPlayer
 
     class LetrosoManualGym(
         BaseManualGym[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]
@@ -132,13 +138,11 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[LetrosoInfo, None, str, LetrosoFeedback]:
+        def create_player(self) -> LetrosoManualPlayer:
             return LetrosoManualPlayer()
 
         @override
-        def create_game(
-            self,
-        ) -> BaseGame[LetrosoInfo, None, str, LetrosoFeedback, LetrosoFinalResult]:
+        def create_game(self) -> LetrosoGame:
             return self._game_manager.create_game(
                 target_ids=[
                     int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
@@ -148,9 +152,8 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def report_final_result(self, *, final_result: LetrosoFinalResult) -> None:
-            print("Found", final_result.num_found, "word(s)")
-            print("Answer:", *final_result.answers)
+        def format_final_result(self, *, final_result: LetrosoFinalResult) -> Iterator[str]:
+            yield from LetrosoFinalResultFormatter.format_final_result(final_result=final_result)
 
     return LetrosoManualGym(seed=seed)
 
@@ -158,9 +161,10 @@ def build_letroso_manual_gym(seed: int) -> BaseManualGym:
 def build_conexo_manual_gym(seed: int) -> BaseManualGym:
     from pathlib import Path
 
-    from games.conexo.common import ConexoFeedback, ConexoFinalResult, ConexoInfo
-    from games.conexo.game import ConexoGameManager
-    from games.conexo.players.manual import ConexoManualPlayer
+    from word_arena.games.conexo.common import ConexoFeedback, ConexoFinalResult, ConexoInfo
+    from word_arena.games.conexo.formatter import ConexoFinalResultFormatter
+    from word_arena.games.conexo.game import ConexoGame, ConexoGameManager
+    from word_arena.games.conexo.players.manual import ConexoManualPlayer
 
     class ConexoManualGym(
         BaseManualGym[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]
@@ -171,24 +175,18 @@ def build_conexo_manual_gym(seed: int) -> BaseManualGym:
             )
 
         @override
-        def create_player(self) -> BaseManualPlayer[ConexoInfo, None, set[int], ConexoFeedback]:
+        def create_player(self) -> ConexoManualPlayer:
             return ConexoManualPlayer()
 
         @override
-        def create_game(
-            self,
-        ) -> BaseGame[ConexoInfo, None, set[int], ConexoFeedback, ConexoFinalResult]:
+        def create_game(self) -> ConexoGame:
             return self._game_manager.create_game(
                 game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
             )
 
         @override
-        def report_final_result(self, *, final_result: ConexoFinalResult) -> None:
-            print("Found", final_result.num_found, "Group(s)")
-            print("All Groups:")
-
-            for group in final_result.groups:
-                print(f"- {group.theme}:", *group.words)
+        def format_final_result(self, *, final_result: ConexoFinalResult) -> Iterator[str]:
+            yield from ConexoFinalResultFormatter.format_final_result(final_result=final_result)
 
     return ConexoManualGym(seed=seed)
 
