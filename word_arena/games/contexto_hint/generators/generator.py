@@ -3,31 +3,10 @@ from pathlib import Path
 from random import Random
 from typing import override
 
-from pydantic import BaseModel
-
-from ...common.game.generator import BaseGameGenerator, BaseGameProvider
-from .game import ContextoHintGame
-
-
-class ContextoHintSetting(BaseModel):
-    num_candidates: int
-
-
-class ContextoHintConfig(BaseModel):
-    game_id: int
-    num_candidates: int
-
-
-class ContextoHintGameProvider(BaseGameProvider[ContextoHintConfig, ContextoHintGame]):
-    def __init__(self, *, games_dir: Path) -> None:
-        self._games_dir: Path = games_dir
-
-    @override
-    def create_game(self, *, config: ContextoHintConfig) -> ContextoHintGame:
-        return ContextoHintGame(
-            top_words=(self._games_dir / f"{config.game_id}.txt").read_text().strip().split(),
-            num_candidates=config.num_candidates,
-        )
+from ....common.generator.generator import BaseGameGenerator
+from ..game import ContextoHintGame
+from .common import ContextoHintConfig, ContextoHintSetting
+from .provider import ContextoHintGameProvider
 
 
 class ContextoHintGameGenerator(

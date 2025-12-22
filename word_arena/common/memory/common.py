@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from ..game.common import GameRecord
+
 
 class Analysis(BaseModel):
     past_analysis_summary: str
@@ -7,24 +9,12 @@ class Analysis(BaseModel):
     plan: str
 
 
-class Turn[HT, GT, FT](BaseModel):
-    hint: HT
-    guess: GT
-    feedback: FT
-
-
 class Reflection(BaseModel):
     summary: str
     lessons: str
 
 
-class GameRecord[IT, HT, GT, FT, RT](BaseModel):
-    game_info: IT
-    trajectory: list[Turn[HT, GT, FT]]
-    latest_analysis: Analysis | None
-    final_result: RT
-
-
 class GameSummary[IT, HT, GT, FT, RT](BaseModel):
-    record: GameRecord[IT, HT, GT, FT, RT]
+    game_record: GameRecord[IT, HT, GT, FT, RT]
+    latest_analysis: Analysis | None
     reflection: Reflection

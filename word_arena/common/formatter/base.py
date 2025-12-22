@@ -3,29 +3,29 @@ from collections.abc import Iterator
 
 
 class BaseInGameFormatter[IT, HT, GT, FT](ABC):
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def format_game_info(*, game_info: IT) -> Iterator[str]:
+    def format_game_info(cls, *, game_info: IT) -> Iterator[str]:
         raise NotImplementedError()
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def format_hint(*, game_info: IT, hint: HT) -> Iterator[str]:
+    def format_hint(cls, *, game_info: IT, hint: HT) -> Iterator[str]:
         raise NotImplementedError()
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def format_guess(*, game_info: IT, hint: HT, guess: GT) -> Iterator[str]:
+    def format_guess(cls, *, game_info: IT, hint: HT, guess: GT) -> Iterator[str]:
         raise NotImplementedError()
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def format_feedback(*, game_info: IT, hint: HT, guess: GT, feedback: FT) -> Iterator[str]:
+    def format_feedback(cls, *, game_info: IT, hint: HT, guess: GT, feedback: FT) -> Iterator[str]:
         raise NotImplementedError()
 
 
 class BaseFinalResultFormatter[RT](ABC):
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def format_final_result(*, final_result: RT) -> Iterator[str]:
+    def format_final_result(cls, *, final_result: RT) -> Iterator[str]:
         raise NotImplementedError()

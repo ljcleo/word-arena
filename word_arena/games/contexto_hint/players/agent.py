@@ -6,7 +6,7 @@ from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import ContextoHintExperience, ContextoHintGuess
-from ..formatter import ContextoHintAgentFormatter
+from ..formatters.agent import ContextoHintAgentMemoryFormatter, ContextoHintAgentPlayerFormatter
 
 CONTEXTO_HINT_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -32,16 +32,13 @@ CONTEXTO_HINT_GUESS_FORMAT = "You should reply the index of the guessed word, NO
 
 
 class ContextoHintAgentMemory(
-    BaseAgentMemory[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience]
+    BaseAgentMemory[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience],
+    ContextoHintAgentMemoryFormatter,
 ):
     NOTE_PROMPT: str = "notes about the word similarity laws and possible strategies"
 
     def __init__(self, *, model: BaseLLM):
-        super().__init__(
-            model=model,
-            experience_cls=ContextoHintExperience,
-            agent_formatter_cls=ContextoHintAgentFormatter,
-        )
+        super().__init__(model=model, experience_cls=ContextoHintExperience)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -75,7 +72,8 @@ class ContextoHintAgentMemory(
 
 
 class ContextoHintAgentPlayer(
-    BaseAgentPlayer[None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience],
+    BaseAgentPlayer[None, list[str], ContextoHintGuess, int, ContextoHintExperience],
+    ContextoHintAgentPlayerFormatter,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
@@ -83,7 +81,6 @@ class ContextoHintAgentPlayer(
             model=model,
             prompt_mode=prompt_mode,
             guess_cls=ContextoHintGuess,
-            agent_formatter_cls=ContextoHintAgentFormatter,
         )
 
     @override

@@ -4,28 +4,26 @@ from typing import override
 
 from pydantic import BaseModel
 
-from ...formatter.agent import BaseAgentFormatter
+from ...formatter.agent import BaseAgentMemoryFormatter
+from ...game.common import GameRecord
 from ...llm.base import BaseLLM
 from ...llm.common import Message
 from ...memory.base import BaseMemory
-from ...memory.common import GameRecord, GameSummary, Reflection
+from ...memory.common import Analysis, GameSummary, Reflection
 from .common import TrialMode
 
 
-class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](BaseMemory[IT, HT, GT, FT, RT, ET], ABC):
+class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
+    BaseMemory[IT, HT, GT, FT, RT, ET], BaseAgentMemoryFormatter[IT, HT, GT, FT, RT, ET], ABC
+):
     def __init__(
         self,
         model: BaseLLM,
         experience_cls: type[ET],
-        agent_formatter_cls: type[BaseAgentFormatter[IT, HT, GT, FT, RT, ET]],
     ) -> None:
         super().__init__()
         self._model: BaseLLM = model
         self._experience_cls: type[ET] = experience_cls
-
-        self._agent_formatter_cls: type[BaseAgentFormatter[IT, HT, GT, FT, RT, ET]] = (
-            agent_formatter_cls
-        )
 
     @override
     def create_experience(self) -> ET:
@@ -38,16 +36,20 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](BaseMemory[IT, HT, GT, 
             format=self._experience_cls,
         )
 
-        for section in self._agent_formatter_cls.format_experience(experience=experience):
+        for section in self.format_experience(experience=experience):
             print(section)
 
         return experience
 
     @override
-    def create_reflection(self, *, record: GameRecord[IT, HT, GT, FT, RT]) -> Reflection:
+    def create_reflection(
+        self, *, game_record: GameRecord[IT, HT, GT, FT, RT], latest_analysis: Analysis | None
+    ) -> Reflection:
         reflection: Reflection = self._model.parse(
             Message.system(*self._make_system_prompt(trial_mode=TrialMode.SINGLE)),
-            Message.human(*self._agent_formatter_cls.format_record(record=record)),
+            Message.human(
+                *self.format_record(game_record=game_record, latest_analysis=latest_analysis)
+            ),
             Message.human(
                 "Now, reflect on your performance in the game.",
                 "Make a summary of your guesses and summarize the lessons you have learned.",
@@ -58,7 +60,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](BaseMemory[IT, HT, GT, 
             format=Reflection,
         )
 
-        for section in self._agent_formatter_cls.format_reflection(reflection=reflection):
+        for section in self.format_reflection(reflection=reflection):
             print(section)
 
         return reflection
@@ -69,13 +71,13 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](BaseMemory[IT, HT, GT, 
     ) -> ET:
         new_experience: ET = self._model.parse(
             Message.system(*self._make_system_prompt(trial_mode=TrialMode.MULTIPLE)),
-            Message.human(*self._agent_formatter_cls.format_history(history=history)),
-            Message.human(*self._agent_formatter_cls.format_experience(experience=old_experience)),
+            Message.human(*self.format_history(history=history)),
+            Message.human(*self.format_experience(experience=old_experience)),
             Message.human(*self.make_update_experience_prompt()),
             format=self._experience_cls,
         )
 
-        for section in self._agent_formatter_cls.format_experience(experience=new_experience):
+        for section in self.format_experience(experience=new_experience):
             print(section)
 
         return new_experience

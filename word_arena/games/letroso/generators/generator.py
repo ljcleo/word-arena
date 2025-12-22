@@ -3,34 +3,10 @@ from pathlib import Path
 from random import Random
 from typing import override
 
-from pydantic import BaseModel
-
-from ...common.game.generator import BaseGameGenerator, BaseGameProvider
-from .game import LetrosoGame
-
-
-class LetrosoSetting(BaseModel):
-    num_targets: int
-    max_letters: int
-    max_guesses: int
-
-
-class LetrosoConfig(BaseModel):
-    word_list: list[str]
-    target_ids: list[int]
-    max_letters: int
-    max_guesses: int
-
-
-class LetrosoGameProvider(BaseGameProvider[LetrosoConfig, LetrosoGame]):
-    @override
-    def create_game(self, *, config: LetrosoConfig) -> LetrosoGame:
-        return LetrosoGame(
-            word_list=config.word_list,
-            target_ids=config.target_ids,
-            max_letters=config.max_letters,
-            max_guesses=config.max_guesses,
-        )
+from ....common.generator.generator import BaseGameGenerator
+from ..game import LetrosoGame
+from .common import LetrosoConfig, LetrosoSetting
+from .provider import LetrosoGameProvider
 
 
 class LetrosoGameGenerator(

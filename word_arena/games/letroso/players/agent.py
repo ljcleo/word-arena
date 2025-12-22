@@ -12,7 +12,7 @@ from ..common import (
     LetrosoGuess,
     LetrosoInfo,
 )
-from ..formatter import LetrosoAgentFormatter
+from ..formatters.agent import LetrosoAgentMemoryFormatter, LetrosoAgentPlayerFormatter
 
 LETROSO_ROLE_DEF = "You are an intelligent AI with a good English vocabulary."
 
@@ -63,16 +63,13 @@ LETROSO_GUESS_FORMAT = (
 class LetrosoAgentMemory(
     BaseAgentMemory[
         LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
-    ]
+    ],
+    LetrosoAgentMemoryFormatter,
 ):
     NOTE_PROMPT: str = "notes about the possible strategies"
 
     def __init__(self, *, model: BaseLLM):
-        super().__init__(
-            model=model,
-            experience_cls=LetrosoExperience,
-            agent_formatter_cls=LetrosoAgentFormatter,
-        )
+        super().__init__(model=model, experience_cls=LetrosoExperience)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -101,9 +98,8 @@ class LetrosoAgentMemory(
 
 
 class LetrosoAgentPlayer(
-    BaseAgentPlayer[
-        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
-    ],
+    BaseAgentPlayer[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoExperience],
+    LetrosoAgentPlayerFormatter,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
@@ -111,7 +107,6 @@ class LetrosoAgentPlayer(
             model=model,
             prompt_mode=prompt_mode,
             guess_cls=LetrosoGuess,
-            agent_formatter_cls=LetrosoAgentFormatter,
         )
 
     @override

@@ -6,7 +6,7 @@ from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
-from ..formatter import ConexoAgentFormatter
+from ..formatters.agent import ConexoAgentMemoryFormatter, ConexoAgentPlayerFormatter
 
 CONEXO_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -37,16 +37,13 @@ CONEXO_GUESS_FORMAT = "You should reply the indices of the guessed words, NOT th
 class ConexoAgentMemory(
     BaseAgentMemory[
         ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
-    ]
+    ],
+    ConexoAgentMemoryFormatter,
 ):
     NOTE_PROMPT: str = "notes about the word group laws and possible strategies"
 
     def __init__(self, *, model: BaseLLM):
-        super().__init__(
-            model=model,
-            experience_cls=ConexoExperience,
-            agent_formatter_cls=ConexoAgentFormatter,
-        )
+        super().__init__(model=model, experience_cls=ConexoExperience)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -77,9 +74,8 @@ class ConexoAgentMemory(
 
 
 class ConexoAgentPlayer(
-    BaseAgentPlayer[
-        ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoExperience
-    ],
+    BaseAgentPlayer[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoExperience],
+    ConexoAgentPlayerFormatter,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
@@ -87,7 +83,6 @@ class ConexoAgentPlayer(
             model=model,
             prompt_mode=prompt_mode,
             guess_cls=ConexoGuess,
-            agent_formatter_cls=ConexoAgentFormatter,
         )
 
     @override

@@ -6,7 +6,7 @@ from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoGuess
-from ..formatter import ContextoAgentFormatter
+from ..formatters.agent import ContextoAgentMemoryFormatter, ContextoAgentPlayerFormatter
 
 CONTEXTO_ROLE_DEF = "You are an intelligent AI good at understanding word relations."
 
@@ -36,16 +36,13 @@ CONTEXTO_GUESS_FORMAT = (
 class ContextoAgentMemory(
     BaseAgentMemory[
         int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
-    ]
+    ],
+    ContextoAgentMemoryFormatter,
 ):
     NOTE_PROMPT: str = "notes about the word similarity laws and possible strategies"
 
     def __init__(self, *, model: BaseLLM):
-        super().__init__(
-            model=model,
-            experience_cls=ContextoExperience,
-            agent_formatter_cls=ContextoAgentFormatter,
-        )
+        super().__init__(model=model, experience_cls=ContextoExperience)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -76,9 +73,8 @@ class ContextoAgentMemory(
 
 
 class ContextoAgentPlayer(
-    BaseAgentPlayer[
-        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
-    ]
+    BaseAgentPlayer[int, None, ContextoGuess, ContextoFeedback, ContextoExperience],
+    ContextoAgentPlayerFormatter,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
@@ -86,7 +82,6 @@ class ContextoAgentPlayer(
             model=model,
             prompt_mode=prompt_mode,
             guess_cls=ContextoGuess,
-            agent_formatter_cls=ContextoAgentFormatter,
         )
 
     @override

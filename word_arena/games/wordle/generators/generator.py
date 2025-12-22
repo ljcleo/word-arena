@@ -3,29 +3,10 @@ from pathlib import Path
 from random import Random
 from typing import override
 
-from pydantic import BaseModel
-
-from ...common.game.generator import BaseGameGenerator, BaseGameProvider
-from .game import WordleGame
-
-
-class WordleSetting(BaseModel):
-    num_targets: int
-    max_guesses: int
-
-
-class WordleConfig(BaseModel):
-    word_list: list[str]
-    target_ids: list[int]
-    max_guesses: int
-
-
-class WordleGameProvider(BaseGameProvider[WordleConfig, WordleGame]):
-    @override
-    def create_game(self, *, config: WordleConfig) -> WordleGame:
-        return WordleGame(
-            word_list=config.word_list, target_ids=config.target_ids, max_guesses=config.max_guesses
-        )
+from ....common.generator.generator import BaseGameGenerator
+from ..game import WordleGame
+from .common import WordleConfig, WordleSetting
+from .provider import WordleGameProvider
 
 
 class WordleGameGenerator(

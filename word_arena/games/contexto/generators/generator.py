@@ -3,25 +3,10 @@ from datetime import date
 from random import Random
 from typing import override
 
-from pydantic import BaseModel
-
-from ...common.game.generator import BaseGameGenerator, BaseGameProvider
-from .game import ContextoGame
-
-
-class ContextoSetting(BaseModel):
-    max_guesses: int
-
-
-class ContextoConfig(BaseModel):
-    game_id: int
-    max_guesses: int
-
-
-class ContextoGameProvider(BaseGameProvider[ContextoConfig, ContextoGame]):
-    @override
-    def create_game(self, *, config: ContextoConfig) -> ContextoGame:
-        return ContextoGame(game_id=config.game_id, max_guesses=config.max_guesses)
+from ....common.generator.generator import BaseGameGenerator
+from ..game import ContextoGame
+from .common import ContextoConfig, ContextoSetting
+from .provider import ContextoGameProvider
 
 
 class ContextoGameGenerator(

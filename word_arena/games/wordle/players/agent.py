@@ -6,7 +6,7 @@ from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import WordleExperience, WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo
-from ..formatter import WordleAgentFormatter
+from ..formatters.agent import WordleAgentMemoryFormatter, WordleAgentPlayerFormatter
 
 WORDLE_ROLE_DEF = "You are an intelligent AI with a good English vocabulary."
 
@@ -38,16 +38,13 @@ WORDLE_GUESS_FORMAT = "Your guess must be a **single word with 5 lowercase lette
 class WordleAgentMemory(
     BaseAgentMemory[
         WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleExperience
-    ]
+    ],
+    WordleAgentMemoryFormatter,
 ):
     NOTE_PROMPT: str = "notes about the possible strategies"
 
     def __init__(self, *, model: BaseLLM):
-        super().__init__(
-            model=model,
-            experience_cls=WordleExperience,
-            agent_formatter_cls=WordleAgentFormatter,
-        )
+        super().__init__(model=model, experience_cls=WordleExperience)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -76,9 +73,8 @@ class WordleAgentMemory(
 
 
 class WordleAgentPlayer(
-    BaseAgentPlayer[
-        WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleExperience
-    ],
+    BaseAgentPlayer[WordleInfo, None, WordleGuess, WordleFeedback, WordleExperience],
+    WordleAgentPlayerFormatter,
 ):
     def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
         super().__init__(
@@ -86,7 +82,6 @@ class WordleAgentPlayer(
             model=model,
             prompt_mode=prompt_mode,
             guess_cls=WordleGuess,
-            agent_formatter_cls=WordleAgentFormatter,
         )
 
     @override

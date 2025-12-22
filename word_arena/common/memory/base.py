@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 
-from .common import Analysis, GameRecord, GameSummary, Reflection, Turn
+from ..game.common import GameRecord, Turn
+from .common import Analysis, GameSummary, Reflection
 
 
 class BaseMemory[IT, HT, GT, FT, RT, ET](ABC):
@@ -36,16 +37,17 @@ class BaseMemory[IT, HT, GT, FT, RT, ET](ABC):
         self._trajectory.append(Turn(hint=hint, guess=guess, feedback=feedback))
         self._latest_analysis = analysis
 
-    def reflect(self, *, final_result: RT, update_experience: bool) -> None:
-        record: GameRecord[IT, HT, GT, FT, RT] = GameRecord(
-            game_info=self.game_info,
-            trajectory=self._trajectory,
-            latest_analysis=self._latest_analysis,
-            final_result=final_result,
-        )
-
+    def reflect(
+        self, *, game_record: GameRecord[IT, HT, GT, FT, RT], update_experience: bool
+    ) -> None:
         self._history.append(
-            GameSummary(record=record, reflection=self.create_reflection(record=record))
+            GameSummary(
+                game_record=game_record,
+                latest_analysis=self._latest_analysis,
+                reflection=self.create_reflection(
+                    game_record=game_record, latest_analysis=self._latest_analysis
+                ),
+            )
         )
 
         if update_experience:
@@ -60,7 +62,9 @@ class BaseMemory[IT, HT, GT, FT, RT, ET](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def create_reflection(self, *, record: GameRecord[IT, HT, GT, FT, RT]) -> Reflection:
+    def create_reflection(
+        self, *, game_record: GameRecord[IT, HT, GT, FT, RT], latest_analysis: Analysis | None
+    ) -> Reflection:
         raise NotImplementedError()
 
     @abstractmethod

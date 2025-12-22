@@ -5,10 +5,6 @@ from .log import BaseLogPlayer
 
 
 class BaseManualPlayer[IT, HT, GT, FT](BaseLogPlayer[IT, HT, GT, FT], ABC):
-    @property
-    def num_guesses(self) -> int:
-        return self._num_guesses
-
     @override
     def prepare(self, *, game_info: IT) -> None:
         super().prepare(game_info=game_info)
