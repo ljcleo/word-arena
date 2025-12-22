@@ -15,7 +15,7 @@ class WordleManualGym(
 ):
     def __init__(self, *, word_list_file: Path) -> None:
         super().__init__(game_provider=WordleGameProvider())
-        super(BaseManualGym).__init__(word_list_file=word_list_file)
+        super(BaseManualGym, self).__init__(word_list_file=word_list_file)
 
     @override
     def create_player(self) -> WordleManualPlayer:

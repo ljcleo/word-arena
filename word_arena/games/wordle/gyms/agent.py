@@ -40,7 +40,7 @@ class WordleAgentGym(
             )
         )
 
-        super(BaseAgentGym).__init__(word_list_file=word_list_file)
+        super(BaseAgentGym, self).__init__(word_list_file=word_list_file)
 
     @override
     def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> WordleAgentPlayer:
