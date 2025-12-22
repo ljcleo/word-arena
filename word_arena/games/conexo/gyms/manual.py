@@ -14,8 +14,11 @@ class ConexoManualGym(
     BaseManualGym[ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult],
     ConexoConfigGym[[Callable[[str], str]]],
 ):
-    def __init__(self, *, games_dir: Path) -> None:
-        super().__init__(game_provider=ConexoGameProvider(games_dir=games_dir))
+    def __init__(self, *, games_dir: Path, create_config_func: Callable[[], ConexoConfig]) -> None:
+        super().__init__(
+            game_provider=ConexoGameProvider(games_dir=games_dir),
+            create_config_func=create_config_func,
+        )
 
     @override
     def create_player(self, *, input_func: Callable[[str], str]) -> ConexoManualPlayer:

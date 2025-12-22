@@ -6,7 +6,8 @@ from .common import Analysis, GameSummary, Reflection
 
 
 class BaseMemory[IT, HT, GT, FT, RT, ET](ABC):
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._history: list[GameSummary[IT, HT, GT, FT, RT]] = []
 
     @property

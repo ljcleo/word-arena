@@ -1,5 +1,4 @@
-from collections.abc import Iterable
-from pathlib import Path
+from collections.abc import Callable, Iterable
 from typing import override
 
 from ....common.gym.agent.common import TrainingConfig
@@ -32,15 +31,19 @@ class WordleAgentGym(
     WordleConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
     def __init__(
-        self, *, setting_pool: Iterable[WordleSetting], seed: int, word_list_file: Path
+        self,
+        *,
+        setting_pool: Iterable[WordleSetting],
+        seed: int,
+        word_list: Iterable[str],
+        create_config_func: Callable[[], WordleConfig],
     ) -> None:
         super().__init__(
             game_generator=WordleGameGenerator(
-                setting_pool=setting_pool, seed=seed, word_list_file=word_list_file
-            )
+                setting_pool=setting_pool, seed=seed, word_list=word_list
+            ),
+            create_config_func=create_config_func,
         )
-
-        super(BaseAgentGym, self).__init__(word_list_file=word_list_file)
 
     @override
     def create_player(self, *, model: BaseLLM, do_analyze: bool) -> WordleAgentPlayer:

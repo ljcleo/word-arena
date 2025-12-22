@@ -17,8 +17,7 @@ class ContextoHintGameGenerator(
     def __init__(
         self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path
     ) -> None:
-        super().__init__(setting_pool=setting_pool, seed=seed)
-        super(BaseGameGenerator, self).__init__(games_dir=games_dir)
+        super().__init__(setting_pool=setting_pool, seed=seed, games_dir=games_dir)
         self._num_games: int = sum(1 for _ in games_dir.iterdir())
 
     @override

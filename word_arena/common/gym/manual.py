@@ -12,8 +12,13 @@ class BaseManualGym[CT, IT, HT, GT, FT, RT](
     BaseConfigGym[CT, IT, HT, GT, FT, RT, [Callable[[str], str]]], ABC
 ):
     def __init__(
-        self, *, game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]]
+        self,
+        *,
+        game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]],
+        create_config_func: Callable[[], CT],
+        **kwargs,
     ) -> None:
+        super().__init__(create_config_func=create_config_func, **kwargs)
         self._game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]] = game_provider
 
     @override

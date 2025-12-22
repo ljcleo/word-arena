@@ -1,5 +1,4 @@
 from collections.abc import Iterable
-from pathlib import Path
 from random import Random
 from typing import override
 
@@ -14,12 +13,10 @@ class LetrosoGameGenerator(
 ):
     @override
     def __init__(
-        self, *, setting_pool: Iterable[LetrosoSetting], seed: int, word_list_file: Path
+        self, *, setting_pool: Iterable[LetrosoSetting], seed: int, word_list: Iterable[str]
     ) -> None:
         super().__init__(setting_pool=setting_pool, seed=seed)
-        with word_list_file.open(encoding="utf8") as f:
-            self._word_list: list[str] = list(map(str.strip, f))
-
+        self._word_list: list[str] = list(word_list)
         self._num_games: int = len(self._word_list)
 
     @override

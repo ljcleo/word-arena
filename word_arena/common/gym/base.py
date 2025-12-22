@@ -45,14 +45,14 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
 
 
 class BaseConfigGym[CT, IT, HT, GT, FT, RT, **P](BaseGym[IT, HT, GT, FT, RT, P], ABC):
+    def __init__(self, *, create_config_func: Callable[[], CT], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._create_config_func: Callable[[], CT] = create_config_func
+
     @override
     def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self.create_game_from_config(config=self.create_config())
+        return self.create_game_from_config(config=self._create_config_func())
 
     @abstractmethod
     def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def create_config(self) -> CT:
         raise NotImplementedError()

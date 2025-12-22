@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import override
 
 from ....common.gym.agent.common import TrainingConfig
@@ -24,8 +24,17 @@ class ContextoAgentGym(
     ],
     ContextoConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
-    def __init__(self, *, setting_pool: Iterable[ContextoSetting], seed: int) -> None:
-        super().__init__(game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed))
+    def __init__(
+        self,
+        *,
+        setting_pool: Iterable[ContextoSetting],
+        seed: int,
+        create_config_func: Callable[[], ContextoConfig],
+    ) -> None:
+        super().__init__(
+            game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed),
+            create_config_func=create_config_func,
+        )
 
     @override
     def create_player(self, *, model: BaseLLM, do_analyze: bool) -> ContextoAgentPlayer:

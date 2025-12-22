@@ -17,8 +17,14 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
     BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, bool, TrainingConfig | None]], ABC
 ):
     def __init__(
-        self, *, game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]]
+        self,
+        *,
+        game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]],
+        create_config_func: Callable[[], CT],
+        **kwargs,
     ) -> None:
+        super().__init__(create_config_func=create_config_func, **kwargs)
+
         self._game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]] = (
             game_generator
         )

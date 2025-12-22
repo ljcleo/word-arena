@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import override
 
@@ -26,12 +26,18 @@ class ContextoHintAgentGym(
     ContextoHintConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
     def __init__(
-        self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path
+        self,
+        *,
+        setting_pool: Iterable[ContextoHintSetting],
+        seed: int,
+        games_dir: Path,
+        create_config_func: Callable[[], ContextoHintConfig],
     ) -> None:
         super().__init__(
             game_generator=ContextoHintGameGenerator(
                 setting_pool=setting_pool, seed=seed, games_dir=games_dir
-            )
+            ),
+            create_config_func=create_config_func,
         )
 
     @override

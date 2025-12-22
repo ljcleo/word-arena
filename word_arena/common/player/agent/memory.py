@@ -20,8 +20,9 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
         self,
         model: BaseLLM,
         experience_cls: type[ET],
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self._model: BaseLLM = model
         self._experience_cls: type[ET] = experience_cls
 

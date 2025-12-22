@@ -7,7 +7,8 @@ from .common import ContextoHintConfig
 
 
 class ContextoHintGameProvider(BaseGameProvider[ContextoHintConfig, ContextoHintGame]):
-    def __init__(self, *, games_dir: Path) -> None:
+    def __init__(self, *, games_dir: Path, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._games_dir: Path = games_dir
 
     @override

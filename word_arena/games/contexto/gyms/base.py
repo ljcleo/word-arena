@@ -1,5 +1,3 @@
-from typing import override
-
 from ....common.gym.base import BaseConfigGym
 from ..common import ContextoFeedback, ContextoFinalResult, ContextoGuess
 from ..formatters.base import ContextoFinalResultFormatter
@@ -12,8 +10,4 @@ class ContextoConfigGym[**P](
     ],
     ContextoFinalResultFormatter,
 ):
-    @override
-    def create_config(self) -> ContextoConfig:
-        return ContextoConfig(
-            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
-        )
+    pass

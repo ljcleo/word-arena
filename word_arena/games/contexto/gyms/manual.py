@@ -13,8 +13,10 @@ class ContextoManualGym(
     BaseManualGym[ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult],
     ContextoConfigGym[[Callable[[str], str]]],
 ):
-    def __init__(self) -> None:
-        super().__init__(game_provider=ContextoGameProvider())
+    def __init__(self, *, create_config_func: Callable[[], ContextoConfig]) -> None:
+        super().__init__(
+            game_provider=ContextoGameProvider(), create_config_func=create_config_func
+        )
 
     @override
     def create_player(self, *, input_func: Callable[[str], str]) -> ContextoManualPlayer:

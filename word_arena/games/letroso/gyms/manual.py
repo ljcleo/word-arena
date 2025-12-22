@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from pathlib import Path
 from typing import override
 
 from ....common.gym.manual import BaseManualGym
@@ -16,9 +15,8 @@ class LetrosoManualGym(
     ],
     LetrosoConfigGym[[Callable[[str], str]]],
 ):
-    def __init__(self, *, word_list_file: Path) -> None:
-        super().__init__(game_provider=LetrosoGameProvider())
-        super(BaseManualGym, self).__init__(word_list_file=word_list_file)
+    def __init__(self, *, create_config_func: Callable[[], LetrosoConfig]) -> None:
+        super().__init__(game_provider=LetrosoGameProvider(), create_config_func=create_config_func)
 
     @override
     def create_player(self, *, input_func: Callable[[str], str]) -> LetrosoManualPlayer:

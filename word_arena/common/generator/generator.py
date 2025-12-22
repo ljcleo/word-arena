@@ -7,7 +7,8 @@ from .provider import BaseGameProvider
 
 
 class BaseGameGenerator[ST, CT, GT: BaseGame](BaseGameProvider[CT, GT], ABC):
-    def __init__(self, *, setting_pool: Iterable[ST], seed: int) -> None:
+    def __init__(self, *, setting_pool: Iterable[ST], seed: int, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._setting_pool: list[ST] = list(setting_pool)
         self._rng: Random = Random(seed)
 

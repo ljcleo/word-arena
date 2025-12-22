@@ -6,7 +6,8 @@ from .log import BaseLogPlayer
 
 
 class BaseManualPlayer[IT, HT, GT, FT](BaseLogPlayer[IT, HT, GT, FT], ABC):
-    def __init__(self, *, input_func: Callable[[str], str]) -> None:
+    def __init__(self, *, input_func: Callable[[str], str], **kwargs) -> None:
+        super().__init__(**kwargs)
         self._input_func: Callable[[str], str] = input_func
 
     @override

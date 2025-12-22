@@ -21,7 +21,9 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         model: BaseLLM,
         do_analyze: bool,
         guess_cls: type[GT],
+        **kwargs,
     ):
+        super().__init__(**kwargs)
         self._memory: BaseAgentMemory[IT, HT, GT, FT, Any, ET] = memory
         self._model: BaseLLM = model
         self._do_analyze: bool = do_analyze

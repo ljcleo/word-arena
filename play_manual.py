@@ -4,41 +4,84 @@ from word_arena.common.gym.manual import BaseManualGym
 
 
 def build_contexto_manual_gym() -> BaseManualGym:
+    from word_arena.games.contexto.generators.common import ContextoConfig
     from word_arena.games.contexto.gyms.manual import ContextoManualGym
 
-    return ContextoManualGym()
+    def create_config() -> ContextoConfig:
+        return ContextoConfig(
+            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
+        )
+
+    return ContextoManualGym(create_config_func=create_config)
 
 
 def build_contexto_hint_manual_gym() -> BaseManualGym:
     from pathlib import Path
 
+    from word_arena.games.contexto_hint.generators.common import ContextoHintConfig
     from word_arena.games.contexto_hint.gyms.manual import ContextoHintManualGym
 
-    return ContextoHintManualGym(games_dir=Path("./data/contexto_hint/games"))
+    def create_config() -> ContextoHintConfig:
+        return ContextoHintConfig(
+            game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
+        )
+
+    return ContextoHintManualGym(
+        games_dir=Path("./data/contexto_hint/games"), create_config_func=create_config
+    )
 
 
 def build_wordle_manual_gym() -> BaseManualGym:
-    from pathlib import Path
-
+    from word_arena.games.wordle.generators.common import WordleConfig
     from word_arena.games.wordle.gyms.manual import WordleManualGym
 
-    return WordleManualGym(word_list_file=Path("./data/wordle/words.txt"))
+    with open("./data/wordle/words.txt", encoding="utf8") as f:
+        word_list: list[str] = list(map(str.strip, f))
+
+    def create_config() -> WordleConfig:
+        return WordleConfig(
+            word_list=word_list,
+            target_ids=[
+                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+            ],
+            max_guesses=int(input("Max Guesses: ")),
+        )
+
+    return WordleManualGym(create_config_func=create_config)
 
 
 def build_letroso_manual_gym() -> BaseManualGym:
-    from pathlib import Path
-
+    from word_arena.games.letroso.generators.common import LetrosoConfig
     from word_arena.games.letroso.gyms.manual import LetrosoManualGym
 
-    return LetrosoManualGym(word_list_file=Path("./data/letroso/words.txt"))
+    with open("./data/letroso/words.txt", encoding="utf8") as f:
+        word_list: list[str] = list(map(str.strip, f))
+
+    def create_config() -> LetrosoConfig:
+        return LetrosoConfig(
+            word_list=word_list,
+            target_ids=[
+                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+            ],
+            max_letters=int(input("Max Input Letters: ")),
+            max_guesses=int(input("Max Guesses: ")),
+        )
+
+    return LetrosoManualGym(create_config_func=create_config)
 
 
 def build_conexo_manual_gym() -> BaseManualGym:
     from pathlib import Path
 
+    from word_arena.games.conexo.generators.common import ConexoConfig
     from word_arena.games.conexo.gyms.manual import ConexoManualGym
 
-    return ConexoManualGym(games_dir=Path("./data/conexo/games"))
+    def create_config() -> ConexoConfig:
+        return ConexoConfig(
+            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
+        )
+
+    return ConexoManualGym(games_dir=Path("./data/conexo/games"), create_config_func=create_config)
 
 
 MANUAL_GYM_BUILDERS: dict[str, Callable[[], BaseManualGym]] = {
