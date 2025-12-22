@@ -73,7 +73,10 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
             Message.system(*self._make_system_prompt(trial_mode=TrialMode.MULTIPLE)),
             Message.human(*self.format_history(history=history)),
             Message.human(*self.format_experience(experience=old_experience)),
-            Message.human(*self.make_update_experience_prompt()),
+            Message.human(
+                *self.make_update_experience_prompt(),
+                *self._make_experience_prompt(),
+            ),
             format=self._experience_cls,
         )
 
@@ -118,7 +121,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
             if trial_mode == TrialMode.NONE
             else "Now, you have played this game once."
             if trial_mode == TrialMode.SINGLE
-            else 'Now, you have played this game multiple times".'
+            else "Now, you have played this game multiple times."
         )
 
     def _make_experience_prompt(self) -> Iterator[str]:

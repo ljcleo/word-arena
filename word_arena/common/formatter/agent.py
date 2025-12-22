@@ -38,21 +38,15 @@ class BaseAgentCommonFormatter[IT, HT, GT, FT, ET](BaseInGameFormatter[IT, HT, G
         turn_formatter: Callable[[IT, Turn[HT, GT, FT]], Iterator[str]],
     ) -> Iterator[str]:
         yield from cls.format_game_info(game_info=game_info)
-        yield "Guess History:"
+
         sections: list[str] = []
-
         for index, turn in enumerate(trajectory):
-            sections.extend(
-                (
-                    f"Guess {index + 1}",
-                    *turn_formatter(game_info, turn),
-                )
-            )
+            sections.extend((f"Guess {index + 1}", *turn_formatter(game_info, turn)))
 
-        if len(sections) == 0:
-            sections.append("(Empty)")
+        if len(sections) > 0:
+            yield "Guess History:"
+            yield "\n".join(sections)
 
-        yield "\n".join(sections)
         if latest_analysis is not None:
             yield from cls.format_analysis(analysis=latest_analysis)
 
