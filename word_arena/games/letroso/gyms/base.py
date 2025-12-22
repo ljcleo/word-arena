@@ -10,7 +10,8 @@ from ..generators.common import LetrosoConfig
 class LetrosoConfigGym[**P](
     BaseConfigGym[
         LetrosoConfig, LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, P
-    ]
+    ],
+    LetrosoFinalResultFormatter,
 ):
     def __init__(self, *, word_list_file: Path) -> None:
         with word_list_file.open(encoding="utf8") as f:
@@ -26,8 +27,3 @@ class LetrosoConfigGym[**P](
             max_letters=int(input("Max Input Letters: ")),
             max_guesses=int(input("Max Guesses: ")),
         )
-
-    @override
-    @staticmethod
-    def get_final_result_formatter_cls() -> type[LetrosoFinalResultFormatter]:
-        return LetrosoFinalResultFormatter

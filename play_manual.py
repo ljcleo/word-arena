@@ -14,7 +14,7 @@ def build_contexto_hint_manual_gym() -> BaseManualGym:
 
     from word_arena.games.contexto_hint.gyms.manual import ContextoHintManualGym
 
-    return ContextoHintManualGym(games_dir=Path("./data/contexto/games"))
+    return ContextoHintManualGym(games_dir=Path("./data/contexto_hint/games"))
 
 
 def build_wordle_manual_gym() -> BaseManualGym:

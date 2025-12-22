@@ -8,7 +8,10 @@ from ..generators.common import WordleConfig
 
 
 class WordleConfigGym[**P](
-    BaseConfigGym[WordleConfig, WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, P]
+    BaseConfigGym[
+        WordleConfig, WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, P
+    ],
+    WordleFinalResultFormatter,
 ):
     def __init__(self, *, word_list_file: Path) -> None:
         with word_list_file.open(encoding="utf8") as f:
@@ -23,8 +26,3 @@ class WordleConfigGym[**P](
             ],
             max_guesses=int(input("Max Guesses: ")),
         )
-
-    @override
-    @staticmethod
-    def get_final_result_formatter_cls() -> type[WordleFinalResultFormatter]:
-        return WordleFinalResultFormatter

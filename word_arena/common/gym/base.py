@@ -8,7 +8,7 @@ from ..game.common import GameRecord
 from ..player.base import BasePlayer
 
 
-class BaseGym[IT, HT, GT, FT, RT, **P](ABC):
+class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
     def play(self, *player_args: P.args, **player_kwargs: P.kwargs) -> None:
         player: BasePlayer[IT, HT, GT, FT]
         prepare_player: Callable[[], None] | None
@@ -24,11 +24,8 @@ class BaseGym[IT, HT, GT, FT, RT, **P](ABC):
         game_record: GameRecord = self.create_game().play(player=player)
         print("You Guessed", len(game_record.trajectory), "Times")
 
-        for section in self.get_final_result_formatter_cls().format_final_result(
-            final_result=game_record.final_result
-        ):
+        for section in self.format_final_result(final_result=game_record.final_result):
             print(section)
-
         if summarize_player is not None:
             summarize_player(game_record)
 
@@ -44,11 +41,6 @@ class BaseGym[IT, HT, GT, FT, RT, **P](ABC):
 
     @abstractmethod
     def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
-        raise NotImplementedError()
-
-    @staticmethod
-    @abstractmethod
-    def get_final_result_formatter_cls() -> type[BaseFinalResultFormatter[RT]]:
         raise NotImplementedError()
 
 

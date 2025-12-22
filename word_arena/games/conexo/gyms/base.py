@@ -7,15 +7,13 @@ from ..generators.common import ConexoConfig
 
 
 class ConexoConfigGym[**P](
-    BaseConfigGym[ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, P]
+    BaseConfigGym[
+        ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, P
+    ],
+    ConexoFinalResultFormatter,
 ):
     @override
     def create_config(self) -> ConexoConfig:
         return ConexoConfig(
             game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
         )
-
-    @override
-    @staticmethod
-    def get_final_result_formatter_cls() -> type[ConexoFinalResultFormatter]:
-        return ConexoFinalResultFormatter
