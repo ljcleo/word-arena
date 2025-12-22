@@ -2,7 +2,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import override
 
-from ....common.gym.agent import BaseAgentGym
+from ....common.gym.agent.common import TrainingConfig
+from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import (
     LetrosoExperience,
@@ -28,7 +29,7 @@ class LetrosoAgentGym(
         LetrosoFinalResult,
         LetrosoExperience,
     ],
-    LetrosoConfigGym[[BaseLLM, bool]],
+    LetrosoConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[LetrosoSetting], seed: int, word_list_file: Path

@@ -4,16 +4,17 @@ from typing import override
 
 from pydantic import BaseModel
 
-from ..game.base import BaseGame
-from ..game.common import GameRecord
-from ..generator.generator import BaseGameGenerator
-from ..llm.base import BaseLLM
-from ..player.agent.player import BaseAgentPlayer
-from .base import BaseConfigGym
+from ...game.base import BaseGame
+from ...game.common import GameRecord
+from ...generator.generator import BaseGameGenerator
+from ...llm.base import BaseLLM
+from ...player.agent.player import BaseAgentPlayer
+from ..base import BaseConfigGym
+from .common import TrainingConfig
 
 
 class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
-    BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, bool]], ABC
+    BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, bool, TrainingConfig | None]], ABC
 ):
     def __init__(
         self, *, game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]]
@@ -24,7 +25,7 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @override
     def create_player_with_cb(
-        self, model: BaseLLM, do_analyze: bool
+        self, model: BaseLLM, do_analyze: bool, training_config: TrainingConfig | None
     ) -> tuple[
         BaseAgentPlayer[IT, HT, GT, FT, ET],
         Callable[[], None],
@@ -35,15 +36,12 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
         )
 
         def prepare_player() -> None:
-            if input("Train? (y/n): ")[0].lower() == "y":
-                num_train_loops: int = int(input("Number of Train Loops: "))
-                num_in_loop_trials: int = int(input("Number of In-loop Trials: "))
-
-                for _ in range(num_train_loops):
-                    for i in range(num_in_loop_trials):
+            if training_config is not None:
+                for _ in range(training_config.num_train_loops):
+                    for i in range(training_config.num_in_loop_trials):
                         player.memory.reflect(
                             game_record=self._game_generator.random_game().play(player=player),
-                            update_experience=i == num_in_loop_trials - 1,
+                            update_experience=i == training_config.num_in_loop_trials - 1,
                         )
 
         def summarize_player(game_record: GameRecord[IT, HT, GT, FT, RT]) -> None:

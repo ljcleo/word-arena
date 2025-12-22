@@ -2,7 +2,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import override
 
-from ....common.gym.agent import BaseAgentGym
+from ....common.gym.agent.common import TrainingConfig
+from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ContextoHintExperience, ContextoHintGuess
 from ..generators.common import ContextoHintConfig, ContextoHintSetting
@@ -22,7 +23,7 @@ class ContextoHintAgentGym(
         list[str],
         ContextoHintExperience,
     ],
-    ContextoHintConfigGym[[BaseLLM, bool]],
+    ContextoHintConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path

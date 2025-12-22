@@ -1,7 +1,8 @@
 from collections.abc import Iterable
 from typing import override
 
-from ....common.gym.agent import BaseAgentGym
+from ....common.gym.agent.common import TrainingConfig
+from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoGuess
 from ..generators.common import ContextoConfig, ContextoSetting
@@ -21,7 +22,7 @@ class ContextoAgentGym(
         ContextoFinalResult,
         ContextoExperience,
     ],
-    ContextoConfigGym[[BaseLLM, bool]],
+    ContextoConfigGym[[BaseLLM, bool, TrainingConfig | None]],
 ):
     def __init__(self, *, setting_pool: Iterable[ContextoSetting], seed: int) -> None:
         super().__init__(game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed))

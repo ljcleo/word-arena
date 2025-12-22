@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from word_arena.common.gym.agent import BaseAgentGym
+from word_arena.common.gym.agent.gym import BaseAgentGym
 
 
 def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
@@ -77,6 +77,7 @@ AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
 def main():
     from time import time_ns
 
+    from word_arena.common.gym.agent.common import TrainingConfig
     from word_arena.common.llm.base import BaseLLM
     from word_arena.llms.openai import OpenaiConfig, OpenaiLLM
     from word_arena.llms.pseudo import PseudoLLM
@@ -95,7 +96,16 @@ def main():
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(model, do_analyze)
+    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(
+        model,
+        do_analyze,
+        TrainingConfig(
+            num_train_loops=int(input("Number of Train Loops: ")),
+            num_in_loop_trials=int(input("Number of In-Loop Trials: ")),
+        )
+        if input("Train? (y/n): ")[0].lower() == "y"
+        else None,
+    )
 
 
 if __name__ == "__main__":
