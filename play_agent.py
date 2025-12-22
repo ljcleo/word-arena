@@ -77,31 +77,34 @@ AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
 def main():
     from time import time_ns
 
+    from word_arena.common.llm.base import BaseLLM
     from word_arena.common.player.agent.common import PromptMode
-    from word_arena.llms.openai import OpenaiLLM
+    from word_arena.llms.openai import OpenaiConfig, OpenaiLLM
+    from word_arena.llms.pseudo import PseudoLLM
 
-    games: list[str] = list(AGENT_GYM_BUILDERS.keys())
-    for index, game in enumerate(games):
-        print(f"{index + 1}. {game}")
+    model: BaseLLM
 
-    AGENT_GYM_BUILDERS[games[int(input("Game Index: ")) - 1]](time_ns()).play(
-        OpenaiLLM(
-            api_key="sk-PInpH3EcNkJjwzqvB1EbBdF09e9b4b12A81fF0C325D55d71",
-            base_url="https://openkey.cloud/v1",
-            model=input("LLM Model: "),
-            max_tokens=32768,
-            timeout=7200,
-            use_dev_message=True,
-            log_file="llm.log",
-        ),
+    if input("Use LLM? (y/n): ")[0].lower() == "y":
+        with open("./config/openai.json", "rb") as f:
+            model = OpenaiLLM(config=OpenaiConfig.model_validate_json(f.read()))
+    else:
+        model = PseudoLLM()
+
+    prompt_mode: PromptMode = (
         (
             PromptMode.MULTI_TURN
             if input("Multi-turn? (y/n): ")[0].lower() == "y"
             else PromptMode.DIRECT
         )
         if input("Analyze? (y/n): ")[0].lower() == "y"
-        else PromptMode.SIMPLE,
+        else PromptMode.SIMPLE
     )
+
+    games: list[str] = list(AGENT_GYM_BUILDERS.keys())
+    for index, game in enumerate(games):
+        print(f"{index}. {game}")
+
+    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(model, prompt_mode)
 
 
 if __name__ == "__main__":

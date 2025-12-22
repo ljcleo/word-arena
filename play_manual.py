@@ -53,9 +53,9 @@ MANUAL_GYM_BUILDERS: dict[str, Callable[[], BaseManualGym]] = {
 def main():
     games: list[str] = list(MANUAL_GYM_BUILDERS.keys())
     for index, game in enumerate(games):
-        print(f"{index + 1}. {game}")
+        print(f"{index}. {game}")
 
-    MANUAL_GYM_BUILDERS[games[int(input("Game Index: ")) - 1]]().play()
+    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]]().play()
 
 
 if __name__ == "__main__":
