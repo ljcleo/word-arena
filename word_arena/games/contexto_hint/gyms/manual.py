@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 from typing import override
 
@@ -11,11 +12,11 @@ from .base import ContextoHintConfigGym
 
 class ContextoHintManualGym(
     BaseManualGym[ContextoHintConfig, None, list[str], ContextoHintGuess, int, list[str]],
-    ContextoHintConfigGym[[]],
+    ContextoHintConfigGym[[Callable[[str], str]]],
 ):
     def __init__(self, *, games_dir: Path) -> None:
         super().__init__(game_provider=ContextoHintGameProvider(games_dir=games_dir))
 
     @override
-    def create_player(self) -> ContextoHintManualPlayer:
-        return ContextoHintManualPlayer()
+    def create_player(self, *, input_func: Callable[[str], str]) -> ContextoHintManualPlayer:
+        return ContextoHintManualPlayer(input_func=input_func)

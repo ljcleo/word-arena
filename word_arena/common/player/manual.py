@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import override
 
 from .log import BaseLogPlayer
 
 
 class BaseManualPlayer[IT, HT, GT, FT](BaseLogPlayer[IT, HT, GT, FT], ABC):
+    def __init__(self, *, input_func: Callable[[str], str]) -> None:
+        self._input_func: Callable[[str], str] = input_func
+
     @override
     def prepare(self, *, game_info: IT) -> None:
         super().prepare(game_info=game_info)
@@ -18,7 +22,7 @@ class BaseManualPlayer[IT, HT, GT, FT](BaseLogPlayer[IT, HT, GT, FT], ABC):
     @override
     def make_guess(self, *, hint: HT) -> GT:
         return self.parse_guess(
-            hint=hint, guess_str=input(f"Input Guess {self._num_guesses + 1}: ")
+            hint=hint, guess_str=self._input_func(f"Input Guess {self._num_guesses + 1}: ")
         )
 
     @abstractmethod

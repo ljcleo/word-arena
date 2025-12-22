@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 from typing import override
 
@@ -11,11 +12,11 @@ from .base import ConexoConfigGym
 
 class ConexoManualGym(
     BaseManualGym[ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult],
-    ConexoConfigGym[[]],
+    ConexoConfigGym[[Callable[[str], str]]],
 ):
     def __init__(self, *, games_dir: Path) -> None:
         super().__init__(game_provider=ConexoGameProvider(games_dir=games_dir))
 
     @override
-    def create_player(self) -> ConexoManualPlayer:
-        return ConexoManualPlayer()
+    def create_player(self, *, input_func: Callable[[str], str]) -> ConexoManualPlayer:
+        return ConexoManualPlayer(input_func=input_func)

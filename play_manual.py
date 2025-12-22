@@ -55,7 +55,7 @@ def main():
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]]().play()
+    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]]().play(input)
 
 
 if __name__ == "__main__":

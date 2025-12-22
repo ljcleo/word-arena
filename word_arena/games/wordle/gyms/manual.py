@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 from typing import override
 
@@ -11,12 +12,12 @@ from .base import WordleConfigGym
 
 class WordleManualGym(
     BaseManualGym[WordleConfig, WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult],
-    WordleConfigGym[[]],
+    WordleConfigGym[[Callable[[str], str]]],
 ):
     def __init__(self, *, word_list_file: Path) -> None:
         super().__init__(game_provider=WordleGameProvider())
         super(BaseManualGym, self).__init__(word_list_file=word_list_file)
 
     @override
-    def create_player(self) -> WordleManualPlayer:
-        return WordleManualPlayer()
+    def create_player(self, *, input_func: Callable[[str], str]) -> WordleManualPlayer:
+        return WordleManualPlayer(input_func=input_func)
