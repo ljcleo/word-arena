@@ -8,7 +8,6 @@ from ...formatter.agent import BaseAgentPlayerFormatter
 from ...llm.base import BaseLLM, Message
 from ...memory.common import Analysis
 from ..log import BaseLogPlayer
-from .common import PromptMode
 from .memory import BaseAgentMemory
 
 
@@ -20,15 +19,15 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         *,
         memory: BaseAgentMemory[IT, HT, GT, FT, Any, ET],
         model: BaseLLM,
-        prompt_mode: PromptMode,
+        do_analyze: bool,
         guess_cls: type[GT],
     ):
         self._memory: BaseAgentMemory[IT, HT, GT, FT, Any, ET] = memory
         self._model: BaseLLM = model
-        self._prompt_mode: PromptMode = prompt_mode
+        self._do_analyze: bool = do_analyze
         self._guess_cls: type[GT] = guess_cls
 
-        if prompt_mode == PromptMode.DIRECT:
+        if do_analyze:
             self._guess_model: type[BaseModel] = create_model(
                 "Guess", analysis=Analysis, guess=guess_cls
             )
@@ -70,7 +69,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         self._latest_analysis = None
         guess: GT
 
-        if self._prompt_mode == PromptMode.DIRECT:
+        if self._do_analyze:
             messages.append(
                 Message.human(*self.make_full_guess_prompt(), *self._make_guess_prompt(hint=hint))
             )
@@ -80,33 +79,6 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
             guess = getattr(full_guess, "guess")
             assert self._latest_analysis is not None
         else:
-            if self._prompt_mode == PromptMode.MULTI_TURN:
-                past_analysis_summary: str = ""
-
-                if self.memory.num_guesses > 0:
-                    messages.append(Message.human(*self.make_summarize_analysis_prompt()))
-                    past_analysis_summary = self._model.query(*messages)
-                    messages.append(Message.ai(past_analysis_summary))
-
-                messages.append(Message.human(*self.make_analyze_prompt()))
-                current_analysis: str = self._model.query(*messages)
-                messages.append(Message.ai(current_analysis))
-
-                messages.append(
-                    Message.human(
-                        *self.make_plan_prompt(), *self.make_guess_detail_prompt(hint=hint)
-                    )
-                )
-
-                plan: str = self._model.query(*messages)
-                messages.append(Message.ai(plan))
-
-                self._latest_analysis = Analysis(
-                    past_analysis_summary=past_analysis_summary,
-                    current_analysis=current_analysis,
-                    plan=plan,
-                )
-
             messages.append(
                 Message.human(*self.make_simple_guess_prompt(), *self._make_guess_prompt(hint=hint))
             )
@@ -132,18 +104,6 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         raise NotImplementedError()
 
     @abstractmethod
-    def make_summarize_analysis_prompt(self) -> Iterator[str]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def make_analyze_prompt(self) -> Iterator[str]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def make_plan_prompt(self) -> Iterator[str]:
-        raise NotImplementedError()
-
-    @abstractmethod
     def make_simple_guess_prompt(self) -> Iterator[str]:
         raise NotImplementedError()
 
@@ -165,7 +125,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         yield from self.make_guess_detail_prompt(hint=hint)
         guess_example: BaseModel = self.get_guess_example(hint=hint)
 
-        if self._prompt_mode == PromptMode.DIRECT:
+        if self._do_analyze:
             guess_example = self._guess_model(
                 analysis=Analysis(past_analysis_summary="...", current_analysis="...", plan="..."),
                 guess=guess_example,

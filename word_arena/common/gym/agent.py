@@ -8,12 +8,12 @@ from ..game.base import BaseGame
 from ..game.common import GameRecord
 from ..generator.generator import BaseGameGenerator
 from ..llm.base import BaseLLM
-from ..player.agent.player import BaseAgentPlayer, PromptMode
+from ..player.agent.player import BaseAgentPlayer
 from .base import BaseConfigGym
 
 
 class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
-    BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, PromptMode]], ABC
+    BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, bool]], ABC
 ):
     def __init__(
         self, *, game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]]
@@ -24,14 +24,14 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @override
     def create_player_with_cb(
-        self, model: BaseLLM, prompt_mode: PromptMode
+        self, model: BaseLLM, do_analyze: bool
     ) -> tuple[
         BaseAgentPlayer[IT, HT, GT, FT, ET],
         Callable[[], None],
         Callable[[GameRecord[IT, HT, GT, FT, RT]], None],
     ]:
         player: BaseAgentPlayer[IT, HT, GT, FT, ET] = self.create_player(
-            model=model, prompt_mode=prompt_mode
+            model=model, do_analyze=do_analyze
         )
 
         def prepare_player() -> None:
@@ -57,6 +57,6 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @abstractmethod
     def create_player(
-        self, *, model: BaseLLM, prompt_mode: PromptMode
+        self, *, model: BaseLLM, do_analyze: bool
     ) -> BaseAgentPlayer[IT, HT, GT, FT, ET]:
         raise NotImplementedError()

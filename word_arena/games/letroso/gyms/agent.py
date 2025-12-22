@@ -4,7 +4,6 @@ from typing import override
 
 from ....common.gym.agent import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ..common import (
     LetrosoExperience,
     LetrosoFeedback,
@@ -29,7 +28,7 @@ class LetrosoAgentGym(
         LetrosoFinalResult,
         LetrosoExperience,
     ],
-    LetrosoConfigGym[[BaseLLM, PromptMode]],
+    LetrosoConfigGym[[BaseLLM, bool]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[LetrosoSetting], seed: int, word_list_file: Path
@@ -43,5 +42,5 @@ class LetrosoAgentGym(
         super(BaseAgentGym, self).__init__(word_list_file=word_list_file)
 
     @override
-    def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> LetrosoAgentPlayer:
-        return LetrosoAgentPlayer(model=model, prompt_mode=prompt_mode)
+    def create_player(self, *, model: BaseLLM, do_analyze: bool) -> LetrosoAgentPlayer:
+        return LetrosoAgentPlayer(model=model, do_analyze=do_analyze)

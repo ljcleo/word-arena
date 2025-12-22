@@ -2,7 +2,6 @@ from collections.abc import Iterator
 from typing import override
 
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
@@ -77,11 +76,11 @@ class ConexoAgentPlayer(
     BaseAgentPlayer[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoExperience],
     ConexoAgentPlayerFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
+    def __init__(self, *, model: BaseLLM, do_analyze: bool):
         super().__init__(
             memory=ConexoAgentMemory(model=model),
             model=model,
-            prompt_mode=prompt_mode,
+            do_analyze=do_analyze,
             guess_cls=ConexoGuess,
         )
 
@@ -105,32 +104,8 @@ class ConexoAgentPlayer(
             )
 
     @override
-    def make_summarize_analysis_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to summarize your past analysis and plans before this turn."
-
-    @override
-    def make_analyze_prompt(self) -> Iterator[str]:
-        if self.memory.num_guesses == 0:
-            yield "Write a paragraph to understand the game rules."
-        else:
-            yield (
-                "Write a paragraph to update your knowledge "
-                "about the groups behind remaining words."
-            )
-
-    @override
-    def make_plan_prompt(self) -> Iterator[str]:
-        if self.memory.num_guesses == 0:
-            yield "Write a paragraph to plan the first guess."
-        else:
-            yield "Write a paragraph to plan the next guess."
-
-    @override
     def make_simple_guess_prompt(self) -> Iterator[str]:
-        if self.memory.num_guesses == 0:
-            yield "Make your first guess."
-        else:
-            yield "Make your next guess."
+        yield f"Make your {'first' if self.memory.num_guesses == 0 else 'next'} guess."
 
     @override
     def make_guess_detail_prompt(self, *, hint: None) -> Iterator[str]:

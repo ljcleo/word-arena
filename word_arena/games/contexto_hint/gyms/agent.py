@@ -4,7 +4,6 @@ from typing import override
 
 from ....common.gym.agent import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ..common import ContextoHintExperience, ContextoHintGuess
 from ..generators.common import ContextoHintConfig, ContextoHintSetting
 from ..generators.generator import ContextoHintGameGenerator
@@ -23,7 +22,7 @@ class ContextoHintAgentGym(
         list[str],
         ContextoHintExperience,
     ],
-    ContextoHintConfigGym[[BaseLLM, PromptMode]],
+    ContextoHintConfigGym[[BaseLLM, bool]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path
@@ -35,5 +34,5 @@ class ContextoHintAgentGym(
         )
 
     @override
-    def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> ContextoHintAgentPlayer:
-        return ContextoHintAgentPlayer(model=model, prompt_mode=prompt_mode)
+    def create_player(self, *, model: BaseLLM, do_analyze: bool) -> ContextoHintAgentPlayer:
+        return ContextoHintAgentPlayer(model=model, do_analyze=do_analyze)

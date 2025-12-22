@@ -78,7 +78,6 @@ def main():
     from time import time_ns
 
     from word_arena.common.llm.base import BaseLLM
-    from word_arena.common.player.agent.common import PromptMode
     from word_arena.llms.openai import OpenaiConfig, OpenaiLLM
     from word_arena.llms.pseudo import PseudoLLM
 
@@ -90,21 +89,13 @@ def main():
     else:
         model = PseudoLLM()
 
-    prompt_mode: PromptMode = (
-        (
-            PromptMode.MULTI_TURN
-            if input("Multi-turn? (y/n): ")[0].lower() == "y"
-            else PromptMode.DIRECT
-        )
-        if input("Analyze? (y/n): ")[0].lower() == "y"
-        else PromptMode.SIMPLE
-    )
+    do_analyze: bool = input("Analyze? (y/n): ")[0].lower() == "y"
 
     games: list[str] = list(AGENT_GYM_BUILDERS.keys())
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(model, prompt_mode)
+    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(model, do_analyze)
 
 
 if __name__ == "__main__":

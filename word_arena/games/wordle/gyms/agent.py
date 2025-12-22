@@ -4,7 +4,6 @@ from typing import override
 
 from ....common.gym.agent import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ..common import (
     WordleExperience,
     WordleFeedback,
@@ -29,7 +28,7 @@ class WordleAgentGym(
         WordleFinalResult,
         WordleExperience,
     ],
-    WordleConfigGym[[BaseLLM, PromptMode]],
+    WordleConfigGym[[BaseLLM, bool]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[WordleSetting], seed: int, word_list_file: Path
@@ -43,5 +42,5 @@ class WordleAgentGym(
         super(BaseAgentGym, self).__init__(word_list_file=word_list_file)
 
     @override
-    def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> WordleAgentPlayer:
-        return WordleAgentPlayer(model=model, prompt_mode=prompt_mode)
+    def create_player(self, *, model: BaseLLM, do_analyze: bool) -> WordleAgentPlayer:
+        return WordleAgentPlayer(model=model, do_analyze=do_analyze)

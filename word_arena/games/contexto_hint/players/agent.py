@@ -2,7 +2,6 @@ from collections.abc import Iterator
 from typing import override
 
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ....common.player.agent.memory import BaseAgentMemory
 from ....common.player.agent.player import BaseAgentPlayer
 from ..common import ContextoHintExperience, ContextoHintGuess
@@ -75,11 +74,11 @@ class ContextoHintAgentPlayer(
     BaseAgentPlayer[None, list[str], ContextoHintGuess, int, ContextoHintExperience],
     ContextoHintAgentPlayerFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, prompt_mode: PromptMode):
+    def __init__(self, *, model: BaseLLM, do_analyze: bool):
         super().__init__(
             memory=ContextoHintAgentMemory(model=model),
             model=model,
-            prompt_mode=prompt_mode,
+            do_analyze=do_analyze,
             guess_cls=ContextoHintGuess,
         )
 
@@ -101,21 +100,6 @@ class ContextoHintAgentPlayer(
                 "update your knowledge about the secret word, "
                 "plan your next guess and make your choice."
             )
-
-    @override
-    def make_summarize_analysis_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to summarize your past analysis and plans before this turn."
-
-    @override
-    def make_analyze_prompt(self) -> Iterator[str]:
-        if self.memory.num_guesses == 0:
-            yield "Write a paragraph to understand the game rules."
-        else:
-            yield "Write a paragraph to update your knowledge about the secret word."
-
-    @override
-    def make_plan_prompt(self) -> Iterator[str]:
-        yield "Write a paragraph to plan your next guess."
 
     @override
     def make_simple_guess_prompt(self) -> Iterator[str]:

@@ -4,7 +4,6 @@ from typing import override
 
 from ....common.gym.agent import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ....common.player.agent.common import PromptMode
 from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
 from ..generators.common import ConexoConfig, ConexoSetting
 from ..generators.generator import ConexoGameGenerator
@@ -23,7 +22,7 @@ class ConexoAgentGym(
         ConexoFinalResult,
         ConexoExperience,
     ],
-    ConexoConfigGym[[BaseLLM, PromptMode]],
+    ConexoConfigGym[[BaseLLM, bool]],
 ):
     def __init__(
         self, *, setting_pool: Iterable[ConexoSetting], seed: int, games_dir: Path
@@ -35,5 +34,5 @@ class ConexoAgentGym(
         )
 
     @override
-    def create_player(self, *, model: BaseLLM, prompt_mode: PromptMode) -> ConexoAgentPlayer:
-        return ConexoAgentPlayer(model=model, prompt_mode=prompt_mode)
+    def create_player(self, *, model: BaseLLM, do_analyze: bool) -> ConexoAgentPlayer:
+        return ConexoAgentPlayer(model=model, do_analyze=do_analyze)
