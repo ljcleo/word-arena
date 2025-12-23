@@ -38,12 +38,16 @@ class WordleAgentGym(
         setting_pool: Iterable[WordleSetting],
         seed: int,
         word_list: Iterable[str],
+        game_word_list: Iterable[str],
         create_config_func: Callable[[], WordleConfig],
         log_func: Callable[[str], None],
     ) -> None:
         super().__init__(
             game_generator=WordleGameGenerator(
-                setting_pool=setting_pool, seed=seed, word_list=word_list
+                setting_pool=setting_pool,
+                seed=seed,
+                word_list=word_list,
+                game_word_list=game_word_list,
             ),
             create_config_func=create_config_func,
             log_func=log_func,

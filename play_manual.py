@@ -39,12 +39,18 @@ def build_wordle_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
 
     with open("./data/wordle/words.txt", encoding="utf8") as f:
         word_list: list[str] = list(map(str.strip, f))
+    with open("./data/wordle/games.txt", encoding="utf8") as f:
+        game_word_list: list[str] = list(map(str.strip, f))
+
+    word_map: dict[str, int] = {word: index for index, word in enumerate(word_list)}
+    target_pool: list[int] = [word_map[word] for word in game_word_list]
 
     def create_config() -> WordleConfig:
         return WordleConfig(
             word_list=word_list,
             target_ids=[
-                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
+                target_pool[int(input(f"Word ID {i + 1}: "))]
+                for i in range(int(input("Num Targets: ")))
             ],
             max_guesses=int(input("Max Guesses: ")),
         )

@@ -49,6 +49,8 @@ def build_wordle_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAg
 
     with open("./data/wordle/words.txt", encoding="utf8") as f:
         word_list: list[str] = list(map(str.strip, f))
+    with open("./data/wordle/games.txt", encoding="utf8") as f:
+        game_word_list: list[str] = list(map(str.strip, f))
 
     def create_config() -> WordleConfig:
         return WordleConfig(
@@ -66,6 +68,7 @@ def build_wordle_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAg
         ),
         seed=seed,
         word_list=word_list,
+        game_word_list=game_word_list,
         create_config_func=create_config,
         log_func=log_func,
     )
