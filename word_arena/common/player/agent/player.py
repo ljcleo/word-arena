@@ -9,6 +9,7 @@ from ...llm.base import BaseLLM, Message
 from ...memory.common import Analysis
 from ..log import BaseLogPlayer
 from .memory import BaseAgentMemory
+from .utils import make_json_prompt
 
 
 class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
@@ -135,4 +136,4 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
                 analysis=Analysis(analysis="...", plan="..."), guess=guess_example
             )
 
-        yield (f"Respond in JSON format like `{guess_example.model_dump_json()}`.")
+        yield make_json_prompt(guess_example)

@@ -11,6 +11,7 @@ from ...llm.common import Message
 from ...memory.base import BaseMemory
 from ...memory.common import Analysis, GameSummary, Reflection
 from .common import TrialMode
+from .utils import make_json_prompt
 
 
 class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
@@ -57,8 +58,8 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
                 "Now, reflect on your performance in the game.",
                 "Make a summary of the game process, then reflect on your performance.",
                 *self.make_reflect_detail_prompt(),
-                "Make your response clear and simple in JSON format like "
-                f"`{Reflection(summary='...', reflection='...').model_dump_json()}`.",
+                "Make your response clear and simple.",
+                make_json_prompt(Reflection(summary="...", reflection="...")),
             ),
             format=Reflection,
         )
@@ -129,8 +130,5 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
 
     def _make_experience_prompt(self) -> Iterator[str]:
         yield "The notes should help you make a good guess in a turn."
-
-        yield (
-            "Make your response clear and simple in JSON format like "
-            f"`{self.get_experience_example().model_dump_json()}`."
-        )
+        yield "Make your response clear and simple."
+        yield make_json_prompt(self.get_experience_example())
