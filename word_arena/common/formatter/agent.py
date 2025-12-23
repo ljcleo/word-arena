@@ -8,16 +8,9 @@ from .base import BaseFinalResultFormatter, BaseInGameFormatter
 
 class BaseAgentCommonFormatter[IT, HT, GT, FT, ET](BaseInGameFormatter[IT, HT, GT, FT], ABC):
     @classmethod
-    def format_analysis(cls, *, analysis: Analysis) -> Iterator[str]:
-        yield "Analysis from the Last Guess:"
-
-        yield "\n".join(
-            (
-                f"Past analysis summary: {analysis.past_analysis_summary}",
-                f"Analysis update: {analysis.current_analysis}",
-                f"Plan: {analysis.plan}",
-            )
-        )
+    def format_analysis(cls, *, analysis: Analysis, is_current: bool) -> Iterator[str]:
+        yield f"{'' if is_current else 'Latest '}Analysis:"
+        yield "\n".join((f"Analysis: {analysis.analysis}", f"Plan: {analysis.plan}"))
 
     @classmethod
     def format_turn(cls, *, game_info: IT, turn: Turn[HT, GT, FT]) -> Iterator[str]:
@@ -48,7 +41,7 @@ class BaseAgentCommonFormatter[IT, HT, GT, FT, ET](BaseInGameFormatter[IT, HT, G
             yield "\n".join(sections)
 
         if latest_analysis is not None:
-            yield from cls.format_analysis(analysis=latest_analysis)
+            yield from cls.format_analysis(analysis=latest_analysis, is_current=False)
 
     @classmethod
     @abstractmethod
@@ -136,7 +129,7 @@ class BaseAgentMemoryFormatter[IT, HT, GT, FT, RT, ET](
     @classmethod
     def format_reflection(cls, *, reflection: Reflection) -> Iterator[str]:
         yield "Reflection:"
-        yield f"Summary: {reflection.summary}\nLessons: {reflection.lessons}"
+        yield f"Game Summary: {reflection.summary}\nReflection: {reflection.reflection}"
 
     @classmethod
     def format_history(cls, *, history: Iterable[GameSummary[IT, HT, GT, FT, RT]]) -> Iterator[str]:

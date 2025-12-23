@@ -104,17 +104,19 @@ class ConexoAgentPlayer(
     @override
     def make_full_guess_prompt(self) -> Iterator[str]:
         if self.memory.num_guesses == 0:
-            yield "Understand the game rules, plan for your next guess and make your choice."
+            yield (
+                "Understand the game rules and analyze the given words, "
+                "then plan and make your next guess."
+            )
         else:
             yield (
-                "Summarize your past analysis and plans before this turn, "
-                "update your knowledge about the groups behind remaining words, "
+                "Analyze the situation based on your previous analysis and the latest feedback, "
                 "then plan and make your next guess."
             )
 
     @override
     def make_simple_guess_prompt(self) -> Iterator[str]:
-        yield f"Make your {'first' if self.memory.num_guesses == 0 else 'next'} guess."
+        yield "Make your next guess."
 
     @override
     def make_guess_detail_prompt(self, *, hint: None) -> Iterator[str]:

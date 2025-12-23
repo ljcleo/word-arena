@@ -91,7 +91,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
             guess = self._model.parse(*messages, format=self._guess_cls)
 
         if self._latest_analysis is not None:
-            for section in self.format_analysis(analysis=self._latest_analysis):
+            for section in self.format_analysis(analysis=self._latest_analysis, is_current=True):
                 self._agent_log_func(section)
 
         return guess
@@ -132,8 +132,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
 
         if self._do_analyze:
             guess_example = self._guess_model(
-                analysis=Analysis(past_analysis_summary="...", current_analysis="...", plan="..."),
-                guess=guess_example,
+                analysis=Analysis(analysis="...", plan="..."), guess=guess_example
             )
 
         yield (f"Respond in JSON format like `{guess_example.model_dump_json()}`.")

@@ -102,17 +102,20 @@ class ContextoHintAgentPlayer(
     @override
     def make_full_guess_prompt(self) -> Iterator[str]:
         if self.memory.num_guesses == 0:
-            yield "Understand the game rules, plan for your next guess and make your choice."
+            yield (
+                "Understand the game rules and analyze the given options, "
+                "then plan and make your next guess."
+            )
         else:
             yield (
-                "Summarize your past analysis and plans before this turn, "
-                "update your knowledge about the secret word, "
-                "plan your next guess and make your choice."
+                "Analyze the situation and the given options based on "
+                "your previous analysis and the latest feedback, "
+                "then plan and make your next guess."
             )
 
     @override
     def make_simple_guess_prompt(self) -> Iterator[str]:
-        yield "Make your choice."
+        yield "Make your next guess."
 
     @override
     def make_guess_detail_prompt(self, *, hint: list[str]) -> Iterator[str]:

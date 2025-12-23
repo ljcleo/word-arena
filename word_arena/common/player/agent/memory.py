@@ -55,10 +55,10 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
             ),
             Message.human(
                 "Now, reflect on your performance in the game.",
-                "Make a summary of your guesses and summarize the lessons you have learned.",
+                "Make a summary of the game process, then reflect on your performance.",
                 *self.make_reflect_detail_prompt(),
                 "Make your response clear and simple in JSON format like "
-                f"`{Reflection(summary='In this trial, ...', lessons='...').model_dump_json()}`.",
+                f"`{Reflection(summary='...', reflection='...').model_dump_json()}`.",
             ),
             format=Reflection,
         )

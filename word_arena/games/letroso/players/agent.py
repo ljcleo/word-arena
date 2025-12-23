@@ -131,8 +131,8 @@ class LetrosoAgentPlayer(
             yield "Understand the game rules, then plan and make your first guess."
         else:
             yield (
-                "Summarize your past analysis and plans before this turn, "
-                "update your knowledge about the secret words, then plan and make your next guess."
+                "Analyze the situation based on your previous analysis and the latest feedback, "
+                "then plan and make your next guess."
             )
 
     @override

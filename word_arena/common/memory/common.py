@@ -4,14 +4,13 @@ from ..game.common import GameRecord
 
 
 class Analysis(BaseModel):
-    past_analysis_summary: str
-    current_analysis: str
+    analysis: str
     plan: str
 
 
 class Reflection(BaseModel):
     summary: str
-    lessons: str
+    reflection: str
 
 
 class GameSummary[IT, HT, GT, FT, RT](BaseModel):
