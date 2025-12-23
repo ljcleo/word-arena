@@ -9,23 +9,28 @@ from .base import BaseConfigGym
 
 
 class BaseManualGym[CT, IT, HT, GT, FT, RT](
-    BaseConfigGym[CT, IT, HT, GT, FT, RT, [Callable[[str], str]]], ABC
+    BaseConfigGym[CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str], None]]], ABC
 ):
     def __init__(
         self,
         *,
         game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]],
         create_config_func: Callable[[], CT],
+        log_func: Callable[[str], None],
         **kwargs,
     ) -> None:
-        super().__init__(create_config_func=create_config_func, **kwargs)
+        super().__init__(create_config_func=create_config_func, log_func=log_func, **kwargs)
         self._game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]] = game_provider
 
     @override
     def create_player_with_cb(
-        self, input_func: Callable[[str], str]
+        self, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
     ) -> tuple[BaseManualPlayer[IT, HT, GT, FT], None, None]:
-        return self.create_player(input_func=input_func), None, None
+        return (
+            self.create_player(input_func=input_func, player_log_func=player_log_func),
+            None,
+            None,
+        )
 
     @override
     def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
@@ -33,6 +38,6 @@ class BaseManualGym[CT, IT, HT, GT, FT, RT](
 
     @abstractmethod
     def create_player(
-        self, *, input_func: Callable[[str], str]
+        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
     ) -> BaseManualPlayer[IT, HT, GT, FT]:
         raise NotImplementedError()

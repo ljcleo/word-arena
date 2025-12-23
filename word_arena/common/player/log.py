@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import override
 
 from ..formatter.base import BaseInGameFormatter
@@ -8,21 +9,25 @@ from .base import BasePlayer
 class BaseLogPlayer[IT, HT, GT, FT](
     BasePlayer[IT, HT, GT, FT], BaseInGameFormatter[IT, HT, GT, FT], ABC
 ):
+    def __init__(self, *, player_log_func: Callable[[str], None], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._player_log_func: Callable[[str], None] = player_log_func
+
     @override
     def prepare(self, *, game_info: IT) -> None:
         self._game_info: IT = game_info
         for section in self.format_game_info(game_info=game_info):
-            print(section)
+            self._player_log_func(section)
 
     @override
     def guess(self, *, hint: HT) -> GT:
         for section in self.format_hint(game_info=self._game_info, hint=hint):
-            print(section)
+            self._player_log_func(section)
 
         guess: GT = self.make_guess(hint=hint)
 
         for section in self.format_guess(game_info=self._game_info, hint=hint, guess=guess):
-            print(section)
+            self._player_log_func(section)
 
         return guess
 
@@ -31,7 +36,7 @@ class BaseLogPlayer[IT, HT, GT, FT](
         for section in self.format_feedback(
             game_info=self._game_info, hint=hint, guess=guess, feedback=feedback
         ):
-            print(section)
+            self._player_log_func(section)
 
     @abstractmethod
     def make_guess(self, *, hint: HT) -> GT:

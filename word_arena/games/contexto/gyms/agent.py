@@ -22,7 +22,9 @@ class ContextoAgentGym(
         ContextoFinalResult,
         ContextoExperience,
     ],
-    ContextoConfigGym[[BaseLLM, bool, TrainingConfig | None]],
+    ContextoConfigGym[
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+    ],
 ):
     def __init__(
         self,
@@ -30,12 +32,26 @@ class ContextoAgentGym(
         setting_pool: Iterable[ContextoSetting],
         seed: int,
         create_config_func: Callable[[], ContextoConfig],
+        log_func: Callable[[str], None],
     ) -> None:
         super().__init__(
             game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed),
             create_config_func=create_config_func,
+            log_func=log_func,
         )
 
     @override
-    def create_player(self, *, model: BaseLLM, do_analyze: bool) -> ContextoAgentPlayer:
-        return ContextoAgentPlayer(model=model, do_analyze=do_analyze)
+    def create_player(
+        self,
+        *,
+        model: BaseLLM,
+        do_analyze: bool,
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
+    ) -> ContextoAgentPlayer:
+        return ContextoAgentPlayer(
+            model=model,
+            do_analyze=do_analyze,
+            player_log_func=player_log_func,
+            agent_log_func=agent_log_func,
+        )

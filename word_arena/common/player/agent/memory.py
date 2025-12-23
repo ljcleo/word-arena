@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
@@ -20,11 +20,13 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
         self,
         model: BaseLLM,
         experience_cls: type[ET],
+        log_func: Callable[[str], None],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._model: BaseLLM = model
         self._experience_cls: type[ET] = experience_cls
+        self._log_func: Callable[[str], None] = log_func
 
     @override
     def create_experience(self) -> ET:
@@ -38,7 +40,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
         )
 
         for section in self.format_experience(experience=experience):
-            print(section)
+            self._log_func(section)
 
         return experience
 
@@ -62,7 +64,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
         )
 
         for section in self.format_reflection(reflection=reflection):
-            print(section)
+            self._log_func(section)
 
         return reflection
 
@@ -82,7 +84,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, ET: BaseModel](
         )
 
         for section in self.format_experience(experience=new_experience):
-            print(section)
+            self._log_func(section)
 
         return new_experience
 

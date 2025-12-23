@@ -14,16 +14,26 @@ from .common import TrainingConfig
 
 
 class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
-    BaseConfigGym[CT, IT, HT, GT, FT, RT, [BaseLLM, bool, TrainingConfig | None]], ABC
+    BaseConfigGym[
+        CT,
+        IT,
+        HT,
+        GT,
+        FT,
+        RT,
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]],
+    ],
+    ABC,
 ):
     def __init__(
         self,
         *,
         game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]],
         create_config_func: Callable[[], CT],
+        log_func: Callable[[str], None],
         **kwargs,
     ) -> None:
-        super().__init__(create_config_func=create_config_func, **kwargs)
+        super().__init__(create_config_func=create_config_func, log_func=log_func, **kwargs)
 
         self._game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]] = (
             game_generator
@@ -31,14 +41,22 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @override
     def create_player_with_cb(
-        self, model: BaseLLM, do_analyze: bool, training_config: TrainingConfig | None
+        self,
+        model: BaseLLM,
+        do_analyze: bool,
+        training_config: TrainingConfig | None,
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
     ) -> tuple[
         BaseAgentPlayer[IT, HT, GT, FT, ET],
         Callable[[], None],
         Callable[[GameRecord[IT, HT, GT, FT, RT]], None],
     ]:
         player: BaseAgentPlayer[IT, HT, GT, FT, ET] = self.create_player(
-            model=model, do_analyze=do_analyze
+            model=model,
+            do_analyze=do_analyze,
+            player_log_func=player_log_func,
+            agent_log_func=agent_log_func,
         )
 
         def prepare_player() -> None:
@@ -61,6 +79,11 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @abstractmethod
     def create_player(
-        self, *, model: BaseLLM, do_analyze: bool
+        self,
+        *,
+        model: BaseLLM,
+        do_analyze: bool,
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
     ) -> BaseAgentPlayer[IT, HT, GT, FT, ET]:
         raise NotImplementedError()

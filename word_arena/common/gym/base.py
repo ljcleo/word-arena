@@ -9,6 +9,10 @@ from ..player.base import BasePlayer
 
 
 class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
+    def __init__(self, *, log_func: Callable[[str], None], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._log_func: Callable[[str], None] = log_func
+
     def play(self, *player_args: P.args, **player_kwargs: P.kwargs) -> None:
         player: BasePlayer[IT, HT, GT, FT]
         prepare_player: Callable[[], None] | None
@@ -22,10 +26,10 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
             prepare_player()
 
         game_record: GameRecord = self.create_game().play(player=player)
-        print("You Guessed", len(game_record.trajectory), "Times")
+        self._log_func(f"You Guessed {len(game_record.trajectory)} Times")
 
         for section in self.format_final_result(final_result=game_record.final_result):
-            print(section)
+            self._log_func(section)
         if summarize_player is not None:
             summarize_player(game_record)
 
@@ -45,8 +49,10 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
 
 
 class BaseConfigGym[CT, IT, HT, GT, FT, RT, **P](BaseGym[IT, HT, GT, FT, RT, P], ABC):
-    def __init__(self, *, create_config_func: Callable[[], CT], **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self, *, create_config_func: Callable[[], CT], log_func: Callable[[str], None], **kwargs
+    ) -> None:
+        super().__init__(log_func=log_func, **kwargs)
         self._create_config_func: Callable[[], CT] = create_config_func
 
     @override

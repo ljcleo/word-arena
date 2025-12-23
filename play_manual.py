@@ -3,7 +3,7 @@ from collections.abc import Callable
 from word_arena.common.gym.manual import BaseManualGym
 
 
-def build_contexto_manual_gym() -> BaseManualGym:
+def build_contexto_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from word_arena.games.contexto.generators.common import ContextoConfig
     from word_arena.games.contexto.gyms.manual import ContextoManualGym
 
@@ -12,10 +12,10 @@ def build_contexto_manual_gym() -> BaseManualGym:
             game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
         )
 
-    return ContextoManualGym(create_config_func=create_config)
+    return ContextoManualGym(create_config_func=create_config, log_func=log_func)
 
 
-def build_contexto_hint_manual_gym() -> BaseManualGym:
+def build_contexto_hint_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from pathlib import Path
 
     from word_arena.games.contexto_hint.generators.common import ContextoHintConfig
@@ -27,11 +27,13 @@ def build_contexto_hint_manual_gym() -> BaseManualGym:
         )
 
     return ContextoHintManualGym(
-        games_dir=Path("./data/contexto_hint/games"), create_config_func=create_config
+        games_dir=Path("./data/contexto_hint/games"),
+        create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-def build_wordle_manual_gym() -> BaseManualGym:
+def build_wordle_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from word_arena.games.wordle.generators.common import WordleConfig
     from word_arena.games.wordle.gyms.manual import WordleManualGym
 
@@ -47,10 +49,10 @@ def build_wordle_manual_gym() -> BaseManualGym:
             max_guesses=int(input("Max Guesses: ")),
         )
 
-    return WordleManualGym(create_config_func=create_config)
+    return WordleManualGym(create_config_func=create_config, log_func=log_func)
 
 
-def build_letroso_manual_gym() -> BaseManualGym:
+def build_letroso_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from word_arena.games.letroso.generators.common import LetrosoConfig
     from word_arena.games.letroso.gyms.manual import LetrosoManualGym
 
@@ -67,10 +69,10 @@ def build_letroso_manual_gym() -> BaseManualGym:
             max_guesses=int(input("Max Guesses: ")),
         )
 
-    return LetrosoManualGym(create_config_func=create_config)
+    return LetrosoManualGym(create_config_func=create_config, log_func=log_func)
 
 
-def build_conexo_manual_gym() -> BaseManualGym:
+def build_conexo_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from pathlib import Path
 
     from word_arena.games.conexo.generators.common import ConexoConfig
@@ -81,10 +83,12 @@ def build_conexo_manual_gym() -> BaseManualGym:
             game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
         )
 
-    return ConexoManualGym(games_dir=Path("./data/conexo/games"), create_config_func=create_config)
+    return ConexoManualGym(
+        games_dir=Path("./data/conexo/games"), create_config_func=create_config, log_func=log_func
+    )
 
 
-MANUAL_GYM_BUILDERS: dict[str, Callable[[], BaseManualGym]] = {
+MANUAL_GYM_BUILDERS: dict[str, Callable[[Callable[[str], None]], BaseManualGym]] = {
     "contexto": build_contexto_manual_gym,
     "contexto-hint": build_contexto_hint_manual_gym,
     "wordle": build_wordle_manual_gym,
@@ -93,12 +97,12 @@ MANUAL_GYM_BUILDERS: dict[str, Callable[[], BaseManualGym]] = {
 }
 
 
-def main():
+def main() -> None:
     games: list[str] = list(MANUAL_GYM_BUILDERS.keys())
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]]().play(input)
+    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]](print).play(input, print)
 
 
 if __name__ == "__main__":

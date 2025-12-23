@@ -3,7 +3,7 @@ from collections.abc import Callable
 from word_arena.common.gym.agent.gym import BaseAgentGym
 
 
-def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
+def build_contexto_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from word_arena.games.contexto.generators.common import ContextoConfig, ContextoSetting
     from word_arena.games.contexto.gyms.agent import ContextoAgentGym
 
@@ -13,11 +13,14 @@ def build_contexto_agent_gym(seed: int) -> BaseAgentGym:
         )
 
     return ContextoAgentGym(
-        setting_pool=(ContextoSetting(max_guesses=50),), seed=seed, create_config_func=create_config
+        setting_pool=(ContextoSetting(max_guesses=50),),
+        seed=seed,
+        create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
+def build_contexto_hint_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from pathlib import Path
 
     from word_arena.games.contexto_hint.generators.common import (
@@ -36,10 +39,11 @@ def build_contexto_hint_agent_gym(seed: int) -> BaseAgentGym:
         seed=seed,
         games_dir=Path("./data/contexto_hint/games"),
         create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
+def build_wordle_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from word_arena.games.wordle.generators.common import WordleConfig, WordleSetting
     from word_arena.games.wordle.gyms.agent import WordleAgentGym
 
@@ -63,10 +67,11 @@ def build_wordle_agent_gym(seed: int) -> BaseAgentGym:
         seed=seed,
         word_list=word_list,
         create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
+def build_letroso_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from word_arena.games.letroso.generators.common import LetrosoConfig, LetrosoSetting
     from word_arena.games.letroso.gyms.agent import LetrosoAgentGym
 
@@ -88,10 +93,11 @@ def build_letroso_agent_gym(seed: int) -> BaseAgentGym:
         seed=seed,
         word_list=word_list,
         create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
+def build_conexo_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from pathlib import Path
 
     from word_arena.games.conexo.generators.common import ConexoConfig, ConexoSetting
@@ -107,10 +113,11 @@ def build_conexo_agent_gym(seed: int) -> BaseAgentGym:
         seed=seed,
         games_dir=Path("./data/conexo/games"),
         create_config_func=create_config,
+        log_func=log_func,
     )
 
 
-AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
+AGENT_GYM_BUILDERS: dict[str, Callable[[int, Callable[[str], None]], BaseAgentGym]] = {
     "contexto": build_contexto_agent_gym,
     "contexto-hint": build_contexto_hint_agent_gym,
     "wordle": build_wordle_agent_gym,
@@ -119,7 +126,7 @@ AGENT_GYM_BUILDERS: dict[str, Callable[[int], BaseAgentGym]] = {
 }
 
 
-def main():
+def main() -> None:
     from time import time_ns
 
     from word_arena.common.gym.agent.common import TrainingConfig
@@ -141,7 +148,7 @@ def main():
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns()).play(
+    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns(), print).play(
         model,
         do_analyze,
         TrainingConfig(
@@ -150,6 +157,8 @@ def main():
         )
         if input("Train? (y/n): ")[0].lower() == "y"
         else None,
+        print,
+        print,
     )
 
 

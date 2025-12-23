@@ -11,13 +11,22 @@ from .base import ContextoConfigGym
 
 class ContextoManualGym(
     BaseManualGym[ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult],
-    ContextoConfigGym[[Callable[[str], str]]],
+    ContextoConfigGym[[Callable[[str], str], Callable[[str], None]]],
 ):
-    def __init__(self, *, create_config_func: Callable[[], ContextoConfig]) -> None:
+    def __init__(
+        self,
+        *,
+        create_config_func: Callable[[], ContextoConfig],
+        log_func: Callable[[str], None],
+    ) -> None:
         super().__init__(
-            game_provider=ContextoGameProvider(), create_config_func=create_config_func
+            game_provider=ContextoGameProvider(),
+            create_config_func=create_config_func,
+            log_func=log_func,
         )
 
     @override
-    def create_player(self, *, input_func: Callable[[str], str]) -> ContextoManualPlayer:
-        return ContextoManualPlayer(input_func=input_func)
+    def create_player(
+        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
+    ) -> ContextoManualPlayer:
+        return ContextoManualPlayer(input_func=input_func, player_log_func=player_log_func)

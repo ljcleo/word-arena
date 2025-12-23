@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import override
 
 from ....common.llm.base import BaseLLM
@@ -67,8 +67,8 @@ class LetrosoAgentMemory(
 ):
     NOTE_PROMPT: str = "notes about the possible strategies"
 
-    def __init__(self, *, model: BaseLLM):
-        super().__init__(model=model, experience_cls=LetrosoExperience)
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+        super().__init__(model=model, experience_cls=LetrosoExperience, log_func=log_func)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -100,12 +100,21 @@ class LetrosoAgentPlayer(
     BaseAgentPlayer[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoExperience],
     LetrosoAgentPlayerFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, do_analyze: bool):
+    def __init__(
+        self,
+        *,
+        model: BaseLLM,
+        do_analyze: bool,
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
+    ) -> None:
         super().__init__(
-            memory=LetrosoAgentMemory(model=model),
+            memory=LetrosoAgentMemory(model=model, log_func=agent_log_func),
             model=model,
             do_analyze=do_analyze,
             guess_cls=LetrosoGuess,
+            player_log_func=player_log_func,
+            agent_log_func=agent_log_func,
         )
 
     @override

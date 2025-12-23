@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import override
 
 from ....common.llm.base import BaseLLM
@@ -36,8 +36,8 @@ class ContextoHintAgentMemory(
 ):
     NOTE_PROMPT: str = "notes about the word similarity laws and possible strategies"
 
-    def __init__(self, *, model: BaseLLM):
-        super().__init__(model=model, experience_cls=ContextoHintExperience)
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+        super().__init__(model=model, experience_cls=ContextoHintExperience, log_func=log_func)
 
     @override
     def make_role_def_prompt(self) -> Iterator[str]:
@@ -74,12 +74,21 @@ class ContextoHintAgentPlayer(
     BaseAgentPlayer[None, list[str], ContextoHintGuess, int, ContextoHintExperience],
     ContextoHintAgentPlayerFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, do_analyze: bool):
+    def __init__(
+        self,
+        *,
+        model: BaseLLM,
+        do_analyze: bool,
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
+    ) -> None:
         super().__init__(
-            memory=ContextoHintAgentMemory(model=model),
+            memory=ContextoHintAgentMemory(model=model, log_func=agent_log_func),
             model=model,
             do_analyze=do_analyze,
             guess_cls=ContextoHintGuess,
+            player_log_func=player_log_func,
+            agent_log_func=agent_log_func,
         )
 
     @override

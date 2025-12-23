@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any, override
 
 from pydantic import BaseModel, create_model
@@ -21,13 +21,16 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
         model: BaseLLM,
         do_analyze: bool,
         guess_cls: type[GT],
+        player_log_func: Callable[[str], None],
+        agent_log_func: Callable[[str], None],
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(player_log_func=player_log_func, **kwargs)
         self._memory: BaseAgentMemory[IT, HT, GT, FT, Any, ET] = memory
         self._model: BaseLLM = model
         self._do_analyze: bool = do_analyze
         self._guess_cls: type[GT] = guess_cls
+        self._agent_log_func: Callable[[str], None] = agent_log_func
 
         if do_analyze:
             self._guess_model: type[BaseModel] = create_model(
@@ -89,7 +92,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, ET: BaseModel](
 
         if self._latest_analysis is not None:
             for section in self.format_analysis(analysis=self._latest_analysis):
-                print(section)
+                self._agent_log_func(section)
 
         return guess
 
