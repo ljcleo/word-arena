@@ -7,7 +7,6 @@ from sqlite3 import Connection, Cursor, connect
 from typing import Any
 from warnings import warn
 
-from pydantic import TypeAdapter
 from pyvirtualdisplay.display import Display
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
@@ -25,25 +24,11 @@ def parse_text(text: str) -> Iterator[Any]:
 
 
 def parse_doc(doc: dict[str, Any]) -> str:
-    fields: dict[str, Any] = doc["documentChange"]["document"]["fields"]
-
-    return (
-        TypeAdapter(dict[str, list[str]])
-        .dump_json(
-            {
-                group_value["mapValue"]["fields"]["theme"]["stringValue"]: [
-                    value["stringValue"]
-                    for value in group_value["mapValue"]["fields"]["words"]["arrayValue"]["values"]
-                ]
-                for group_value in fields["groups"]["arrayValue"]["values"]
-            }
-        )
-        .decode(encoding="utf8")
-    )
+    return doc["documentChange"]["document"]["fields"]["answer"]["stringValue"]
 
 
 @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
-def get_groups(date_str: str) -> str | None:
+def get_word(date_str: str) -> str | None:
     log_file: Path = Path("./log.txt")
     log_file.open("w").close()
 
@@ -60,8 +45,8 @@ def get_groups(date_str: str) -> str | None:
 
         try:
             driver.implicitly_wait(120)
-            driver.get(f"https://conexo.ws/en/previous/{date_str}")
-            driver.find_element(By.CLASS_NAME, "board-item")
+            driver.get(f"https://letroso.com/en/previous/{date_str}")
+            driver.find_element(By.CLASS_NAME, "cursor")
         except Exception as e:
             warn(f"error in crawling, will try to extract existing data: {repr(e)}")
             raise
@@ -100,9 +85,9 @@ def main() -> None:
 
         if not is_table_exist:
             with con:
-                cur.execute("CREATE TABLE game(game_id, groups)")
+                cur.execute("CREATE TABLE game(game_id, word_id)")
 
-        target_date: date = date(2024, 2, 1)
+        target_date: date = date(2024, 9, 1)
         game_id: int = 0
 
         while target_date <= date.today():
@@ -120,18 +105,32 @@ def main() -> None:
             print(date_str)
 
             try:
-                groups_str: str | None = get_groups(date_str=date_str)
+                word: str | None = get_word(date_str=date_str)
             except Exception as e:
                 warn(f"{date_str}: {repr(e)}")
                 target_date += timedelta(days=1)
                 game_id += 1
                 continue
 
-            if groups_str is None:
+            if word is None:
                 warn(f"{date_str}: no valid data")
-            else:
-                with con:
-                    cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, groups_str))
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            with con:
+                word_info: tuple[int] | None = cur.execute(
+                    "SELECT word_id FROM word WHERE word = ?", (word,)
+                ).fetchone()
+
+            if word_info is None:
+                warn(f"{date_str}: word {word} not in word database")
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            with con:
+                cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, word_info[0]))
 
             target_date += timedelta(days=1)
             game_id += 1

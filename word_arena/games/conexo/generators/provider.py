@@ -1,10 +1,14 @@
+from hashlib import sha256
 from pathlib import Path
+from random import Random
 from sqlite3 import Connection, Cursor, connect
 from typing import override
 
+from pydantic import TypeAdapter
+
 from ....common.generator.provider import BaseGameProvider
 from ..game import ConexoGame
-from .common import ConexoConfig, ConexoGameData
+from .common import ConexoConfig
 
 
 class ConexoGameProvider(BaseGameProvider[Path, ConexoConfig, ConexoGame]):
@@ -18,16 +22,23 @@ class ConexoGameProvider(BaseGameProvider[Path, ConexoConfig, ConexoGame]):
 
         try:
             with con:
-                game_data: ConexoGameData = ConexoGameData.model_validate_json(
+                groups: dict[str, list[str]] = TypeAdapter(dict[str, list[str]]).validate_json(
                     cur.execute(
-                        "SELECT game_data FROM game WHERE game_id = ?", (config.game_id,)
+                        "SELECT groups FROM game WHERE game_id = ?", (config.game_id,)
                     ).fetchone()[0]
                 )
         finally:
             con.close()
 
+        words: list[str] = sum(groups.values(), [])
+
+        Random(
+            int(sha256("/".join(words).encode(encoding="utf8")).hexdigest(), base=16)
+            & ((1 << 32) - 1)
+        ).shuffle(words)
+
         return ConexoGame(
-            words=game_data.words,
-            groups={group.theme: group.indices for group in game_data.groups},
+            words=words,
+            groups={theme: list(map(words.index, group)) for theme, group in groups.items()},
             max_guesses=config.max_guesses,
         )

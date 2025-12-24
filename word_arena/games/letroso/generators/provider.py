@@ -28,8 +28,12 @@ class LetrosoGameProvider(BaseGameProvider[LetrosoMetaConfig, LetrosoConfig, Let
         try:
             with con:
                 word_data: dict[int, str] = dict(cur.execute("SELECT word_id, word FROM word"))
+            with con:
+                game_data: dict[int, int] = dict(cur.execute("SELECT game_id, word_id FROM game"))
         finally:
             con.close()
 
-        word_list: list[str] = [word_data[i] for i in range(len(word_data))]
-        return LetrosoMetaConfig(word_list=word_list, target_pool=list(range(len(word_list))))
+        return LetrosoMetaConfig(
+            word_list=[word_data[i] for i in range(len(word_data))],
+            target_pool=[game_data[i] for i in range(len(game_data))],
+        )
