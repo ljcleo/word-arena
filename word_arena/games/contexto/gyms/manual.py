@@ -6,7 +6,7 @@ from ..common import ContextoFeedback, ContextoFinalResult, ContextoGuess
 from ..generators.common import ContextoConfig
 from ..generators.provider import ContextoGameProvider
 from ..players.manual import ContextoManualPlayer
-from .base import ContextoConfigGym
+from .base import ContextoConfigGym, ContextoExampleConfigGym
 
 
 class ContextoManualGym(
@@ -15,15 +15,18 @@ class ContextoManualGym(
         None, ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult
     ],
 ):
-    def __init__(
-        self, *, log_func: Callable[[str], None], config_creator: Callable[[], ContextoConfig]
-    ) -> None:
-        super().__init__(
-            log_func=log_func, config_creator=config_creator, game_provider=ContextoGameProvider()
-        )
+    def __init__(self, *, log_func: Callable[[str], None], **kwargs) -> None:
+        super().__init__(log_func=log_func, game_provider=ContextoGameProvider(), **kwargs)
 
     @override
     def create_player(
         self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
     ) -> ContextoManualPlayer:
         return ContextoManualPlayer(input_func=input_func, player_log_func=player_log_func)
+
+
+class ContextoExampleManualGym(ContextoExampleConfigGym, ContextoManualGym):
+    def __init__(
+        self, *, log_func: Callable[[str], None], input_func: Callable[[str], str]
+    ) -> None:
+        super().__init__(log_func=log_func, input_func=input_func)

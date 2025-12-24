@@ -11,16 +11,19 @@ class ContextoHintConfigGym[**P](
     BaseConfigGym[ContextoHintConfig, None, list[str], ContextoHintGuess, int, list[str], P],
     ContextoHintFinalResultFormatter,
 ):
+    pass
+
+
+class ContextoHintExampleConfigGym(ContextoHintConfigGym):
     def __init__(
-        self,
-        *,
-        log_func: Callable[[str], None],
-        config_creator: Callable[[], ContextoHintConfig],
-        **kwargs,
+        self, *, log_func: Callable[[str], None], input_func: Callable[[str], str], **kwargs
     ) -> None:
         super().__init__(log_func=log_func, **kwargs)
-        self._config_creator: Callable[[], ContextoHintConfig] = config_creator
+        self._input_func: Callable[[str], str] = input_func
 
     @override
     def create_config(self) -> ContextoHintConfig:
-        return self._config_creator()
+        return ContextoHintConfig(
+            num_candidates=int(self._input_func("Number of Candidates: ")),
+            game_id=int(self._input_func("Game ID: ")),
+        )

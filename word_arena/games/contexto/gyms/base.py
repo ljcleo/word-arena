@@ -13,16 +13,19 @@ class ContextoConfigGym[**P](
     ],
     ContextoFinalResultFormatter,
 ):
+    pass
+
+
+class ContextoExampleConfigGym(ContextoConfigGym):
     def __init__(
-        self,
-        *,
-        log_func: Callable[[str], None],
-        config_creator: Callable[[], ContextoConfig],
-        **kwargs,
+        self, *, log_func: Callable[[str], None], input_func: Callable[[str], str], **kwargs
     ) -> None:
         super().__init__(log_func=log_func, **kwargs)
-        self._config_creator: Callable[[], ContextoConfig] = config_creator
+        self._input_func: Callable[[str], str] = input_func
 
     @override
     def create_config(self) -> ContextoConfig:
-        return self._config_creator()
+        return ContextoConfig(
+            max_guesses=int(self._input_func("Max Guesses: ")),
+            game_id=int(self._input_func("Game ID: ")),
+        )

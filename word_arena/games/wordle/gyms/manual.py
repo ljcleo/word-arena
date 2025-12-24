@@ -7,7 +7,7 @@ from ..common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo
 from ..generators.common import WordleConfig, WordleMetaConfig
 from ..generators.provider import WordleGameProvider
 from ..players.manual import WordleManualPlayer
-from .base import WordleConfigGym
+from .base import WordleConfigGym, WordleExampleConfigGym
 
 
 class WordleManualGym(
@@ -22,17 +22,9 @@ class WordleManualGym(
         WordleFinalResult,
     ],
 ):
-    def __init__(
-        self,
-        *,
-        data_file: Path,
-        log_func: Callable[[str], None],
-        config_creator: Callable[[], WordleConfig],
-    ) -> None:
+    def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func,
-            config_creator=config_creator,
-            game_provider=WordleGameProvider(data_file=data_file),
+            log_func=log_func, game_provider=WordleGameProvider(data_file=data_file), **kwargs
         )
 
     @override
@@ -40,3 +32,10 @@ class WordleManualGym(
         self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
     ) -> WordleManualPlayer:
         return WordleManualPlayer(input_func=input_func, player_log_func=player_log_func)
+
+
+class WordleExampleManualGym(WordleExampleConfigGym, WordleManualGym):
+    def __init__(
+        self, *, data_file: Path, log_func: Callable[[str], None], input_func: Callable[[str], str]
+    ) -> None:
+        super().__init__(data_file=data_file, log_func=log_func, input_func=input_func)

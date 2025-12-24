@@ -7,7 +7,7 @@ from ..common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
 from ..generators.common import ConexoConfig
 from ..generators.provider import ConexoGameProvider
 from ..players.manual import ConexoManualPlayer
-from .base import ConexoConfigGym
+from .base import ConexoConfigGym, ConexoExampleConfigGym
 
 
 class ConexoManualGym(
@@ -16,17 +16,9 @@ class ConexoManualGym(
         Path, ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult
     ],
 ):
-    def __init__(
-        self,
-        *,
-        data_file: Path,
-        log_func: Callable[[str], None],
-        config_creator: Callable[[], ConexoConfig],
-    ) -> None:
+    def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            game_provider=ConexoGameProvider(data_file=data_file),
-            log_func=log_func,
-            config_creator=config_creator,
+            log_func=log_func, game_provider=ConexoGameProvider(data_file=data_file), **kwargs
         )
 
     @override
@@ -34,3 +26,10 @@ class ConexoManualGym(
         self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
     ) -> ConexoManualPlayer:
         return ConexoManualPlayer(input_func=input_func, player_log_func=player_log_func)
+
+
+class ConexoExampleManualGym(ConexoExampleConfigGym, ConexoManualGym):
+    def __init__(
+        self, *, data_file: Path, log_func: Callable[[str], None], input_func: Callable[[str], str]
+    ) -> None:
+        super().__init__(data_file=data_file, log_func=log_func, input_func=input_func)

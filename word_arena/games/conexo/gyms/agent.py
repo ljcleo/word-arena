@@ -9,7 +9,7 @@ from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, Conexo
 from ..generators.common import ConexoConfig
 from ..generators.generator import ConexoGameGenerator
 from ..players.agent import ConexoAgentPlayer
-from .base import ConexoConfigGym
+from .base import ConexoConfigGym, ConexoExampleConfigGym
 
 
 class ConexoAgentGym(
@@ -35,14 +35,14 @@ class ConexoAgentGym(
         mutable_meta_config_pool: Iterable[int],
         seed: int,
         log_func: Callable[[str], None],
-        config_creator: Callable[[], ConexoConfig],
+        **kwargs,
     ) -> None:
         super().__init__(
+            log_func=log_func,
             game_generator=ConexoGameGenerator(
                 data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
-            log_func=log_func,
-            config_creator=config_creator,
+            **kwargs,
         )
 
     @override
@@ -59,4 +59,23 @@ class ConexoAgentGym(
             do_analyze=do_analyze,
             player_log_func=player_log_func,
             agent_log_func=agent_log_func,
+        )
+
+
+class ConexoExampleAgentGym(ConexoExampleConfigGym, ConexoAgentGym):
+    def __init__(
+        self,
+        *,
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[int],
+        seed: int,
+        log_func: Callable[[str], None],
+        input_func: Callable[[str], str],
+    ) -> None:
+        super().__init__(
+            data_file=data_file,
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            seed=seed,
+            log_func=log_func,
+            input_func=input_func,
         )

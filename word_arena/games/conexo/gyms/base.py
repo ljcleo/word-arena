@@ -13,16 +13,19 @@ class ConexoConfigGym[**P](
     ],
     ConexoFinalResultFormatter,
 ):
+    pass
+
+
+class ConexoExampleConfigGym(ConexoConfigGym):
     def __init__(
-        self,
-        *,
-        log_func: Callable[[str], None],
-        config_creator: Callable[[], ConexoConfig],
-        **kwargs,
+        self, *, log_func: Callable[[str], None], input_func: Callable[[str], str], **kwargs
     ) -> None:
         super().__init__(log_func=log_func, **kwargs)
-        self._config_creator: Callable[[], ConexoConfig] = config_creator
+        self._input_func: Callable[[str], str] = input_func
 
     @override
     def create_config(self) -> ConexoConfig:
-        return self._config_creator()
+        return ConexoConfig(
+            max_guesses=int(self._input_func("Max Guesses: ")),
+            game_id=int(self._input_func("Game ID: ")),
+        )

@@ -15,7 +15,7 @@ from ..common import (
 from ..generators.common import WordleConfig, WordleMetaConfig, WordleMutableMetaConfig
 from ..generators.generator import WordleGameGenerator
 from ..players.agent import WordleAgentPlayer
-from .base import WordleConfigGym
+from .base import WordleConfigGym, WordleExampleConfigGym
 
 
 class WordleAgentGym(
@@ -41,14 +41,14 @@ class WordleAgentGym(
         mutable_meta_config_pool: Iterable[WordleMutableMetaConfig],
         seed: int,
         log_func: Callable[[str], None],
-        config_creator: Callable[[], WordleConfig],
+        **kwargs,
     ) -> None:
         super().__init__(
             log_func=log_func,
-            config_creator=config_creator,
             game_generator=WordleGameGenerator(
                 data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
+            **kwargs,
         )
 
     @override
@@ -65,4 +65,23 @@ class WordleAgentGym(
             do_analyze=do_analyze,
             player_log_func=player_log_func,
             agent_log_func=agent_log_func,
+        )
+
+
+class WordleExampleAgentGym(WordleExampleConfigGym, WordleAgentGym):
+    def __init__(
+        self,
+        *,
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[WordleMutableMetaConfig],
+        seed: int,
+        log_func: Callable[[str], None],
+        input_func: Callable[[str], str],
+    ) -> None:
+        super().__init__(
+            data_file=data_file,
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            seed=seed,
+            log_func=log_func,
+            input_func=input_func,
         )

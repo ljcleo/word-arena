@@ -15,7 +15,7 @@ from ..common import (
 from ..generators.common import LetrosoConfig, LetrosoMetaConfig, LetrosoMutableMetaConfig
 from ..generators.generator import LetrosoGameGenerator
 from ..players.agent import LetrosoAgentPlayer
-from .base import LetrosoConfigGym
+from .base import LetrosoConfigGym, LetrosoExampleConfigGym
 
 
 class LetrosoAgentGym(
@@ -41,11 +41,10 @@ class LetrosoAgentGym(
         mutable_meta_config_pool: Iterable[LetrosoMutableMetaConfig],
         seed: int,
         log_func: Callable[[str], None],
-        config_creator: Callable[[], LetrosoConfig],
+        **kwargs,
     ) -> None:
         super().__init__(
             log_func=log_func,
-            config_creator=config_creator,
             game_generator=LetrosoGameGenerator(
                 data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
@@ -65,4 +64,23 @@ class LetrosoAgentGym(
             do_analyze=do_analyze,
             player_log_func=player_log_func,
             agent_log_func=agent_log_func,
+        )
+
+
+class LetrosoExampleAgentGym(LetrosoExampleConfigGym, LetrosoAgentGym):
+    def __init__(
+        self,
+        *,
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[LetrosoMutableMetaConfig],
+        seed: int,
+        log_func: Callable[[str], None],
+        input_func: Callable[[str], str],
+    ) -> None:
+        super().__init__(
+            data_file=data_file,
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            seed=seed,
+            log_func=log_func,
+            input_func=input_func,
         )
