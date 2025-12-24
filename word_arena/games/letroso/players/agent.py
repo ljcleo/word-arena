@@ -24,25 +24,26 @@ Every time, you choose a word as your next guess;
 the guess should be a valid English word with no more than a specific number of letters.
 
 If the word is accepted, you will see how it matches each secret word
-through a labeling string the same length as the guessed word:
+through a bracketed labeling string the same length as the guessed word:
 
-A `G` label means that the relative order of the letter at that position,
-compared to other `G`-labeled letters, is the same in the secret word;
+A `G` label or `>` label means that the relative order of the letter at that position,
+compared to other `G`-labeled or `>`-labeled letters, is the same in the secret word;
 however, its absolute position in the secret word can be different.
 
 A `Y` label means that the letter at that position appears in the secret word,
-but its relative order compared to `G`-labeled letters is incorrect;
-a `.` label means that the letter is not in the secret word, or has appeared too many times.
+but its relative order, compared to `G`-labeled or `>`-labeled letters, is incorrect;
+a `.` label means that the letter is not in the secret word, or appears too many times.
 
-Furthermore, if multiple labels are braced in `[]` (e.g., `[GGG]`), they form a segment,
-and the corresponding letters appears together in the secret word, adjacent to each other;
-letters from different segments are NOT adjacent to each other in the secret word,
-even if the segments themselves are adjacent (e.g., `[G][G]`).
+Furthermore, `>` always appears right after `G` or `>`, forming a `G`-sequence like `G>>>`,
+meaning that the corresponding letters appear together in the secret word, adjacent to each other.
 
-A head segment started by `(` instead of `[` means that the secret word starts with it,
-while a `[` start means that the secret word does NOT start with this segment;
-a tail segment ended by `)` instead of `]` means that the secret word ends with it,
-while a `]` end means that the secret word does NOT end with this segment.
+Directly adjacent `G`-sequences are NOT adjacent to each other in the secret word: `GG` (NOT `G>`)
+means that there are other letters in the secret word that separate the two `G`-sequences;
+however, this does not apply to non-directly adjacent `G`-sequences like in `GYG`.
+
+The default brackets are `[` and `]`;
+at the beginning, `(` instead of `[` means that the secret word starts with the first `G`-sequence;
+at the end, `)` instead of `]` means that the secret word ends with the last `G`-sequence.
 
 If the word is rejected, you will see the reason, such as invalid format or word not in vocabulary.
 

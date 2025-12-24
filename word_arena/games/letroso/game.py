@@ -62,51 +62,89 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
         patterns: list[str] = []
 
         for index, answer in enumerate(self._answers):
+            patterns.append(self._calc_pattern(answer=answer, guess=word))
             if word == answer:
                 self._found_indices.add(index)
-
-            buffer: list[str] = []
-            head_match: bool = False
-            tail_match: bool = False
-            past_counter: Counter = Counter()
-            next_counter: Counter = Counter(answer)
-            pivot: int = 0
-
-            for i, c in enumerate(word):
-                if next_counter[c] > 0:
-                    if answer[pivot] == c and len(buffer) > 0 and buffer[-1][-1] == "G":
-                        buffer[-1] = f"{buffer[-1]}G"
-                    else:
-                        buffer.append("G")
-
-                    while answer[pivot] != c:
-                        past_counter[answer[pivot]] += 1
-                        next_counter[answer[pivot]] -= 1
-                        pivot += 1
-
-                    if i == 0 and pivot == 0:
-                        head_match = True
-                    if i == len(word) - 1 and pivot == len(answer) - 1:
-                        tail_match = True
-
-                    next_counter[answer[pivot]] -= 1
-                    pivot += 1
-                elif past_counter[c] > 0:
-                    buffer.append("Y")
-                    past_counter[c] -= 1
-                else:
-                    buffer.append(".")
-
-            patterns.append(
-                "".join(
-                    f"{'(' if head_match and i == 0 else '['}{s}"
-                    f"{')' if tail_match and i == len(buffer) - 1 else ']'}"
-                    for i, s in enumerate(buffer)
-                )
-            )
 
         return LetrosoResponse(patterns=patterns)
 
     @override
     def get_final_result(self) -> LetrosoFinalResult:
         return LetrosoFinalResult(found_indices=self._found_indices, answers=self._answers)
+
+    @staticmethod
+    def _calc_pattern(*, answer: str, guess: str) -> str:
+        answer_len: int = len(answer)
+        guess_len: int = len(guess)
+
+        edit_dist: dict[tuple[int, int], tuple[int, list[str]]] = {
+            (i, j): (i + j + (i > 0 and j > 0), [])
+            for i in range(answer_len + 1)
+            for j in range(guess_len + 1)
+        }
+
+        for i in range(0, answer_len + 1):
+            edit_dist[i, 0][1].append("+" * i)
+        for j in range(1, guess_len + 1):
+            edit_dist[0, j][1].append("-" * j)
+
+        for i in range(1, answer_len + 1):
+            for j in range(1, guess_len + 1):
+                can_skip: bool = answer[i - 1] == guess[j - 1]
+                skip_cost: int = edit_dist[i - can_skip, j - can_skip][0]
+                add_cost: int = edit_dist[i - 1, j][0] + 1
+                del_cost: int = edit_dist[i, j - 1][0] + 1
+                min_cost: int = min(skip_cost, add_cost, del_cost)
+
+                if skip_cost == min_cost:
+                    edit_dist[i, j][1].extend(f"{path}>" for path in edit_dist[i - 1, j - 1][1])
+                if add_cost == min_cost:
+                    edit_dist[i, j][1].extend(f"{path}+" for path in edit_dist[i - 1, j][1])
+                if del_cost == min_cost:
+                    edit_dist[i, j][1].extend(f"{path}-" for path in edit_dist[i, j - 1][1])
+
+                edit_dist[i, j] = min_cost, edit_dist[i, j][1]
+
+        best_score: int = -1
+        best_pattern: tuple[str, bool, bool] | None = None
+
+        for path in edit_dist[answer_len, guess_len][1]:
+            head_match: bool = path[0] == ">"
+            tail_match: bool = path[-1] == ">"
+            letter_pool: Counter[str] = Counter(answer)
+            pattern_buffer: list[str] = []
+            match_seg_len: int = 0
+            score: int = head_match + tail_match
+
+            for step in path:
+                if step == ">":
+                    letter_pool[guess[len(pattern_buffer)]] -= 1
+                    pattern_buffer.append("G" if match_seg_len == 0 else ">")
+                    match_seg_len += 1
+                    score += match_seg_len * 3
+                else:
+                    match_seg_len = 0
+
+                    if step == "-":
+                        guessed_letter: str = guess[len(pattern_buffer)]
+
+                        if letter_pool[guessed_letter] > 0:
+                            letter_pool[guessed_letter] -= 1
+                            pattern_buffer.append("Y")
+                        else:
+                            pattern_buffer.append(".")
+
+            pattern: tuple[str, bool, bool] = "".join(pattern_buffer), head_match, tail_match
+            # print(path, pattern)
+
+            if score > best_score:
+                best_score = score
+                best_pattern = pattern
+            elif score == best_score and (best_pattern is None or pattern[0] < best_pattern[0]):
+                best_pattern = pattern
+
+        assert best_pattern is not None
+
+        return "".join(
+            ("(" if best_pattern[1] else "[", best_pattern[0], ")" if best_pattern[2] else "]")
+        )
