@@ -135,7 +135,6 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
                             pattern_buffer.append(".")
 
             pattern: tuple[str, bool, bool] = "".join(pattern_buffer), head_match, tail_match
-            # print(path, pattern)
 
             if score > best_score:
                 best_score = score

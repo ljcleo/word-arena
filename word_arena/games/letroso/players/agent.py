@@ -37,13 +37,16 @@ a `.` label means that the letter is not in the secret word, or appears too many
 Furthermore, `>` always appears right after `G` or `>`, forming a `G`-sequence like `G>>>`,
 meaning that the corresponding letters appear together in the secret word, adjacent to each other.
 
-Directly adjacent `G`-sequences are NOT adjacent to each other in the secret word: `GG` (NOT `G>`)
-means that there are other letters in the secret word that separate the two `G`-sequences;
+Directly adjacent `G`-sequences are NOT adjacent to each other in the secret word:
+for example, `GG` (NOT `G>`) means that the two adjacent letters in the guessed word
+are NOT adjacent in the secret word, though the relative order is correct;
 however, this does not apply to non-directly adjacent `G`-sequences like in `GYG`.
 
 The default brackets are `[` and `]`;
 at the beginning, `(` instead of `[` means that the secret word starts with the first `G`-sequence;
 at the end, `)` instead of `]` means that the secret word ends with the last `G`-sequence.
+
+Therefore, the secret word itself will be labeled like `(G>>>>)`.
 
 If the word is rejected, you will see the reason, such as invalid format or word not in vocabulary.
 
