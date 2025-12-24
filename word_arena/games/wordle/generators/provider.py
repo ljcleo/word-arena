@@ -1,13 +1,38 @@
+from pathlib import Path
+from sqlite3 import Connection, Cursor, connect
 from typing import override
 
 from ....common.generator.provider import BaseGameProvider
 from ..game import WordleGame
-from .common import WordleConfig
+from .common import WordleConfig, WordleMetaConfig
 
 
-class WordleGameProvider(BaseGameProvider[WordleConfig, WordleGame]):
+class WordleGameProvider(BaseGameProvider[WordleMetaConfig, WordleConfig, WordleGame]):
+    def __init__(self, *, data_file: Path, **kwargs):
+        super().__init__(meta_config=self._load_meta_config(data_file=data_file), **kwargs)
+
     @override
-    def create_game(self, *, config: WordleConfig) -> WordleGame:
+    def create_game(self, *, meta_config: WordleMetaConfig, config: WordleConfig) -> WordleGame:
         return WordleGame(
-            word_list=config.word_list, target_ids=config.target_ids, max_guesses=config.max_guesses
+            word_list=meta_config.word_list,
+            target_ids=[meta_config.target_pool[index] for index in config.game_ids],
+            max_guesses=config.max_guesses,
+        )
+
+    @staticmethod
+    def _load_meta_config(*, data_file: Path) -> WordleMetaConfig:
+        con: Connection = connect(data_file)
+        cur: Cursor = con.cursor()
+
+        try:
+            with con:
+                word_data: dict[int, str] = dict(cur.execute("SELECT word_id, word FROM word"))
+            with con:
+                game_data: dict[int, int] = dict(cur.execute("SELECT game_id, word_id FROM game"))
+        finally:
+            con.close()
+
+        return WordleMetaConfig(
+            word_list=[word_data[i] for i in range(len(word_data))],
+            target_pool=[game_data[i] for i in range(len(game_data))],
         )

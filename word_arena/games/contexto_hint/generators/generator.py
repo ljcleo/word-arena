@@ -1,27 +1,39 @@
-from collections.abc import Iterable
 from pathlib import Path
 from random import Random
-from typing import override
+from sqlite3 import Connection, Cursor, connect
+from typing import Iterable, override
 
 from ....common.generator.generator import BaseGameGenerator
 from ..game import ContextoHintGame
-from .common import ContextoHintConfig, ContextoHintSetting
+from .common import ContextoHintConfig
 from .provider import ContextoHintGameProvider
 
 
 class ContextoHintGameGenerator(
-    BaseGameGenerator[ContextoHintSetting, ContextoHintConfig, ContextoHintGame],
-    ContextoHintGameProvider,
+    ContextoHintGameProvider, BaseGameGenerator[Path, int, ContextoHintConfig, ContextoHintGame]
 ):
-    @override
     def __init__(
-        self, *, setting_pool: Iterable[ContextoHintSetting], seed: int, games_dir: Path
+        self, *, data_file: Path, mutable_meta_config_pool: Iterable[int], seed: int, **kwargs
     ) -> None:
-        super().__init__(setting_pool=setting_pool, seed=seed, games_dir=games_dir)
-        self._num_games: int = sum(1 for _ in games_dir.iterdir())
+        super().__init__(
+            data_file=data_file,
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            seed=seed,
+            **kwargs,
+        )
 
     @override
-    def generate_config(self, *, setting: ContextoHintSetting, rng: Random) -> ContextoHintConfig:
-        return ContextoHintConfig(
-            game_id=rng.randrange(self._num_games), num_candidates=setting.num_candidates
-        )
+    def generate_config(
+        self, *, meta_config: Path, mutable_meta_config: int, rng: Random
+    ) -> ContextoHintConfig:
+        con: Connection = connect(meta_config)
+        cur: Cursor = con.cursor()
+
+        try:
+            with con:
+                return ContextoHintConfig(
+                    num_candidates=mutable_meta_config,
+                    game_id=rng.randrange(cur.execute("SELECT COUNT(*) FROM game").fetchone()[0]),
+                )
+        finally:
+            con.close()

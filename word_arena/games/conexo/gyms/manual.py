@@ -11,20 +11,22 @@ from .base import ConexoConfigGym
 
 
 class ConexoManualGym(
-    BaseManualGym[ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult],
     ConexoConfigGym[[Callable[[str], str], Callable[[str], None]]],
+    BaseManualGym[
+        Path, ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult
+    ],
 ):
     def __init__(
         self,
         *,
-        games_dir: Path,
-        create_config_func: Callable[[], ConexoConfig],
+        data_file: Path,
         log_func: Callable[[str], None],
+        config_creator: Callable[[], ConexoConfig],
     ) -> None:
         super().__init__(
-            game_provider=ConexoGameProvider(games_dir=games_dir),
-            create_config_func=create_config_func,
+            game_provider=ConexoGameProvider(data_file=data_file),
             log_func=log_func,
+            config_creator=config_creator,
         )
 
     @override

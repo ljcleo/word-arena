@@ -11,20 +11,20 @@ from .base import ContextoHintConfigGym
 
 
 class ContextoHintManualGym(
-    BaseManualGym[ContextoHintConfig, None, list[str], ContextoHintGuess, int, list[str]],
     ContextoHintConfigGym[[Callable[[str], str], Callable[[str], None]]],
+    BaseManualGym[Path, ContextoHintConfig, None, list[str], ContextoHintGuess, int, list[str]],
 ):
     def __init__(
         self,
         *,
-        games_dir: Path,
-        create_config_func: Callable[[], ContextoHintConfig],
+        data_file: Path,
         log_func: Callable[[str], None],
+        config_creator: Callable[[], ContextoHintConfig],
     ) -> None:
         super().__init__(
-            game_provider=ContextoHintGameProvider(games_dir=games_dir),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
+            game_provider=ContextoHintGameProvider(data_file=data_file),
         )
 
     @override

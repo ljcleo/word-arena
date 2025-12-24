@@ -1,19 +1,15 @@
-import logging
-import sys
-from datetime import date, datetime, timedelta
-from pathlib import Path
+from datetime import date, timedelta
+from logging import WARNING, getLogger
+from sqlite3 import Connection, Cursor, connect
+from warnings import warn
 
-import httpx
+from httpx import Response, get
 from tenacity import before_sleep_log, retry, wait_random
 
 
-@retry(
-    wait=wait_random(max=3),
-    before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
-)
-def get_word(*, target_date: date) -> str:
-    date_str: str = target_date.strftime("%Y-%m-%d")
-    response: httpx.Response = httpx.get(f"https://www.nytimes.com/svc/wordle/v2/{date_str}.json")
+@retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+def get_word(*, date_str: str) -> str:
+    response: Response = get(f"https://www.nytimes.com/svc/wordle/v2/{date_str}.json")
 
     if response.status_code == 200:
         return response.json()["solution"]
@@ -22,20 +18,59 @@ def get_word(*, target_date: date) -> str:
 
 
 def main() -> None:
-    target_file: Path = Path("./games.txt")
+    con: Connection = connect("./games.db")
+    cur: Cursor = con.cursor()
 
-    target_date: date = (
-        date(2021, 6, 19)
-        if len(sys.argv) == 1
-        else datetime.strptime(sys.argv[1], "%Y-%m-%d").date()
-    )
+    try:
+        with con:
+            word_map: dict[str, int] = {
+                word: index
+                for word, index in cur.execute("SELECT word_id, word FROM word").fetchall()
+            }
 
-    while target_date <= date.today():
-        print(target_date.strftime("%Y-%m-%d"))
-        with target_file.open("a", encoding="utf8") as f:
-            print(get_word(target_date=target_date), file=f)
+        with con:
+            is_table_exist: bool = bool(
+                cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE name = 'game'").fetchone()[0]
+            )
 
-        target_date += timedelta(days=1)
+        if not is_table_exist:
+            with con:
+                cur.execute("CREATE TABLE game(game_id, word_id)")
+
+        target_date: date = date(2021, 6, 19)
+        game_id: int = 0
+
+        while target_date <= date.today():
+            with con:
+                has_game: bool = bool(
+                    cur.execute(
+                        "SELECT COUNT(*) FROM game WHERE game_id = ?", (game_id,)
+                    ).fetchone()[0]
+                )
+
+            if has_game:
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            date_str: str = target_date.strftime("%Y-%m-%d")
+            print(date_str)
+
+            try:
+                word_id: int = word_map[get_word(date_str=date_str)]
+            except Exception as e:
+                warn(f"{date_str}: {repr(e)}")
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            with con:
+                cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, word_id))
+
+            target_date += timedelta(days=1)
+            game_id += 1
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

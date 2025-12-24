@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from pathlib import Path
 from typing import override
 
 from ....common.gym.agent.common import TrainingConfig
@@ -11,15 +12,19 @@ from ..common import (
     LetrosoGuess,
     LetrosoInfo,
 )
-from ..generators.common import LetrosoConfig, LetrosoSetting
+from ..generators.common import LetrosoConfig, LetrosoMetaConfig, LetrosoMutableMetaConfig
 from ..generators.generator import LetrosoGameGenerator
 from ..players.agent import LetrosoAgentPlayer
 from .base import LetrosoConfigGym
 
 
 class LetrosoAgentGym(
+    LetrosoConfigGym[
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+    ],
     BaseAgentGym[
-        LetrosoSetting,
+        LetrosoMetaConfig,
+        LetrosoMutableMetaConfig,
         LetrosoConfig,
         LetrosoInfo,
         None,
@@ -28,25 +33,22 @@ class LetrosoAgentGym(
         LetrosoFinalResult,
         LetrosoExperience,
     ],
-    LetrosoConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
-    ],
 ):
     def __init__(
         self,
         *,
-        setting_pool: Iterable[LetrosoSetting],
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[LetrosoMutableMetaConfig],
         seed: int,
-        word_list: Iterable[str],
-        create_config_func: Callable[[], LetrosoConfig],
         log_func: Callable[[str], None],
+        config_creator: Callable[[], LetrosoConfig],
     ) -> None:
         super().__init__(
-            game_generator=LetrosoGameGenerator(
-                setting_pool=setting_pool, seed=seed, word_list=word_list
-            ),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
+            game_generator=LetrosoGameGenerator(
+                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+            ),
         )
 
     @override

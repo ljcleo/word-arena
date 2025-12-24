@@ -10,19 +10,16 @@ from .base import ContextoConfigGym
 
 
 class ContextoManualGym(
-    BaseManualGym[ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult],
     ContextoConfigGym[[Callable[[str], str], Callable[[str], None]]],
+    BaseManualGym[
+        None, ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult
+    ],
 ):
     def __init__(
-        self,
-        *,
-        create_config_func: Callable[[], ContextoConfig],
-        log_func: Callable[[str], None],
+        self, *, log_func: Callable[[str], None], config_creator: Callable[[], ContextoConfig]
     ) -> None:
         super().__init__(
-            game_provider=ContextoGameProvider(),
-            create_config_func=create_config_func,
-            log_func=log_func,
+            log_func=log_func, config_creator=config_creator, game_provider=ContextoGameProvider()
         )
 
     @override

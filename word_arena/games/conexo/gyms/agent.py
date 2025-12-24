@@ -6,15 +6,19 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
-from ..generators.common import ConexoConfig, ConexoSetting
+from ..generators.common import ConexoConfig
 from ..generators.generator import ConexoGameGenerator
 from ..players.agent import ConexoAgentPlayer
 from .base import ConexoConfigGym
 
 
 class ConexoAgentGym(
+    ConexoConfigGym[
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+    ],
     BaseAgentGym[
-        ConexoSetting,
+        Path,
+        int,
         ConexoConfig,
         ConexoInfo,
         None,
@@ -23,25 +27,22 @@ class ConexoAgentGym(
         ConexoFinalResult,
         ConexoExperience,
     ],
-    ConexoConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
-    ],
 ):
     def __init__(
         self,
         *,
-        setting_pool: Iterable[ConexoSetting],
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[int],
         seed: int,
-        games_dir: Path,
-        create_config_func: Callable[[], ConexoConfig],
         log_func: Callable[[str], None],
+        config_creator: Callable[[], ConexoConfig],
     ) -> None:
         super().__init__(
             game_generator=ConexoGameGenerator(
-                setting_pool=setting_pool, seed=seed, games_dir=games_dir
+                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
         )
 
     @override

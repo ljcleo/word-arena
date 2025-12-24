@@ -1,38 +1,43 @@
-from collections.abc import Iterable
+from pathlib import Path
 from random import Random
-from typing import override
+from typing import Iterable, override
 
 from ....common.generator.generator import BaseGameGenerator
 from ..game import WordleGame
-from .common import WordleConfig, WordleSetting
+from .common import WordleConfig, WordleMetaConfig, WordleMutableMetaConfig
 from .provider import WordleGameProvider
 
 
 class WordleGameGenerator(
-    BaseGameGenerator[WordleSetting, WordleConfig, WordleGame], WordleGameProvider
+    WordleGameProvider,
+    BaseGameGenerator[WordleMetaConfig, WordleMutableMetaConfig, WordleConfig, WordleGame],
 ):
-    @override
     def __init__(
         self,
         *,
-        setting_pool: Iterable[WordleSetting],
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[WordleMutableMetaConfig],
         seed: int,
-        word_list: Iterable[str],
-        game_word_list: Iterable[str],
+        **kwargs,
     ) -> None:
-        super().__init__(setting_pool=setting_pool, seed=seed)
-        self._word_list: list[str] = list(word_list)
-        word_map: dict[str, int] = {word: index for index, word in enumerate(self._word_list)}
-        self._target_pool: list[int] = [word_map[word] for word in game_word_list]
-        self._num_games: int = len(self._target_pool)
+        super().__init__(
+            data_file=data_file,
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            seed=seed,
+            **kwargs,
+        )
 
     @override
-    def generate_config(self, *, setting: WordleSetting, rng: Random) -> WordleConfig:
+    def generate_config(
+        self,
+        *,
+        meta_config: WordleMetaConfig,
+        mutable_meta_config: WordleMutableMetaConfig,
+        rng: Random,
+    ) -> WordleConfig:
         return WordleConfig(
-            word_list=self._word_list,
-            target_ids=[
-                self._target_pool[i]
-                for i in rng.sample(range(self._num_games), setting.num_targets)
-            ],
-            max_guesses=setting.max_guesses,
+            max_guesses=mutable_meta_config.max_guesses,
+            game_ids=rng.sample(
+                range(len(meta_config.target_pool)), mutable_meta_config.num_targets
+            ),
         )

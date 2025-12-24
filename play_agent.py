@@ -4,119 +4,92 @@ from word_arena.common.gym.agent.gym import BaseAgentGym
 
 
 def build_contexto_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
-    from word_arena.games.contexto.generators.common import ContextoConfig, ContextoSetting
+    from word_arena.games.contexto.generators.common import ContextoConfig
     from word_arena.games.contexto.gyms.agent import ContextoAgentGym
 
-    def create_config() -> ContextoConfig:
-        return ContextoConfig(
-            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
-        )
-
     return ContextoAgentGym(
-        setting_pool=(ContextoSetting(max_guesses=50),),
+        mutable_meta_config_pool=(50,),
         seed=seed,
-        create_config_func=create_config,
         log_func=log_func,
+        config_creator=lambda: ContextoConfig(
+            max_guesses=int(input("Max Guesses: ")), game_id=int(input("Game ID: "))
+        ),
     )
 
 
 def build_contexto_hint_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from pathlib import Path
 
-    from word_arena.games.contexto_hint.generators.common import (
-        ContextoHintConfig,
-        ContextoHintSetting,
-    )
+    from word_arena.games.contexto_hint.generators.common import ContextoHintConfig
     from word_arena.games.contexto_hint.gyms.agent import ContextoHintAgentGym
 
-    def create_config() -> ContextoHintConfig:
-        return ContextoHintConfig(
-            game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
-        )
-
     return ContextoHintAgentGym(
-        setting_pool=(ContextoHintSetting(num_candidates=5),),
+        mutable_meta_config_pool=(5,),
         seed=seed,
-        games_dir=Path("./data/contexto_hint/games"),
-        create_config_func=create_config,
         log_func=log_func,
+        data_file=Path("./data/contexto_hint/games.db"),
+        config_creator=lambda: ContextoHintConfig(
+            num_candidates=int(input("Number of Candidates: ")), game_id=int(input("Game ID: "))
+        ),
     )
 
 
 def build_wordle_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
-    from word_arena.games.wordle.generators.common import WordleConfig, WordleSetting
+    from pathlib import Path
+
+    from word_arena.games.wordle.generators.common import WordleConfig, WordleMutableMetaConfig
     from word_arena.games.wordle.gyms.agent import WordleAgentGym
 
-    with open("./data/wordle/words.txt", encoding="utf8") as f:
-        word_list: list[str] = list(map(str.strip, f))
-    with open("./data/wordle/games.txt", encoding="utf8") as f:
-        game_word_list: list[str] = list(map(str.strip, f))
-
-    def create_config() -> WordleConfig:
-        return WordleConfig(
-            word_list=word_list,
-            target_ids=[
-                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
-            ],
-            max_guesses=int(input("Max Guesses: ")),
-        )
-
     return WordleAgentGym(
-        setting_pool=(
-            WordleSetting(num_targets=num_targets, max_guesses=num_targets + 5)
+        mutable_meta_config_pool=(
+            WordleMutableMetaConfig(max_guesses=num_targets + 5, num_targets=num_targets)
             for num_targets in (1, 2, 4, 8, 16)
         ),
         seed=seed,
-        word_list=word_list,
-        game_word_list=game_word_list,
-        create_config_func=create_config,
         log_func=log_func,
+        data_file=Path("./data/wordle/games.db"),
+        config_creator=lambda: WordleConfig(
+            max_guesses=int(input("Max Guesses: ")),
+            game_ids=[int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))],
+        ),
     )
 
 
 def build_letroso_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
-    from word_arena.games.letroso.generators.common import LetrosoConfig, LetrosoSetting
+    from pathlib import Path
+
+    from word_arena.games.letroso.generators.common import LetrosoConfig, LetrosoMutableMetaConfig
     from word_arena.games.letroso.gyms.agent import LetrosoAgentGym
 
-    with open("./data/letroso/words.txt", encoding="utf8") as f:
-        word_list: list[str] = list(map(str.strip, f))
-
-    def create_config() -> LetrosoConfig:
-        return LetrosoConfig(
-            word_list=word_list,
-            target_ids=[
-                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
-            ],
+    return LetrosoAgentGym(
+        mutable_meta_config_pool=(
+            LetrosoMutableMetaConfig(max_letters=10, max_guesses=20, num_targets=1),
+        ),
+        seed=seed,
+        log_func=log_func,
+        data_file=Path("./data/letroso/games.db"),
+        config_creator=lambda: LetrosoConfig(
             max_letters=int(input("Max Input Letters: ")),
             max_guesses=int(input("Max Guesses: ")),
-        )
-
-    return LetrosoAgentGym(
-        setting_pool=(LetrosoSetting(num_targets=1, max_letters=10, max_guesses=20),),
-        seed=seed,
-        word_list=word_list,
-        create_config_func=create_config,
-        log_func=log_func,
+            game_ids=[int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))],
+        ),
     )
 
 
 def build_conexo_agent_gym(seed: int, log_func: Callable[[str], None]) -> BaseAgentGym:
     from pathlib import Path
 
-    from word_arena.games.conexo.generators.common import ConexoConfig, ConexoSetting
+    from word_arena.games.conexo.generators.common import ConexoConfig
     from word_arena.games.conexo.gyms.agent import ConexoAgentGym
 
-    def create_config() -> ConexoConfig:
-        return ConexoConfig(
-            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
-        )
-
     return ConexoAgentGym(
-        setting_pool=(ConexoSetting(max_guesses=20),),
+        mutable_meta_config_pool=(20,),
         seed=seed,
-        games_dir=Path("./data/conexo/games"),
-        create_config_func=create_config,
         log_func=log_func,
+        data_file=Path("./data/conexo/games.db"),
+        config_creator=lambda: ConexoConfig(
+            max_guesses=int(input("Max Guesses: ")), game_id=int(input("Game ID: "))
+        ),
     )
 
 

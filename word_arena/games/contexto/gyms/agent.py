@@ -5,15 +5,19 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoGuess
-from ..generators.common import ContextoConfig, ContextoSetting
+from ..generators.common import ContextoConfig
 from ..generators.generator import ContextoGameGenerator
 from ..players.agent import ContextoAgentPlayer
 from .base import ContextoConfigGym
 
 
 class ContextoAgentGym(
+    ContextoConfigGym[
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+    ],
     BaseAgentGym[
-        ContextoSetting,
+        None,
+        int,
         ContextoConfig,
         int,
         None,
@@ -22,22 +26,21 @@ class ContextoAgentGym(
         ContextoFinalResult,
         ContextoExperience,
     ],
-    ContextoConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
-    ],
 ):
     def __init__(
         self,
         *,
-        setting_pool: Iterable[ContextoSetting],
+        mutable_meta_config_pool: Iterable[int],
         seed: int,
-        create_config_func: Callable[[], ContextoConfig],
         log_func: Callable[[str], None],
+        config_creator: Callable[[], ContextoConfig],
     ) -> None:
         super().__init__(
-            game_generator=ContextoGameGenerator(setting_pool=setting_pool, seed=seed),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
+            game_generator=ContextoGameGenerator(
+                mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+            ),
         )
 
     @override

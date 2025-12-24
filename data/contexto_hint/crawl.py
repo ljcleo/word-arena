@@ -1,40 +1,69 @@
+from json import dumps
 from logging import WARNING, getLogger
-from pathlib import Path
+from sqlite3 import Connection, Cursor, connect
+from warnings import warn
 
-import httpx
+from httpx import Response, get
 from tenacity import before_sleep_log, retry, wait_random
 
 
-@retry(wait=wait_random(max=1), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
-def get_top(*, game_id: int) -> list[str] | None:
-    response: httpx.Response = httpx.get(f"https://api.contexto.me/machado/en/top/{game_id}")
+@retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+def get_top(*, game_id: int) -> str | None:
+    response: Response = get(f"https://api.contexto.me/machado/en/top/{game_id}")
 
     if response.status_code == 200:
-        return response.json()["words"]
+        return dumps(response.json()["words"], ensure_ascii=False, separators=(",", ":"))
     elif response.status_code == 500:
         return None
     else:
         raise RuntimeError(response.status_code, response.reason_phrase, response.text)
 
 
-def main():
-    target_dir: Path = Path("./games")
-    target_dir.mkdir(exist_ok=True)
+def main() -> None:
+    con: Connection = connect("./games.db")
+    cur: Cursor = con.cursor()
 
-    for game_id in range(2000):
-        target_file: Path = target_dir / f"{game_id}.txt"
+    try:
+        with con:
+            is_table_exist: bool = bool(
+                cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE name = 'game'").fetchone()[0]
+            )
 
-        if not target_file.exists():
-            top_words: list[str] | None = get_top(game_id=game_id)
+        if not is_table_exist:
+            with con:
+                cur.execute("CREATE TABLE game(game_id, top_words)")
+
+        game_id: int = 0
+
+        while True:
+            with con:
+                has_game: bool = bool(
+                    cur.execute(
+                        "SELECT COUNT(*) FROM game WHERE game_id = ?", (game_id,)
+                    ).fetchone()[0]
+                )
+
+            if has_game:
+                game_id += 1
+                continue
+
+            print(game_id)
+
+            try:
+                top_words: str | None = get_top(game_id=game_id)
+            except Exception as e:
+                warn(f"{game_id}: {repr(e)}")
+                game_id += 1
+                continue
 
             if top_words is None:
-                print("Break", game_id)
                 break
+            with con:
+                cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, top_words))
 
-            target_file.write_text("\n".join(top_words))
-            print("Crawl", game_id)
-
-    print("Done")
+            game_id += 1
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

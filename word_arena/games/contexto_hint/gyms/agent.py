@@ -6,15 +6,19 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ContextoHintExperience, ContextoHintGuess
-from ..generators.common import ContextoHintConfig, ContextoHintSetting
+from ..generators.common import ContextoHintConfig
 from ..generators.generator import ContextoHintGameGenerator
 from ..players.agent import ContextoHintAgentPlayer
 from .base import ContextoHintConfigGym
 
 
 class ContextoHintAgentGym(
+    ContextoHintConfigGym[
+        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+    ],
     BaseAgentGym[
-        ContextoHintSetting,
+        Path,
+        int,
         ContextoHintConfig,
         None,
         list[str],
@@ -23,25 +27,22 @@ class ContextoHintAgentGym(
         list[str],
         ContextoHintExperience,
     ],
-    ContextoHintConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
-    ],
 ):
     def __init__(
         self,
         *,
-        setting_pool: Iterable[ContextoHintSetting],
+        data_file: Path,
+        mutable_meta_config_pool: Iterable[int],
         seed: int,
-        games_dir: Path,
-        create_config_func: Callable[[], ContextoHintConfig],
         log_func: Callable[[str], None],
+        config_creator: Callable[[], ContextoHintConfig],
     ) -> None:
         super().__init__(
             game_generator=ContextoHintGameGenerator(
-                setting_pool=setting_pool, seed=seed, games_dir=games_dir
+                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
         )
 
     @override

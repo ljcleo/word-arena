@@ -7,12 +7,12 @@ def build_contexto_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from word_arena.games.contexto.generators.common import ContextoConfig
     from word_arena.games.contexto.gyms.manual import ContextoManualGym
 
-    def create_config() -> ContextoConfig:
-        return ContextoConfig(
-            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
-        )
-
-    return ContextoManualGym(create_config_func=create_config, log_func=log_func)
+    return ContextoManualGym(
+        log_func=log_func,
+        config_creator=lambda: ContextoConfig(
+            max_guesses=int(input("Max Guesses: ")), game_id=int(input("Game ID: "))
+        ),
+    )
 
 
 def build_contexto_hint_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
@@ -21,61 +21,46 @@ def build_contexto_hint_manual_gym(log_func: Callable[[str], None]) -> BaseManua
     from word_arena.games.contexto_hint.generators.common import ContextoHintConfig
     from word_arena.games.contexto_hint.gyms.manual import ContextoHintManualGym
 
-    def create_config() -> ContextoHintConfig:
-        return ContextoHintConfig(
-            game_id=int(input("Game ID: ")), num_candidates=int(input("Number of Candidates: "))
-        )
-
     return ContextoHintManualGym(
-        games_dir=Path("./data/contexto_hint/games"),
-        create_config_func=create_config,
         log_func=log_func,
+        data_file=Path("./data/contexto_hint/games.db"),
+        config_creator=lambda: ContextoHintConfig(
+            num_candidates=int(input("Number of Candidates: ")), game_id=int(input("Game ID: "))
+        ),
     )
 
 
 def build_wordle_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
+    from pathlib import Path
+
     from word_arena.games.wordle.generators.common import WordleConfig
     from word_arena.games.wordle.gyms.manual import WordleManualGym
 
-    with open("./data/wordle/words.txt", encoding="utf8") as f:
-        word_list: list[str] = list(map(str.strip, f))
-    with open("./data/wordle/games.txt", encoding="utf8") as f:
-        game_word_list: list[str] = list(map(str.strip, f))
-
-    word_map: dict[str, int] = {word: index for index, word in enumerate(word_list)}
-    target_pool: list[int] = [word_map[word] for word in game_word_list]
-
-    def create_config() -> WordleConfig:
-        return WordleConfig(
-            word_list=word_list,
-            target_ids=[
-                target_pool[int(input(f"Word ID {i + 1}: "))]
-                for i in range(int(input("Num Targets: ")))
-            ],
+    return WordleManualGym(
+        log_func=log_func,
+        data_file=Path("./data/wordle/games.db"),
+        config_creator=lambda: WordleConfig(
             max_guesses=int(input("Max Guesses: ")),
-        )
-
-    return WordleManualGym(create_config_func=create_config, log_func=log_func)
+            game_ids=[int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))],
+        ),
+    )
 
 
 def build_letroso_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
+    from pathlib import Path
+
     from word_arena.games.letroso.generators.common import LetrosoConfig
     from word_arena.games.letroso.gyms.manual import LetrosoManualGym
 
-    with open("./data/letroso/words.txt", encoding="utf8") as f:
-        word_list: list[str] = list(map(str.strip, f))
-
-    def create_config() -> LetrosoConfig:
-        return LetrosoConfig(
-            word_list=word_list,
-            target_ids=[
-                int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))
-            ],
+    return LetrosoManualGym(
+        log_func=log_func,
+        data_file=Path("./data/letroso/games.db"),
+        config_creator=lambda: LetrosoConfig(
             max_letters=int(input("Max Input Letters: ")),
             max_guesses=int(input("Max Guesses: ")),
-        )
-
-    return LetrosoManualGym(create_config_func=create_config, log_func=log_func)
+            game_ids=[int(input(f"Word ID {i + 1}: ")) for i in range(int(input("Num Targets: ")))],
+        ),
+    )
 
 
 def build_conexo_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
@@ -84,13 +69,12 @@ def build_conexo_manual_gym(log_func: Callable[[str], None]) -> BaseManualGym:
     from word_arena.games.conexo.generators.common import ConexoConfig
     from word_arena.games.conexo.gyms.manual import ConexoManualGym
 
-    def create_config() -> ConexoConfig:
-        return ConexoConfig(
-            game_id=int(input("Game ID: ")), max_guesses=int(input("Max Guesses: "))
-        )
-
     return ConexoManualGym(
-        games_dir=Path("./data/conexo/games"), create_config_func=create_config, log_func=log_func
+        log_func=log_func,
+        data_file=Path("./data/conexo/games.db"),
+        config_creator=lambda: ConexoConfig(
+            max_guesses=int(input("Max Guesses: ")), game_id=int(input("Game ID: "))
+        ),
     )
 
 

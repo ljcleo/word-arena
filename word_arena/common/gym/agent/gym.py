@@ -13,7 +13,7 @@ from ..base import BaseConfigGym
 from .common import TrainingConfig
 
 
-class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
+class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
     BaseConfigGym[
         CT,
         IT,
@@ -28,14 +28,13 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
     def __init__(
         self,
         *,
-        game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]],
-        create_config_func: Callable[[], CT],
         log_func: Callable[[str], None],
+        game_generator: BaseGameGenerator[MT, UT, CT, BaseGame[IT, HT, GT, FT, RT]],
         **kwargs,
     ) -> None:
-        super().__init__(create_config_func=create_config_func, log_func=log_func, **kwargs)
+        super().__init__(log_func=log_func, **kwargs)
 
-        self._game_generator: BaseGameGenerator[ST, CT, BaseGame[IT, HT, GT, FT, RT]] = (
+        self._game_generator: BaseGameGenerator[MT, UT, CT, BaseGame[IT, HT, GT, FT, RT]] = (
             game_generator
         )
 
@@ -75,7 +74,7 @@ class BaseAgentGym[ST, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
 
     @override
     def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self._game_generator.create_game(config=config)
+        return self._game_generator.create_game_from_config(config=config)
 
     @abstractmethod
     def create_player(

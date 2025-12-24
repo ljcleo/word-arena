@@ -14,5 +14,4 @@ wheels/
 
 # Data
 config/
-data/**/games
-data/**/*.txt
+data/**/games.db

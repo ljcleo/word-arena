@@ -1,48 +1,65 @@
-import json
-import warnings
 from collections.abc import Iterator
 from datetime import date, timedelta
+from json import loads
+from logging import WARNING, getLogger
 from pathlib import Path
+from sqlite3 import Connection, Cursor, connect
 from typing import Any
+from warnings import warn
 
+from pydantic import BaseModel
 from pyvirtualdisplay.display import Display
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from tenacity import before_sleep_log, retry, wait_random
 
 
 def parse_text(text: str) -> Iterator[Any]:
     while text != "":
         header, _, text = text.partition("\n")
         len_doc = int(header)
-        yield json.loads(text[:len_doc])
+        yield loads(text[:len_doc])
         text = text[len_doc:]
 
 
-def parse_doc(doc: dict[str, Any]) -> dict[str, int | list[str] | list[dict[str, list[int] | str]]]:
+class ConexoGroupData(BaseModel):
+    indices: list[int]
+    theme: str
+
+
+class ConexoGameData(BaseModel):
+    id: int
+    words: list[str]
+    groups: list[ConexoGroupData]
+
+
+def parse_doc(doc: dict[str, Any]) -> ConexoGameData:
     fields: dict[str, Any] = doc["documentChange"]["document"]["fields"]
-    game_id: int = int(fields["id"]["integerValue"])
 
     words: list[str] = [
         value["stringValue"] for value in fields["startingBoard"]["arrayValue"]["values"]
     ]
 
-    groups: list[dict[str, list[int] | str]] = [
-        {
-            "indices": [
-                words.index(value["stringValue"])
-                for value in group_value["mapValue"]["fields"]["words"]["arrayValue"]["values"]
-            ],
-            "theme": group_value["mapValue"]["fields"]["theme"]["stringValue"],
-        }
-        for group_value in fields["groups"]["arrayValue"]["values"]
-    ]
+    return ConexoGameData(
+        id=int(fields["id"]["integerValue"]),
+        words=words,
+        groups=[
+            ConexoGroupData(
+                indices=[
+                    words.index(value["stringValue"])
+                    for value in group_value["mapValue"]["fields"]["words"]["arrayValue"]["values"]
+                ],
+                theme=group_value["mapValue"]["fields"]["theme"]["stringValue"],
+            )
+            for group_value in fields["groups"]["arrayValue"]["values"]
+        ],
+    )
 
-    return {"id": game_id, "words": words, "groups": groups}
 
-
-def crawl(target_date: date, out_dir: Path):
+@retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+def get_data(date_str: str) -> str | None:
     log_file: Path = Path("./log.txt")
     log_file.open("w").close()
 
@@ -59,19 +76,19 @@ def crawl(target_date: date, out_dir: Path):
 
         try:
             driver.implicitly_wait(120)
-            driver.get(f"https://conexo.ws/en/previous/{target_date.strftime('%Y-%m-%d')}")
+            driver.get(f"https://conexo.ws/en/previous/{date_str}")
             driver.find_element(By.CLASS_NAME, "board-item")
         except Exception as e:
-            warnings.warn(f"error in crawling, will try to extract existing data: {repr(e)}")
+            warn(f"error in crawling, will try to extract existing data: {repr(e)}")
         finally:
             driver.quit()
             display.stop()
 
-        buffer: list[dict[str, int | list[str] | list[dict[str, list[int] | str]]]] = []
+        buffer: list[ConexoGameData] = []
 
         with log_file.open(encoding="utf8") as f:
             for row in f:
-                doc: dict[str, Any] = json.loads(row)
+                doc: dict[str, Any] = loads(row)
 
                 if doc["status_code"] == 200:
                     for candidate in parse_text(doc["text"]):
@@ -81,29 +98,67 @@ def crawl(target_date: date, out_dir: Path):
                                     buffer.append(parse_doc(chunk))
                                     break
 
-        for doc in buffer:
-            with (out_dir / f"{doc['id']}.json").open("w", encoding="utf8") as f:
-                json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
-                break
+        for data in buffer:
+            return data.model_dump_json()
     except Exception as e:
-        warnings.warn(f"system error: {repr(e)}")
+        warn(f"system error: {repr(e)}")
     finally:
         log_file.unlink(missing_ok=True)
 
+    return None
 
-def main():
-    out_dir: Path = Path("./games")
-    out_dir.mkdir(exist_ok=True)
-    target_date: date = date(2024, 2, 1)
-    expected_id: int = 0
 
-    while target_date <= date.today():
-        if not (out_dir / f"{expected_id}.json").exists():
-            print(target_date.strftime("%Y-%m-%d"), expected_id)
-            crawl(target_date, out_dir)
+def main() -> None:
+    con: Connection = connect("./games.db")
+    cur: Cursor = con.cursor()
 
-        target_date += timedelta(days=1)
-        expected_id += 1
+    try:
+        with con:
+            is_table_exist: bool = bool(
+                cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE name = 'game'").fetchone()[0]
+            )
+
+        if not is_table_exist:
+            with con:
+                cur.execute("CREATE TABLE game(game_id, game_data)")
+
+        target_date: date = date(2024, 2, 1)
+        game_id: int = 0
+
+        while target_date <= date.today():
+            with con:
+                has_game: bool = bool(
+                    cur.execute(
+                        "SELECT COUNT(*) FROM game WHERE game_id = ?", (game_id,)
+                    ).fetchone()[0]
+                )
+
+            if has_game:
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            date_str: str = target_date.strftime("%Y-%m-%d")
+            print(date_str)
+
+            try:
+                game_data: str | None = get_data(date_str=date_str)
+            except Exception as e:
+                warn(f"{date_str}: {repr(e)}")
+                target_date += timedelta(days=1)
+                game_id += 1
+                continue
+
+            if game_data is None:
+                warn(f"{date_str}: no valid data")
+            else:
+                with con:
+                    cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, game_data))
+
+            target_date += timedelta(days=1)
+            game_id += 1
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

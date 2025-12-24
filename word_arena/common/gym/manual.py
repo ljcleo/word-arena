@@ -8,19 +8,18 @@ from ..player.manual import BaseManualPlayer
 from .base import BaseConfigGym
 
 
-class BaseManualGym[CT, IT, HT, GT, FT, RT](
+class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
     BaseConfigGym[CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str], None]]], ABC
 ):
     def __init__(
         self,
         *,
-        game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]],
-        create_config_func: Callable[[], CT],
         log_func: Callable[[str], None],
+        game_provider: BaseGameProvider[MT, CT, BaseGame[IT, HT, GT, FT, RT]],
         **kwargs,
     ) -> None:
-        super().__init__(create_config_func=create_config_func, log_func=log_func, **kwargs)
-        self._game_provider: BaseGameProvider[CT, BaseGame[IT, HT, GT, FT, RT]] = game_provider
+        super().__init__(log_func=log_func, **kwargs)
+        self._game_provider: BaseGameProvider[MT, CT, BaseGame[IT, HT, GT, FT, RT]] = game_provider
 
     @override
     def create_player_with_cb(
@@ -34,7 +33,7 @@ class BaseManualGym[CT, IT, HT, GT, FT, RT](
 
     @override
     def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self._game_provider.create_game(config=config)
+        return self._game_provider.create_game_from_config(config=config)
 
     @abstractmethod
     def create_player(

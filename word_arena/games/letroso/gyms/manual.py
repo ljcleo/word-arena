@@ -1,30 +1,38 @@
 from collections.abc import Callable
+from pathlib import Path
 from typing import override
 
 from ....common.gym.manual import BaseManualGym
 from ..common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo
-from ..generators.common import LetrosoConfig
+from ..generators.common import LetrosoConfig, LetrosoMetaConfig
 from ..generators.provider import LetrosoGameProvider
 from ..players.manual import LetrosoManualPlayer
 from .base import LetrosoConfigGym
 
 
 class LetrosoManualGym(
-    BaseManualGym[
-        LetrosoConfig, LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult
-    ],
     LetrosoConfigGym[[Callable[[str], str], Callable[[str], None]]],
+    BaseManualGym[
+        LetrosoMetaConfig,
+        LetrosoConfig,
+        LetrosoInfo,
+        None,
+        LetrosoGuess,
+        LetrosoFeedback,
+        LetrosoFinalResult,
+    ],
 ):
     def __init__(
         self,
         *,
-        create_config_func: Callable[[], LetrosoConfig],
+        data_file: Path,
         log_func: Callable[[str], None],
+        config_creator: Callable[[], LetrosoConfig],
     ) -> None:
         super().__init__(
-            game_provider=LetrosoGameProvider(),
-            create_config_func=create_config_func,
             log_func=log_func,
+            config_creator=config_creator,
+            game_provider=LetrosoGameProvider(data_file=data_file),
         )
 
     @override
