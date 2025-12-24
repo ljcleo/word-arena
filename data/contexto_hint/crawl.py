@@ -26,7 +26,7 @@ def main() -> None:
     try:
         with con:
             is_table_exist: bool = bool(
-                cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE name = 'game'").fetchone()[0]
+                cur.execute("SELECT 1 FROM sqlite_master WHERE name = 'game'").fetchone()
             )
 
         if not is_table_exist:
@@ -38,9 +38,7 @@ def main() -> None:
         while True:
             with con:
                 has_game: bool = bool(
-                    cur.execute(
-                        "SELECT COUNT(*) FROM game WHERE game_id = ?", (game_id,)
-                    ).fetchone()[0]
+                    cur.execute("SELECT 1 FROM game WHERE game_id = ?", (game_id,)).fetchone()
                 )
 
             if has_game:
@@ -57,7 +55,9 @@ def main() -> None:
                 continue
 
             if top_words is None:
+                print("break at", game_id)
                 break
+
             with con:
                 cur.execute("INSERT INTO game VALUES(?, ?)", (game_id, top_words))
 

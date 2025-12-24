@@ -115,7 +115,7 @@ def main() -> None:
     try:
         with con:
             is_table_exist: bool = bool(
-                cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE name = 'game'").fetchone()[0]
+                cur.execute("SELECT 1 FROM sqlite_master WHERE name = 'game'").fetchone()
             )
 
         if not is_table_exist:
@@ -128,9 +128,7 @@ def main() -> None:
         while target_date <= date.today():
             with con:
                 has_game: bool = bool(
-                    cur.execute(
-                        "SELECT COUNT(*) FROM game WHERE game_id = ?", (game_id,)
-                    ).fetchone()[0]
+                    cur.execute("SELECT 1 FROM game WHERE game_id = ?", (game_id,)).fetchone()
                 )
 
             if has_game:

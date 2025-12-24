@@ -1,4 +1,4 @@
-from json import dumps
+from json import dump
 
 from mitmproxy import http
 
@@ -12,11 +12,11 @@ def response(flow: http.HTTPFlow):
 
         if "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel" in url:
             with open("log.txt", "a", encoding="utf8") as f:
-                print(
-                    dumps(
-                        {"url": url, "status_code": response.status_code, "text": cur_text},
-                        ensure_ascii=True,
-                        separators=(",", ":"),
-                    ),
-                    file=f,
+                dump(
+                    {"url": url, "status_code": response.status_code, "text": cur_text},
+                    f,
+                    ensure_ascii=True,
+                    separators=(",", ":"),
                 )
+
+                f.write("\n")
