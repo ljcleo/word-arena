@@ -15,11 +15,11 @@ class WordleInGameFormatter(BaseInGameFormatter[WordleInfo, None, WordleGuess, W
     @override
     @classmethod
     def format_game_info(cls, *, game_info: WordleInfo) -> Iterator[str]:
-        yield f"Number of secret words: {game_info.num_targets}"
+        yield f"Number of Secret Words: {game_info.num_targets}"
 
         yield (
-            "Maximum number of guesses: "
-            f"{'unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
+            "Maximum Number of Guesses: "
+            f"{'Unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
         )
 
     @override

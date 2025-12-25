@@ -14,7 +14,7 @@ class ContextoInGameFormatter(BaseInGameFormatter[int, None, ContextoGuess, Cont
     @override
     @classmethod
     def format_game_info(cls, *, game_info: int) -> Iterator[str]:
-        yield f"Maximum number of guesses: {'unlimited' if game_info <= 0 else game_info}"
+        yield f"Maximum Number of Guesses: {'Unlimited' if game_info <= 0 else game_info}"
 
     @override
     @classmethod

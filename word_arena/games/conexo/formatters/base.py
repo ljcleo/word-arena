@@ -22,8 +22,8 @@ class ConexoInGameFormatter(BaseInGameFormatter[ConexoInfo, None, ConexoGuess, C
         yield f"Group Size: {game_info.group_size}"
 
         yield (
-            "Maximum number of guesses: "
-            f"{'unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
+            "Maximum Number of Guesses: "
+            f"{'Unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
         )
 
     @override
@@ -88,4 +88,4 @@ class ConexoFinalResultFormatter(BaseFinalResultFormatter[ConexoFinalResult]):
 
     @classmethod
     def _format_group(cls, *, group: ConexoWordGroup) -> str:
-        return " ".join((f"{group.theme}:", *group.words))
+        return f"{group.theme}: {', '.join(group.words)}"

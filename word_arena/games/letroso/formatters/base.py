@@ -15,12 +15,12 @@ class LetrosoInGameFormatter(BaseInGameFormatter[LetrosoInfo, None, LetrosoGuess
     @override
     @classmethod
     def format_game_info(cls, *, game_info: LetrosoInfo) -> Iterator[str]:
-        yield f"Number of secret words: {game_info.num_targets}"
-        yield f"Maximum number of letters in one guess: {game_info.max_letters}"
+        yield f"Number of Secret Words: {game_info.num_targets}"
+        yield f"Maximum Number of Letters in One Guess: {game_info.max_letters}"
 
         yield (
-            "Maximum number of guesses: "
-            f"{'unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
+            "Maximum Number of Guesses: "
+            f"{'Unlimited' if game_info.max_guesses <= 0 else game_info.max_guesses}"
         )
 
     @override

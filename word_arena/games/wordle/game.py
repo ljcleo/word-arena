@@ -55,26 +55,29 @@ class WordleGame(BaseGame[WordleInfo, None, WordleGuess, WordleFeedback, WordleF
         patterns: list[str] = []
 
         for index, answer in enumerate(self._answers):
+            patterns.append(self._calc_pattern(answer=answer, guess=word))
             if word == answer:
                 self._found_indices.add(index)
-
-            buffer: list[str] = ["." for _ in answer]
-            counter: Counter = Counter(answer)
-
-            for i, (x, y) in enumerate(zip(word, answer)):
-                if x == y:
-                    buffer[i] = "G"
-                    counter[y] -= 1
-
-            for i, x in enumerate(word):
-                if buffer[i] != "G" and counter[x] > 0:
-                    buffer[i] = "Y"
-                    counter[x] -= 1
-
-            patterns.append("".join(buffer))
 
         return WordleResponse(patterns=patterns)
 
     @override
     def get_final_result(self) -> WordleFinalResult:
         return WordleFinalResult(found_indices=self._found_indices, answers=self._answers)
+
+    @staticmethod
+    def _calc_pattern(*, answer: str, guess: str) -> str:
+        buffer: list[str] = ["." for _ in answer]
+        counter: Counter = Counter(answer)
+
+        for i, (x, y) in enumerate(zip(guess, answer)):
+            if x == y:
+                buffer[i] = "G"
+                counter[y] -= 1
+
+        for i, x in enumerate(guess):
+            if buffer[i] != "G" and counter[x] > 0:
+                buffer[i] = "Y"
+                counter[x] -= 1
+
+        return "".join(buffer)
