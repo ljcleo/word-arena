@@ -1,11 +1,10 @@
 from pathlib import Path
 from random import Random
-from sqlite3 import Connection, Cursor, connect
 from typing import Iterable, override
 
 from ....common.generator.generator import BaseGameGenerator
 from ..game import ContextoHintGame
-from .common import ContextoHintConfig
+from .common import ContextoHintConfig, get_contexto_hint_game_count
 from .provider import ContextoHintGameProvider
 
 
@@ -26,14 +25,7 @@ class ContextoHintGameGenerator(
     def generate_config(
         self, *, meta_config: Path, mutable_meta_config: int, rng: Random
     ) -> ContextoHintConfig:
-        con: Connection = connect(meta_config)
-        cur: Cursor = con.cursor()
-
-        try:
-            with con:
-                return ContextoHintConfig(
-                    num_candidates=mutable_meta_config,
-                    game_id=rng.randrange(cur.execute("SELECT COUNT(*) FROM game").fetchone()[0]),
-                )
-        finally:
-            con.close()
+        return ContextoHintConfig(
+            num_candidates=mutable_meta_config,
+            game_id=rng.randrange(get_contexto_hint_game_count(data_file=meta_config)),
+        )

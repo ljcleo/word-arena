@@ -9,7 +9,7 @@ from .base import BaseConfigGym
 
 
 class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
-    BaseConfigGym[CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str], None]]], ABC
+    BaseConfigGym[MT, CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str], None]]], ABC
 ):
     def __init__(
         self,
@@ -32,8 +32,10 @@ class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
         )
 
     @override
-    def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self._game_provider.create_game_from_config(config=config)
+    def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
+        return self._game_provider.create_game_from_config(
+            config=self.create_config(meta_config=self._game_provider.meta_config)
+        )
 
     @abstractmethod
     def create_player(

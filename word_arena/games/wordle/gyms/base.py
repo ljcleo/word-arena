@@ -4,12 +4,19 @@ from typing import override
 from ....common.gym.base import BaseConfigGym
 from ..common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo
 from ..formatters.base import WordleFinalResultFormatter
-from ..generators.common import WordleConfig
+from ..generators.common import WordleConfig, WordleMetaConfig
 
 
 class WordleConfigGym[**P](
     BaseConfigGym[
-        WordleConfig, WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, P
+        WordleMetaConfig,
+        WordleConfig,
+        WordleInfo,
+        None,
+        WordleGuess,
+        WordleFeedback,
+        WordleFinalResult,
+        P,
     ],
     WordleFinalResultFormatter,
 ):
@@ -24,11 +31,11 @@ class WordleExampleConfigGym(WordleConfigGym):
         self._input_func: Callable[[str], str] = input_func
 
     @override
-    def create_config(self) -> WordleConfig:
+    def create_config(self, *, meta_config: WordleMetaConfig) -> WordleConfig:
         return WordleConfig(
             max_guesses=int(self._input_func("Max Guesses: ")),
             game_ids=[
-                int(self._input_func(f"Word ID {i + 1}: "))
+                int(self._input_func(f"Word ID {i + 1} (0--{meta_config.game_count - 1}): "))
                 for i in range(int(self._input_func("Num Targets: ")))
             ],
         )

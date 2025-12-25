@@ -37,7 +37,5 @@ class WordleGameGenerator(
     ) -> WordleConfig:
         return WordleConfig(
             max_guesses=mutable_meta_config.max_guesses,
-            game_ids=rng.sample(
-                range(len(meta_config.target_pool)), mutable_meta_config.num_targets
-            ),
+            game_ids=rng.sample(range(meta_config.game_count), mutable_meta_config.num_targets),
         )

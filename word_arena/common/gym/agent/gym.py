@@ -15,6 +15,7 @@ from .common import TrainingConfig
 
 class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
     BaseConfigGym[
+        MT,
         CT,
         IT,
         HT,
@@ -73,8 +74,10 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
         return player, prepare_player, summarize_player
 
     @override
-    def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self._game_generator.create_game_from_config(config=config)
+    def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
+        return self._game_generator.create_game_from_config(
+            config=self.create_config(meta_config=self._game_generator.meta_config)
+        )
 
     @abstractmethod
     def create_player(

@@ -4,12 +4,12 @@ from typing import override
 from ....common.gym.base import BaseConfigGym
 from ..common import ContextoFeedback, ContextoFinalResult, ContextoGuess
 from ..formatters.base import ContextoFinalResultFormatter
-from ..generators.common import ContextoConfig
+from ..generators.common import ContextoConfig, get_contexto_game_count
 
 
 class ContextoConfigGym[**P](
     BaseConfigGym[
-        ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, P
+        None, ContextoConfig, int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, P
     ],
     ContextoFinalResultFormatter,
 ):
@@ -24,8 +24,8 @@ class ContextoExampleConfigGym(ContextoConfigGym):
         self._input_func: Callable[[str], str] = input_func
 
     @override
-    def create_config(self) -> ContextoConfig:
+    def create_config(self, *, meta_config: None) -> ContextoConfig:
         return ContextoConfig(
             max_guesses=int(self._input_func("Max Guesses: ")),
-            game_id=int(self._input_func("Game ID: ")),
+            game_id=int(self._input_func(f"Game ID (0--{get_contexto_game_count()}): ")),
         )

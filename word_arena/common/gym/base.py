@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import override
 
 from ..formatter.base import BaseFinalResultFormatter
 from ..game.base import BaseGame
@@ -48,18 +47,7 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
         raise NotImplementedError()
 
 
-class BaseConfigGym[CT, IT, HT, GT, FT, RT, **P](BaseGym[IT, HT, GT, FT, RT, P], ABC):
-    def __init__(self, *, log_func: Callable[[str], None], **kwargs) -> None:
-        super().__init__(log_func=log_func, **kwargs)
-
-    @override
-    def create_game(self) -> BaseGame[IT, HT, GT, FT, RT]:
-        return self.create_game_from_config(config=self.create_config())
-
+class BaseConfigGym[MT, CT, IT, HT, GT, FT, RT, **P](BaseGym[IT, HT, GT, FT, RT, P], ABC):
     @abstractmethod
-    def create_game_from_config(self, *, config: CT) -> BaseGame[IT, HT, GT, FT, RT]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def create_config(self) -> CT:
+    def create_config(self, *, meta_config: MT) -> CT:
         raise NotImplementedError()

@@ -1,10 +1,9 @@
-from datetime import date
 from random import Random
 from typing import Iterable, override
 
 from ....common.generator.generator import BaseGameGenerator
 from ..game import ContextoGame
-from .common import ContextoConfig
+from .common import ContextoConfig, get_contexto_game_count
 from .provider import ContextoGameProvider
 
 
@@ -19,6 +18,5 @@ class ContextoGameGenerator(
         self, *, meta_config: None, mutable_meta_config: int, rng: Random
     ) -> ContextoConfig:
         return ContextoConfig(
-            max_guesses=mutable_meta_config,
-            game_id=rng.randrange((date.today() - date(2022, 9, 18)).days + 1),
+            max_guesses=mutable_meta_config, game_id=rng.randrange(get_contexto_game_count())
         )
