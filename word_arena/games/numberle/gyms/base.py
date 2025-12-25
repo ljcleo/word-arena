@@ -39,7 +39,7 @@ class NumberleExampleConfigGym(NumberleConfigGym):
             eq_length=eq_length,
             max_guesses=int(self._input_func("Max Guesses: ")),
             game_ids=[
-                int(self._input_func(f"Word ID {i + 1} (0--{max_game_id}): "))
+                int(self._input_func(f"Equation ID {i + 1} (0--{max_game_id}): "))
                 for i in range(int(self._input_func("Num Targets: ")))
             ],
         )
