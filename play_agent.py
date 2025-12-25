@@ -121,7 +121,7 @@ def main() -> None:
     model: BaseLLM
 
     if input("Use LLM? (y/n): ")[0].lower() == "y":
-        with open("./config/openai.json", "rb") as f:
+        with open(f"./config/{input('LLM Config Name: ')}.json", "rb") as f:
             model = OpenaiLLM(config=OpenaiConfig.model_validate_json(f.read()))
     else:
         model = PseudoLLM()
