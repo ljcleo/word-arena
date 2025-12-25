@@ -126,13 +126,12 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
                     match_seg_len = 0
 
                     if step == "-":
-                        guessed_letter: str = guess[len(pattern_buffer)]
+                        pattern_buffer.append(".")
 
-                        if letter_pool[guessed_letter] > 0:
-                            letter_pool[guessed_letter] -= 1
-                            pattern_buffer.append("Y")
-                        else:
-                            pattern_buffer.append(".")
+            for pos, letter in enumerate(guess):
+                if pattern_buffer[pos] == "." and letter_pool[letter] > 0:
+                    letter_pool[letter] -= 1
+                    pattern_buffer[pos] = "Y"
 
             pattern: tuple[str, bool, bool] = "".join(pattern_buffer), head_match, tail_match
 
