@@ -77,6 +77,27 @@ def build_conexo_agent_gym(
     )
 
 
+def build_numberle_agent_gym(
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+) -> BaseAgentGym:
+    from word_arena.games.numberle.generators.common import NumberleMutableMetaConfig
+    from word_arena.games.numberle.gyms.agent import NumberleExampleAgentGym
+
+    return NumberleExampleAgentGym(
+        data_file=Path("./data/numberle/games.db"),
+        mutable_meta_config_pool=(
+            NumberleMutableMetaConfig(
+                eq_length=eq_length, max_guesses=num_targets + 5, num_targets=num_targets
+            )
+            for eq_length in range(5, 13)
+            for num_targets in (1, 2, 4, 8, 16)
+        ),
+        seed=seed,
+        log_func=log_func,
+        input_func=input_func,
+    )
+
+
 AGENT_GYM_BUILDERS: dict[
     str, Callable[[int, Callable[[str], str], Callable[[str], None]], BaseAgentGym]
 ] = {
@@ -85,6 +106,7 @@ AGENT_GYM_BUILDERS: dict[
     "wordle": build_wordle_agent_gym,
     "letroso": build_letroso_agent_gym,
     "conexo": build_conexo_agent_gym,
+    "numberle": build_numberle_agent_gym,
 }
 
 
