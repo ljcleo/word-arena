@@ -7,32 +7,27 @@ from ....common.formatter.agent import (
     BaseAgentPlayerFormatter,
 )
 from ..common import (
-    NumberleExperience,
     NumberleFeedback,
     NumberleFinalResult,
     NumberleGuess,
     NumberleInfo,
+    NumberleNote,
 )
 from .base import NumberleFinalResultFormatter, NumberleInGameFormatter
 
 
 class NumberleAgentCommonFormatter(
-    BaseAgentCommonFormatter[
-        NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleExperience
-    ],
+    BaseAgentCommonFormatter[NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleNote],
     NumberleInGameFormatter,
 ):
     @override
     @classmethod
-    def format_experience(cls, *, experience: NumberleExperience) -> Iterator[str]:
-        yield "Current Notes about Possible Strategies:"
-        yield experience.strategy
+    def format_note(cls, *, note: NumberleNote) -> Iterator[tuple[str, str]]:
+        yield "Possible Strategies", note.strategy
 
 
 class NumberleAgentPlayerFormatter(
-    BaseAgentPlayerFormatter[
-        NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleExperience
-    ],
+    BaseAgentPlayerFormatter[NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleNote],
     NumberleAgentCommonFormatter,
 ):
     pass
@@ -40,7 +35,7 @@ class NumberleAgentPlayerFormatter(
 
 class NumberleAgentMemoryFormatter(
     BaseAgentMemoryFormatter[
-        NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleFinalResult, NumberleExperience
+        NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleFinalResult, NumberleNote
     ],
     NumberleAgentCommonFormatter,
     NumberleFinalResultFormatter,

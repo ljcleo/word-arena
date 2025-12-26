@@ -6,29 +6,22 @@ from ....common.formatter.agent import (
     BaseAgentMemoryFormatter,
     BaseAgentPlayerFormatter,
 )
-from ..common import (
-    LetrosoExperience,
-    LetrosoFeedback,
-    LetrosoFinalResult,
-    LetrosoGuess,
-    LetrosoInfo,
-)
+from ..common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo, LetrosoNote
 from .base import LetrosoFinalResultFormatter, LetrosoInGameFormatter
 
 
 class LetrosoAgentCommonFormatter(
-    BaseAgentCommonFormatter[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoExperience],
+    BaseAgentCommonFormatter[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoNote],
     LetrosoInGameFormatter,
 ):
     @override
     @classmethod
-    def format_experience(cls, *, experience: LetrosoExperience) -> Iterator[str]:
-        yield "Current Notes about Possible Strategies:"
-        yield experience.strategy
+    def format_note(cls, *, note: LetrosoNote) -> Iterator[tuple[str, str]]:
+        yield "Possible Strategies", note.strategy
 
 
 class LetrosoAgentPlayerFormatter(
-    BaseAgentPlayerFormatter[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoExperience],
+    BaseAgentPlayerFormatter[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoNote],
     LetrosoAgentCommonFormatter,
 ):
     pass
@@ -36,7 +29,7 @@ class LetrosoAgentPlayerFormatter(
 
 class LetrosoAgentMemoryFormatter(
     BaseAgentMemoryFormatter[
-        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoExperience
+        LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoNote
     ],
     LetrosoAgentCommonFormatter,
     LetrosoFinalResultFormatter,

@@ -34,7 +34,7 @@ class NumberleGame(
         self._num_guesses: int = 0
 
         return NumberleInfo(
-            num_targets=self._num_targets, expr_len=self._eq_length, max_guesses=self._max_guesses
+            num_targets=self._num_targets, eq_length=self._eq_length, max_guesses=self._max_guesses
         )
 
     @override

@@ -5,7 +5,7 @@ from typing import override
 from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ..common import ConexoExperience, ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
+from ..common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoNote
 from ..generators.common import ConexoConfig
 from ..generators.generator import ConexoGameGenerator
 from ..players.agent import ConexoAgentPlayer
@@ -25,7 +25,7 @@ class ConexoAgentGym(
         ConexoGuess,
         ConexoFeedback,
         ConexoFinalResult,
-        ConexoExperience,
+        ConexoNote,
     ],
 ):
     def __init__(

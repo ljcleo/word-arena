@@ -24,6 +24,6 @@ class ContextoFinalResult(BaseModel):
     top_words: list[str]
 
 
-class ContextoExperience(BaseModel):
+class ContextoNote(BaseModel):
     law: str
     strategy: str

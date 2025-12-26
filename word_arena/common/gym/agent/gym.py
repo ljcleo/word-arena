@@ -13,7 +13,7 @@ from ..base import BaseConfigGym
 from .common import TrainingConfig
 
 
-class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
+class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, NT: BaseModel](
     BaseConfigGym[
         MT,
         CT,
@@ -48,11 +48,11 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
         player_log_func: Callable[[str], None],
         agent_log_func: Callable[[str], None],
     ) -> tuple[
-        BaseAgentPlayer[IT, HT, GT, FT, ET],
+        BaseAgentPlayer[IT, HT, GT, FT, NT],
         Callable[[], None],
         Callable[[GameRecord[IT, HT, GT, FT, RT]], None],
     ]:
-        player: BaseAgentPlayer[IT, HT, GT, FT, ET] = self.create_player(
+        player: BaseAgentPlayer[IT, HT, GT, FT, NT] = self.create_player(
             model=model,
             do_analyze=do_analyze,
             player_log_func=player_log_func,
@@ -62,14 +62,14 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
         def prepare_player() -> None:
             if training_config is not None:
                 for _ in range(training_config.num_train_loops):
-                    for i in range(training_config.num_in_loop_trials):
+                    for trial_index in range(training_config.num_in_loop_trials):
                         player.memory.reflect(
                             game_record=self._game_generator.random_game().play(player=player),
-                            update_experience=i == training_config.num_in_loop_trials - 1,
+                            update_note=trial_index == training_config.num_in_loop_trials - 1,
                         )
 
         def summarize_player(game_record: GameRecord[IT, HT, GT, FT, RT]) -> None:
-            player.memory.reflect(game_record=game_record, update_experience=False)
+            player.memory.reflect(game_record=game_record, update_note=False)
 
         return player, prepare_player, summarize_player
 
@@ -87,5 +87,5 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, ET: BaseModel](
         do_analyze: bool,
         player_log_func: Callable[[str], None],
         agent_log_func: Callable[[str], None],
-    ) -> BaseAgentPlayer[IT, HT, GT, FT, ET]:
+    ) -> BaseAgentPlayer[IT, HT, GT, FT, NT]:
         raise NotImplementedError()

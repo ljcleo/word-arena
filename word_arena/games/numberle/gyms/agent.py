@@ -6,11 +6,11 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import (
-    NumberleExperience,
     NumberleFeedback,
     NumberleFinalResult,
     NumberleGuess,
     NumberleInfo,
+    NumberleNote,
 )
 from ..generators.common import NumberleConfig, NumberleMetaConfig, NumberleMutableMetaConfig
 from ..generators.generator import NumberleGameGenerator
@@ -31,7 +31,7 @@ class NumberleAgentGym(
         NumberleGuess,
         NumberleFeedback,
         NumberleFinalResult,
-        NumberleExperience,
+        NumberleNote,
     ],
 ):
     def __init__(

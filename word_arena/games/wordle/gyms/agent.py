@@ -5,13 +5,7 @@ from typing import override
 from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ..common import (
-    WordleExperience,
-    WordleFeedback,
-    WordleFinalResult,
-    WordleGuess,
-    WordleInfo,
-)
+from ..common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleNote
 from ..generators.common import WordleConfig, WordleMetaConfig, WordleMutableMetaConfig
 from ..generators.generator import WordleGameGenerator
 from ..players.agent import WordleAgentPlayer
@@ -31,7 +25,7 @@ class WordleAgentGym(
         WordleGuess,
         WordleFeedback,
         WordleFinalResult,
-        WordleExperience,
+        WordleNote,
     ],
 ):
     def __init__(

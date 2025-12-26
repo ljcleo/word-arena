@@ -26,5 +26,5 @@ class WordleFinalResult(BaseModel):
     answers: list[str]
 
 
-class WordleExperience(BaseModel):
+class WordleNote(BaseModel):
     strategy: str

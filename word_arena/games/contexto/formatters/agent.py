@@ -7,29 +7,27 @@ from ....common.formatter.agent import (
     BaseAgentPlayerFormatter,
 )
 from ..common import (
-    ContextoExperience,
     ContextoFeedback,
     ContextoFinalResult,
     ContextoGuess,
+    ContextoNote,
 )
 from .base import ContextoFinalResultFormatter, ContextoInGameFormatter
 
 
 class ContextoAgentCommonFormatter(
-    BaseAgentCommonFormatter[int, None, ContextoGuess, ContextoFeedback, ContextoExperience],
+    BaseAgentCommonFormatter[int, None, ContextoGuess, ContextoFeedback, ContextoNote],
     ContextoInGameFormatter,
 ):
     @override
     @classmethod
-    def format_experience(cls, *, experience: ContextoExperience) -> Iterator[str]:
-        yield "Current Notes about Word Similarity Laws:"
-        yield experience.law
-        yield "Current Notes about Possible Strategies:"
-        yield experience.strategy
+    def format_note(cls, *, note: ContextoNote) -> Iterator[tuple[str, str]]:
+        yield "Word Similarity Laws", note.law
+        yield "Possible Strategies", note.strategy
 
 
 class ContextoAgentPlayerFormatter(
-    BaseAgentPlayerFormatter[int, None, ContextoGuess, ContextoFeedback, ContextoExperience],
+    BaseAgentPlayerFormatter[int, None, ContextoGuess, ContextoFeedback, ContextoNote],
     ContextoAgentCommonFormatter,
 ):
     pass
@@ -37,7 +35,7 @@ class ContextoAgentPlayerFormatter(
 
 class ContextoAgentMemoryFormatter(
     BaseAgentMemoryFormatter[
-        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoExperience
+        int, None, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoNote
     ],
     ContextoAgentCommonFormatter,
     ContextoFinalResultFormatter,

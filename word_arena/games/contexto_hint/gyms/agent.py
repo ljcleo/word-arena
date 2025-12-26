@@ -5,7 +5,7 @@ from typing import override
 from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ..common import ContextoHintExperience, ContextoHintGuess
+from ..common import ContextoHintGuess, ContextoHintNote
 from ..generators.common import ContextoHintConfig
 from ..generators.generator import ContextoHintGameGenerator
 from ..players.agent import ContextoHintAgentPlayer
@@ -25,7 +25,7 @@ class ContextoHintAgentGym(
         ContextoHintGuess,
         int,
         list[str],
-        ContextoHintExperience,
+        ContextoHintNote,
     ],
 ):
     def __init__(

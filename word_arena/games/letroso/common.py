@@ -27,5 +27,5 @@ class LetrosoFinalResult(BaseModel):
     answers: list[str]
 
 
-class LetrosoExperience(BaseModel):
+class LetrosoNote(BaseModel):
     strategy: str

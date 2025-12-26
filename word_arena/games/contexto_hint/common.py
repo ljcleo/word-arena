@@ -5,6 +5,6 @@ class ContextoHintGuess(BaseModel):
     index: int
 
 
-class ContextoHintExperience(BaseModel):
+class ContextoHintNote(BaseModel):
     law: str
     strategy: str

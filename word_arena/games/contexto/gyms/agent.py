@@ -4,7 +4,7 @@ from typing import override
 from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ..common import ContextoExperience, ContextoFeedback, ContextoFinalResult, ContextoGuess
+from ..common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoNote
 from ..generators.common import ContextoConfig
 from ..generators.generator import ContextoGameGenerator
 from ..players.agent import ContextoAgentPlayer
@@ -24,7 +24,7 @@ class ContextoAgentGym(
         ContextoGuess,
         ContextoFeedback,
         ContextoFinalResult,
-        ContextoExperience,
+        ContextoNote,
     ],
 ):
     def __init__(

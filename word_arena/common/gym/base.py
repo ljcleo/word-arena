@@ -25,10 +25,10 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
             prepare_player()
 
         game_record: GameRecord = self.create_game().play(player=player)
-        self._log_func(f"You Guessed {len(game_record.trajectory)} Times")
+        self._log_func(f"Total Guesses: {len(game_record.trajectory)}")
 
-        for section in self.format_final_result(final_result=game_record.final_result):
-            self._log_func(section)
+        for key, value in self.format_final_result(final_result=game_record.final_result):
+            self._log_func(f"{key}: {value}")
         if summarize_player is not None:
             summarize_player(game_record)
 

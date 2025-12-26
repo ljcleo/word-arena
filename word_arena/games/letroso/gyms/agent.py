@@ -5,13 +5,7 @@ from typing import override
 from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
-from ..common import (
-    LetrosoExperience,
-    LetrosoFeedback,
-    LetrosoFinalResult,
-    LetrosoGuess,
-    LetrosoInfo,
-)
+from ..common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo, LetrosoNote
 from ..generators.common import LetrosoConfig, LetrosoMetaConfig, LetrosoMutableMetaConfig
 from ..generators.generator import LetrosoGameGenerator
 from ..players.agent import LetrosoAgentPlayer
@@ -31,7 +25,7 @@ class LetrosoAgentGym(
         LetrosoGuess,
         LetrosoFeedback,
         LetrosoFinalResult,
-        LetrosoExperience,
+        LetrosoNote,
     ],
 ):
     def __init__(

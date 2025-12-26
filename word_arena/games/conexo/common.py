@@ -26,6 +26,6 @@ class ConexoFinalResult(BaseModel):
     remaining_groups: list[ConexoWordGroup]
 
 
-class ConexoExperience(BaseModel):
+class ConexoNote(BaseModel):
     law: str
     strategy: str

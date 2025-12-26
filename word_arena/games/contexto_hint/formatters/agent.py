@@ -6,34 +6,30 @@ from ....common.formatter.agent import (
     BaseAgentMemoryFormatter,
     BaseAgentPlayerFormatter,
 )
-from ..common import ContextoHintExperience, ContextoHintGuess
+from ..common import ContextoHintGuess, ContextoHintNote
 from .base import ContextoHintFinalResultFormatter, ContextoHintInGameFormatter
 
 
 class ContextoHintAgentCommonFormatter(
-    BaseAgentCommonFormatter[None, list[str], ContextoHintGuess, int, ContextoHintExperience],
+    BaseAgentCommonFormatter[None, list[str], ContextoHintGuess, int, ContextoHintNote],
     ContextoHintInGameFormatter,
 ):
     @override
     @classmethod
-    def format_experience(cls, *, experience: ContextoHintExperience) -> Iterator[str]:
-        yield "Current Notes about Word Similarity Laws:"
-        yield experience.law
-        yield "Current Notes about Possible Strategies:"
-        yield experience.strategy
+    def format_note(cls, *, note: ContextoHintNote) -> Iterator[tuple[str, str]]:
+        yield "Word Similarity Laws", note.law
+        yield "Possible Strategies", note.strategy
 
 
 class ContextoHintAgentPlayerFormatter(
-    BaseAgentPlayerFormatter[None, list[str], ContextoHintGuess, int, ContextoHintExperience],
+    BaseAgentPlayerFormatter[None, list[str], ContextoHintGuess, int, ContextoHintNote],
     ContextoHintAgentCommonFormatter,
 ):
     pass
 
 
 class ContextoHintAgentMemoryFormatter(
-    BaseAgentMemoryFormatter[
-        None, list[str], ContextoHintGuess, int, list[str], ContextoHintExperience
-    ],
+    BaseAgentMemoryFormatter[None, list[str], ContextoHintGuess, int, list[str], ContextoHintNote],
     ContextoHintAgentCommonFormatter,
     ContextoHintFinalResultFormatter,
 ):
@@ -41,15 +37,10 @@ class ContextoHintAgentMemoryFormatter(
     @classmethod
     def format_hint_with_final_result(
         cls, *, game_info: None, hint: list[str], final_result: list[str]
-    ) -> Iterator[str]:
+    ) -> Iterator[tuple[str, str]]:
         word_pos: dict[str, int] = {word: pos + 1 for pos, word in enumerate(final_result)}
 
-        yield " ".join(
-            (
-                "Options:",
-                "; ".join(
-                    f"{index}. {word} (Position: {word_pos[word]})"
-                    for index, word in enumerate(hint)
-                ),
-            )
+        yield (
+            "Options",
+            "; ".join(f"{index}. {word} ({word_pos[word]})" for index, word in enumerate(hint)),
         )

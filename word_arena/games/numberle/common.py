@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class NumberleInfo(BaseModel):
     num_targets: int
-    expr_len: int
+    eq_length: int
     max_guesses: int
 
 
@@ -27,5 +27,5 @@ class NumberleFinalResult(BaseModel):
     answers: list[str]
 
 
-class NumberleExperience(BaseModel):
+class NumberleNote(BaseModel):
     strategy: str

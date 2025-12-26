@@ -124,7 +124,7 @@ def main() -> None:
         with open(f"./config/{input('LLM Config Name: ')}.json", "rb") as f:
             model = OpenaiLLM(config=OpenaiConfig.model_validate_json(f.read()))
     else:
-        model = PseudoLLM()
+        model = PseudoLLM(auto_reply=input("Auto Reply? (y/n): ")[0].lower() == "y")
 
     do_analyze: bool = input("Analyze? (y/n): ")[0].lower() == "y"
 
