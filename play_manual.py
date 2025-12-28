@@ -60,6 +60,16 @@ def build_numberle_manual_gym(input_func: Callable[[str], str], log_func: Callab
     )
 
 
+def build_connections_manual_gym(
+    input_func: Callable[[str], str], log_func: Callable[[str], None]
+) -> BaseManualGym:
+    from word_arena.games.connections.gyms.manual import ConnectionsExampleManualGym
+
+    return ConnectionsExampleManualGym(
+        data_file=Path("./data/connections/games.db"), log_func=log_func, input_func=input_func
+    )
+
+
 MANUAL_GYM_BUILDERS: dict[
     str, Callable[[Callable[[str], str], Callable[[str], None]], BaseManualGym]
 ] = {
@@ -69,6 +79,7 @@ MANUAL_GYM_BUILDERS: dict[
     "letroso": build_letroso_manual_gym,
     "conexo": build_conexo_manual_gym,
     "numberle": build_numberle_manual_gym,
+    "connections": build_connections_manual_gym,
 }
 
 
