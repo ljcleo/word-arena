@@ -112,6 +112,20 @@ def build_connections_agent_gym(
     )
 
 
+def build_strands_agent_gym(
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+) -> BaseAgentGym:
+    from word_arena.games.strands.gyms.agent import StrandsExampleAgentGym
+
+    return StrandsExampleAgentGym(
+        data_file=Path("./data/strands/games.db"),
+        mutable_meta_config_pool=(20,),
+        seed=seed,
+        log_func=log_func,
+        input_func=input_func,
+    )
+
+
 AGENT_GYM_BUILDERS: dict[
     str, Callable[[int, Callable[[str], str], Callable[[str], None]], BaseAgentGym]
 ] = {
@@ -122,6 +136,7 @@ AGENT_GYM_BUILDERS: dict[
     "conexo": build_conexo_agent_gym,
     "numberle": build_numberle_agent_gym,
     "connections": build_connections_agent_gym,
+    "strands": build_strands_agent_gym,
 }
 
 
