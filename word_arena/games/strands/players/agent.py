@@ -30,7 +30,7 @@ where rows are from 0 to 7 and columns are from 0 to 5.
 
 Each theme word and the spangram can be found continuous and non-overlapping in the grid: \
 you can draw a path on the grid that reads exactly the theme word or spangram, \
-where adjacent vertices' rows or columns change at most 1 and no cells are visited twice; \
+where adjacent vertices are 8-connected and no cells are visited twice; \
 furthermore, paths of all theme words and the spangram do not use common cells, \
 and pass all cells in the grid exactly once.
 
@@ -38,7 +38,7 @@ The spangram describes the game's theme; it always touches two opposite sides of
 either from row 0 to row 7 or from column 0 to column 5, or both.
 
 Every time, you draw a path on the grid to form a guess; \
-the path must be continuous (adjacent vertices are 8-connected) and non-overlapping, \
+the path must be continuous and non-overlapping, \
 and must not use cells that belong to the theme words or spangram that you have found.
 
 If the path is valid, you will see whether it hits a theme word or the spangram or misses; \
