@@ -1,4 +1,4 @@
-import logging
+from logging import WARNING, getLogger
 from typing import override
 
 from openai import OpenAI
@@ -27,10 +27,7 @@ class OpenaiLLM(BaseLLM):
         self._use_dev_message: bool = config.use_dev_message
         self._client: OpenAI = OpenAI(api_key=config.api_key, base_url=config.base_url)
 
-    @retry(
-        wait=wait_random(max=1),
-        before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
-    )
+    @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
     def query(self, *messages: Message) -> str:
         return str(
@@ -44,10 +41,7 @@ class OpenaiLLM(BaseLLM):
             .message.content
         )
 
-    @retry(
-        wait=wait_random(max=1),
-        before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
-    )
+    @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
     def parse[T: BaseModel](self, *messages: Message, format: type[T]) -> T:
         parsed: T | None = (

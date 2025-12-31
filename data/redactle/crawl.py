@@ -15,7 +15,7 @@ class RedactleGameData(BaseModel):
     lemma_map: dict[str, str]
 
 
-@retry(wait=wait_random(max=10), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+@retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
 def get_data(*, game_id: int) -> str | bool:
     response: Response = get(f"https://redactle.net/api/article/en/daily/{game_id}")
 
