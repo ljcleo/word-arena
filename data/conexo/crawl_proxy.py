@@ -1,6 +1,11 @@
-from json import dump
-
 from mitmproxy import http
+from pydantic import BaseModel
+
+
+class Record(BaseModel):
+    url: str
+    status_code: int
+    text: str | None
 
 
 def response(flow: http.HTTPFlow):
@@ -8,15 +13,12 @@ def response(flow: http.HTTPFlow):
     response = flow.response
 
     if response is not None:
-        cur_text: str | None = response.text
-
         if "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel" in url:
             with open("log.txt", "a", encoding="utf8") as f:
-                dump(
-                    {"url": url, "status_code": response.status_code, "text": cur_text},
-                    f,
-                    ensure_ascii=True,
-                    separators=(",", ":"),
+                f.write(
+                    Record(
+                        url=url, status_code=response.status_code, text=response.text
+                    ).model_dump_json()
                 )
 
                 f.write("\n")

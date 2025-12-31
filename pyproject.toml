@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 crawl = [
+    "markdownify>=1.2.2",
     "mitmproxy>=12.2.1",
     "pyvirtualdisplay>=3.0",
     "selenium>=4.39.0",

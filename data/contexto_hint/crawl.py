@@ -1,9 +1,9 @@
-from json import dumps
 from logging import WARNING, getLogger
 from sqlite3 import Connection, Cursor, connect
 from warnings import warn
 
 from httpx import Response, get
+from pydantic import TypeAdapter
 from tenacity import before_sleep_log, retry, wait_random
 
 
@@ -12,7 +12,7 @@ def get_top(*, game_id: int) -> str | None:
     response: Response = get(f"https://api.contexto.me/machado/en/top/{game_id}")
 
     if response.status_code == 200:
-        return dumps(response.json()["words"], ensure_ascii=False, separators=(",", ":"))
+        return TypeAdapter(list[str]).dump_json(response.json()["words"]).decode(encoding="utf8")
     elif response.status_code == 500:
         return None
     else:
