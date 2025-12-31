@@ -1,6 +1,9 @@
+from logging import WARNING, getLogger
 from typing import override
+from urllib.parse import quote
 
-import httpx
+from httpx import Response, get
+from tenacity import before_sleep_log, retry, wait_random
 
 from ...common.game.base import BaseGame
 from .common import (
@@ -41,7 +44,17 @@ class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, Contexto
         if not (word.isalpha() and word.islower()):
             return ContextoError(error="Your guess should only contain lowercase letters")
 
-        response: httpx.Response = httpx.get(f"{self._base_url}/game/{self._game_id}/{word}")
+        return self._fetch_feedback(word=word)
+
+    @override
+    def get_final_result(self) -> ContextoFinalResult:
+        return ContextoFinalResult(
+            best_pos=self._best_pos, best_word=self._best_word, top_words=self._fetch_top_words()
+        )
+
+    @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+    def _fetch_feedback(self, *, word: str) -> ContextoFeedback:
+        response: Response = get(quote(f"{self._base_url}/game/{self._game_id}/{word}"))
 
         if response.status_code == 200:
             feedback: ContextoResponse = ContextoResponse.model_validate_json(response.content)
@@ -56,10 +69,6 @@ class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, Contexto
         else:
             raise RuntimeError(f"Status code {response.status_code}")
 
-    @override
-    def get_final_result(self) -> ContextoFinalResult:
-        return ContextoFinalResult(
-            best_pos=self._best_pos,
-            best_word=self._best_word,
-            top_words=httpx.get(f"{self._base_url}/top/{self._game_id}").json()["words"],
-        )
+    @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+    def _fetch_top_words(self) -> list[str]:
+        return get(quote(f"{self._base_url}/top/{self._game_id}")).json()["words"]
