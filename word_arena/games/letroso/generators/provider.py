@@ -9,7 +9,7 @@ class LetrosoGameProvider(BaseGameProvider[LetrosoMetaConfig, LetrosoConfig, Let
     @override
     def create_game(self, *, meta_config: LetrosoMetaConfig, config: LetrosoConfig) -> LetrosoGame:
         return LetrosoGame(
-            word_list=meta_config.word_list,
+            word_pool=meta_config.word_pool,
             target_ids=config.game_ids,
             max_letters=config.max_letters,
             max_guesses=config.max_guesses,

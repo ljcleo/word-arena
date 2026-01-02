@@ -25,8 +25,8 @@ class NumberleMetaConfig(BaseModel):
             }
 
     @property
-    def eq_list(self) -> list[str]:
-        return [self._eq_pool[i] for i in range(len(self._eq_pool))]
+    def eq_pool(self) -> dict[int, str]:
+        return dict(self._eq_pool)
 
     @property
     def eq_length_pool(self) -> list[int]:

@@ -11,7 +11,7 @@ class NumberleGameProvider(BaseGameProvider[NumberleMetaConfig, NumberleConfig, 
         self, *, meta_config: NumberleMetaConfig, config: NumberleConfig
     ) -> NumberleGame:
         return NumberleGame(
-            eq_list=meta_config.eq_list,
+            eq_pool=meta_config.eq_pool,
             target_ids=config.game_ids,
             eq_length=config.eq_length,
             max_guesses=config.max_guesses,

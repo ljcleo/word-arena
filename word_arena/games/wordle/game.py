@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping
 from typing import override
 
 from ...common.game.base import BaseGame
@@ -15,12 +15,11 @@ from .common import (
 
 class WordleGame(BaseGame[WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult]):
     def __init__(
-        self, *, word_list: Sequence[str], target_ids: list[int], max_guesses: int
+        self, *, word_pool: Mapping[int, str], target_ids: list[int], max_guesses: int
     ) -> None:
-        self._word_list: set[str] = set(word_list)
-        self._answers: list[str] = [word_list[target_id] for target_id in target_ids]
+        self._word_bank: set[str] = set(word_pool.values())
+        self._answers: list[str] = [word_pool[target_id] for target_id in target_ids]
         self._max_guesses: int = max_guesses
-
         self._num_targets: int = len(self._answers)
         self._num_letters: int = len(self._answers[0])
 
@@ -49,7 +48,7 @@ class WordleGame(BaseGame[WordleInfo, None, WordleGuess, WordleFeedback, WordleF
 
         if not (len(word) == self._num_letters and word.isalpha() and word.islower()):
             return WordleError(error="Invalid guess")
-        elif word not in self._word_list:
+        elif word not in self._word_bank:
             return WordleError(error="Unknown word")
 
         patterns: list[str] = []

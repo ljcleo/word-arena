@@ -9,7 +9,7 @@ class WordleGameProvider(BaseGameProvider[WordleMetaConfig, WordleConfig, Wordle
     @override
     def create_game(self, *, meta_config: WordleMetaConfig, config: WordleConfig) -> WordleGame:
         return WordleGame(
-            word_list=meta_config.word_list,
+            word_pool=meta_config.word_pool,
             target_ids=config.game_ids,
             max_guesses=config.max_guesses,
         )

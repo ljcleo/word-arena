@@ -18,8 +18,8 @@ class LetrosoMetaConfig(BaseModel):
             self._game_pool: dict[int, int] = dict(cur.execute("SELECT game_id, word_id FROM game"))
 
     @property
-    def word_list(self) -> list[str]:
-        return [self._word_pool[i] for i in range(len(self._word_pool))]
+    def word_pool(self) -> dict[int, str]:
+        return dict(self._word_pool)
 
     def select_game_ids(self, *, selector: Callable[[int], Iterable[int]]) -> list[int]:
         return list(map(self._game_pool.__getitem__, selector(len(self._game_pool))))

@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping
 from typing import override
 
 from ...common.game.base import BaseGame
@@ -17,16 +17,15 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
     def __init__(
         self,
         *,
-        word_list: Sequence[str],
+        word_pool: Mapping[int, str],
         target_ids: Iterable[int],
         max_letters: int,
         max_guesses: int,
     ) -> None:
-        self._word_list: set[str] = set(word_list)
-        self._answers: list[str] = [word_list[target_id] for target_id in target_ids]
+        self._word_bank: set[str] = set(word_pool.values())
+        self._answers: list[str] = [word_pool[target_id] for target_id in target_ids]
         self._max_letters: int = max_letters
         self._max_guesses: int = max_guesses
-
         self._num_targets: int = len(self._answers)
 
     @override
@@ -56,7 +55,7 @@ class LetrosoGame(BaseGame[LetrosoInfo, None, LetrosoGuess, LetrosoFeedback, Let
 
         if not (1 <= len(word) <= self._max_letters and word.isalpha() and word.islower()):
             return LetrosoError(error="Invalid guess")
-        elif word not in self._word_list:
+        elif word not in self._word_bank:
             return LetrosoError(error="Unknown word")
 
         patterns: list[str] = []

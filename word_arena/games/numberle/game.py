@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping
 from fractions import Fraction
 from typing import override
 
@@ -18,9 +18,9 @@ class NumberleGame(
     BaseGame[NumberleInfo, None, NumberleGuess, NumberleFeedback, NumberleFinalResult]
 ):
     def __init__(
-        self, *, eq_list: Sequence[str], target_ids: list[int], eq_length: int, max_guesses: int
+        self, *, eq_pool: Mapping[int, str], target_ids: list[int], eq_length: int, max_guesses: int
     ) -> None:
-        self._answers: list[str] = [eq_list[target_id] for target_id in target_ids]
+        self._answers: list[str] = [eq_pool[target_id] for target_id in target_ids]
         self._eq_length: int = eq_length
         self._max_guesses: int = max_guesses
 
