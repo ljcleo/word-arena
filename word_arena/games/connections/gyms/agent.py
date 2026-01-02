@@ -12,7 +12,7 @@ from ..common import (
     ConnectionsInfo,
     ConnectionsNote,
 )
-from ..generators.common import ConnectionsConfig
+from ..generators.common import ConnectionsConfig, ConnectionsMetaConfig
 from ..generators.generator import ConnectionsGameGenerator
 from ..players.agent import ConnectionsAgentPlayer
 from .base import ConnectionsConfigGym, ConnectionsExampleConfigGym
@@ -23,7 +23,7 @@ class ConnectionsAgentGym(
         [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
     ],
     BaseAgentGym[
-        Path,
+        ConnectionsMetaConfig,
         int,
         ConnectionsConfig,
         ConnectionsInfo,
@@ -46,7 +46,9 @@ class ConnectionsAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=ConnectionsGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=ConnectionsMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
             **kwargs,
         )

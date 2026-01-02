@@ -1,41 +1,30 @@
-from hashlib import sha256
-from pathlib import Path
 from random import Random
-from sqlite3 import Connection, Cursor, connect
 from typing import override
 
 from pydantic import TypeAdapter
 
 from ....common.generator.provider import BaseGameProvider
+from ....common.utils import create_seed, get_db_cursor
 from ..game import ConnectionsGame
-from .common import ConnectionsConfig
+from .common import ConnectionsConfig, ConnectionsMetaConfig
 
 
-class ConnectionsGameProvider(BaseGameProvider[Path, ConnectionsConfig, ConnectionsGame]):
-    def __init__(self, *, data_file: Path, **kwargs):
-        super().__init__(meta_config=data_file, **kwargs)
-
+class ConnectionsGameProvider(
+    BaseGameProvider[ConnectionsMetaConfig, ConnectionsConfig, ConnectionsGame]
+):
     @override
-    def create_game(self, *, meta_config: Path, config: ConnectionsConfig) -> ConnectionsGame:
-        con: Connection = connect(meta_config)
-        cur: Cursor = con.cursor()
-
-        try:
-            with con:
-                groups: dict[str, list[str]] = TypeAdapter(dict[str, list[str]]).validate_json(
-                    cur.execute(
-                        "SELECT groups FROM game WHERE game_id = ?", (config.game_id,)
-                    ).fetchone()[0]
-                )
-        finally:
-            con.close()
+    def create_game(
+        self, *, meta_config: ConnectionsMetaConfig, config: ConnectionsConfig
+    ) -> ConnectionsGame:
+        with get_db_cursor(data_file=meta_config.data_file) as cur:
+            groups: dict[str, list[str]] = TypeAdapter(dict[str, list[str]]).validate_json(
+                cur.execute(
+                    "SELECT groups FROM game WHERE game_id = ?", (config.game_id,)
+                ).fetchone()[0]
+            )
 
         words: list[str] = sum(groups.values(), [])
-
-        Random(
-            int(sha256("/".join(words).encode(encoding="utf8")).hexdigest(), base=16)
-            & ((1 << 32) - 1)
-        ).shuffle(words)
+        Random(create_seed(data="/".join(words))).shuffle(words)
 
         return ConnectionsGame(
             words=words,

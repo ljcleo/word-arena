@@ -4,7 +4,7 @@ from typing import override
 
 from ....common.gym.manual import BaseManualGym
 from ..common import ContextoHintGuess
-from ..generators.common import ContextoHintConfig
+from ..generators.common import ContextoHintConfig, ContextoHintMetaConfig
 from ..generators.provider import ContextoHintGameProvider
 from ..players.manual import ContextoHintManualPlayer
 from .base import ContextoHintConfigGym, ContextoHintExampleConfigGym
@@ -12,11 +12,23 @@ from .base import ContextoHintConfigGym, ContextoHintExampleConfigGym
 
 class ContextoHintManualGym(
     ContextoHintConfigGym[[Callable[[str], str], Callable[[str], None]]],
-    BaseManualGym[Path, ContextoHintConfig, None, list[str], ContextoHintGuess, int, list[str]],
+    BaseManualGym[
+        ContextoHintMetaConfig,
+        ContextoHintConfig,
+        None,
+        list[str],
+        ContextoHintGuess,
+        int,
+        list[str],
+    ],
 ):
     def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func, game_provider=ContextoHintGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=ContextoHintGameProvider(
+                meta_config=ContextoHintMetaConfig(data_file=data_file)
+            ),
+            **kwargs,
         )
 
     @override

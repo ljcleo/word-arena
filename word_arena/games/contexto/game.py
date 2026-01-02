@@ -1,6 +1,5 @@
 from logging import WARNING, getLogger
 from typing import override
-from urllib.parse import quote
 
 from httpx import Response, get
 from tenacity import before_sleep_log, retry, wait_random
@@ -54,7 +53,7 @@ class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, Contexto
 
     @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     def _fetch_feedback(self, *, word: str) -> ContextoFeedback:
-        response: Response = get(quote(f"{self._base_url}/game/{self._game_id}/{word}"))
+        response: Response = get(f"{self._base_url}/game/{self._game_id}/{word}")
 
         if response.status_code == 200:
             feedback: ContextoResponse = ContextoResponse.model_validate_json(response.content)
@@ -71,4 +70,4 @@ class ContextoGame(BaseGame[int, None, ContextoGuess, ContextoFeedback, Contexto
 
     @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     def _fetch_top_words(self) -> list[str]:
-        return get(quote(f"{self._base_url}/top/{self._game_id}")).json()["words"]
+        return get(f"{self._base_url}/top/{self._game_id}").json()["words"]

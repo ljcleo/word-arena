@@ -38,7 +38,7 @@ class ContextoAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=ContextoGameGenerator(
-                mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=None, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
             ),
             **kwargs,
         )

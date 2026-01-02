@@ -16,7 +16,9 @@ class ContextoManualGym(
     ],
 ):
     def __init__(self, *, log_func: Callable[[str], None], **kwargs) -> None:
-        super().__init__(log_func=log_func, game_provider=ContextoGameProvider(), **kwargs)
+        super().__init__(
+            log_func=log_func, game_provider=ContextoGameProvider(meta_config=None), **kwargs
+        )
 
     @override
     def create_player(

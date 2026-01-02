@@ -4,7 +4,7 @@ from typing import override
 
 from ....common.gym.manual import BaseManualGym
 from ..common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo
-from ..generators.common import ConexoConfig
+from ..generators.common import ConexoConfig, ConexoMetaConfig
 from ..generators.provider import ConexoGameProvider
 from ..players.manual import ConexoManualPlayer
 from .base import ConexoConfigGym, ConexoExampleConfigGym
@@ -13,12 +13,20 @@ from .base import ConexoConfigGym, ConexoExampleConfigGym
 class ConexoManualGym(
     ConexoConfigGym[[Callable[[str], str], Callable[[str], None]]],
     BaseManualGym[
-        Path, ConexoConfig, ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult
+        ConexoMetaConfig,
+        ConexoConfig,
+        ConexoInfo,
+        None,
+        ConexoGuess,
+        ConexoFeedback,
+        ConexoFinalResult,
     ],
 ):
     def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func, game_provider=ConexoGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=ConexoGameProvider(meta_config=ConexoMetaConfig(data_file=data_file)),
+            **kwargs,
         )
 
     @override

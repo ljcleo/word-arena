@@ -24,7 +24,9 @@ class NumberleManualGym(
 ):
     def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func, game_provider=NumberleGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=NumberleGameProvider(meta_config=NumberleMetaConfig(data_file=data_file)),
+            **kwargs,
         )
 
     @override

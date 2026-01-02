@@ -1,6 +1,5 @@
-from pathlib import Path
 from random import Random
-from typing import Iterable, override
+from typing import override
 
 from ....common.generator.generator import BaseGameGenerator
 from ..game import LetrosoGame
@@ -12,21 +11,6 @@ class LetrosoGameGenerator(
     LetrosoGameProvider,
     BaseGameGenerator[LetrosoMetaConfig, LetrosoMutableMetaConfig, LetrosoConfig, LetrosoGame],
 ):
-    def __init__(
-        self,
-        *,
-        data_file: Path,
-        mutable_meta_config_pool: Iterable[LetrosoMutableMetaConfig],
-        seed: int,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            data_file=data_file,
-            mutable_meta_config_pool=mutable_meta_config_pool,
-            seed=seed,
-            **kwargs,
-        )
-
     @override
     def generate_config(
         self,
@@ -38,5 +22,5 @@ class LetrosoGameGenerator(
         return LetrosoConfig(
             max_letters=mutable_meta_config.max_letters,
             max_guesses=mutable_meta_config.max_guesses,
-            game_ids=rng.sample(range(meta_config.game_count), mutable_meta_config.num_targets),
+            game_ids=meta_config.random_game_ids(count=mutable_meta_config.num_targets, rng=rng),
         )

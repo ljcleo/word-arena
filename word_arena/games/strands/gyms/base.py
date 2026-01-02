@@ -1,16 +1,15 @@
 from collections.abc import Callable
-from pathlib import Path
 from typing import override
 
 from ....common.gym.base import BaseConfigGym
 from ..common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 from ..formatters.base import StrandsFinalResultFormatter
-from ..generators.common import StrandsConfig, get_strands_game_count
+from ..generators.common import StrandsConfig, StrandsMetaConfig
 
 
 class StrandsConfigGym[**P](
     BaseConfigGym[
-        Path,
+        StrandsMetaConfig,
         StrandsConfig,
         StrandsInfo,
         None,
@@ -32,12 +31,10 @@ class StrandsExampleConfigGym(StrandsConfigGym):
         self._input_func: Callable[[str], str] = input_func
 
     @override
-    def create_config(self, *, meta_config: Path) -> StrandsConfig:
+    def create_config(self, *, meta_config: StrandsMetaConfig) -> StrandsConfig:
         return StrandsConfig(
             max_guesses=int(self._input_func("Max Guesses: ")),
-            game_id=int(
-                self._input_func(
-                    f"Game ID (0--{get_strands_game_count(data_file=meta_config) - 1}): "
-                )
+            game_id=meta_config.select_game_id(
+                selector=lambda n: int(self._input_func(f"Game ID (0--{n - 1}): "))
             ),
         )

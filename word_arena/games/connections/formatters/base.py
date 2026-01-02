@@ -78,7 +78,9 @@ class ConnectionsFinalResultFormatter(BaseFinalResultFormatter[ConnectionsFinalR
     ) -> Iterator[tuple[str, str]]:
         yield "Game Result", "Victory" if len(final_result.remaining_groups) == 0 else "Failed"
         yield "Found Groups", cls._format_groups(groups=final_result.found_groups)
-        yield "Groups Not Found", cls._format_groups(groups=final_result.remaining_groups)
+
+        if len(final_result.remaining_groups) > 0:
+            yield "Groups Not Found", cls._format_groups(groups=final_result.remaining_groups)
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConnectionsWordGroup]) -> str:

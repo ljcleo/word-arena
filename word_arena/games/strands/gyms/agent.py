@@ -12,7 +12,7 @@ from ..common import (
     StrandsInfo,
     StrandsNote,
 )
-from ..generators.common import StrandsConfig
+from ..generators.common import StrandsConfig, StrandsMetaConfig
 from ..generators.generator import StrandsGameGenerator
 from ..players.agent import StrandsAgentPlayer
 from .base import StrandsConfigGym, StrandsExampleConfigGym
@@ -23,7 +23,7 @@ class StrandsAgentGym(
         [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
     ],
     BaseAgentGym[
-        Path,
+        StrandsMetaConfig,
         int,
         StrandsConfig,
         StrandsInfo,
@@ -46,7 +46,9 @@ class StrandsAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=StrandsGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=StrandsMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
             **kwargs,
         )

@@ -40,7 +40,9 @@ class LetrosoAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=LetrosoGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=LetrosoMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
         )
 

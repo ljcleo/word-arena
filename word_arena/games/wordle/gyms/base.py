@@ -34,8 +34,10 @@ class WordleExampleConfigGym(WordleConfigGym):
     def create_config(self, *, meta_config: WordleMetaConfig) -> WordleConfig:
         return WordleConfig(
             max_guesses=int(self._input_func("Max Guesses: ")),
-            game_ids=[
-                int(self._input_func(f"Word ID {i + 1} (0--{meta_config.game_count - 1}): "))
-                for i in range(int(self._input_func("Num Targets: ")))
-            ],
+            game_ids=meta_config.select_game_ids(
+                selector=lambda n: (
+                    int(self._input_func(f"Word ID {i + 1} (0--{n - 1}): "))
+                    for i in range(int(self._input_func("Num Targets: ")))
+                )
+            ),
         )

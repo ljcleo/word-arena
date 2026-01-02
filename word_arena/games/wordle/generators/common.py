@@ -1,13 +1,31 @@
+from collections.abc import Callable, Iterable
+from pathlib import Path
+from random import Random
+from typing import Any, override
+
 from pydantic import BaseModel
+
+from ....common.utils import get_db_cursor
 
 
 class WordleMetaConfig(BaseModel):
-    word_list: list[str]
-    target_pool: list[int]
+    data_file: Path
+
+    @override
+    def model_post_init(self, context: Any) -> None:
+        with get_db_cursor(data_file=self.data_file) as cur:
+            self._word_pool: dict[int, str] = dict(cur.execute("SELECT word_id, word FROM word"))
+            self._game_pool: dict[int, int] = dict(cur.execute("SELECT game_id, word_id FROM game"))
 
     @property
-    def game_count(self) -> int:
-        return len(self.target_pool)
+    def word_list(self) -> list[str]:
+        return [self._word_pool[i] for i in range(len(self._word_pool))]
+
+    def select_game_ids(self, *, selector: Callable[[int], Iterable[int]]) -> list[int]:
+        return list(map(self._game_pool.__getitem__, selector(len(self._game_pool))))
+
+    def random_game_ids(self, *, count: int, rng: Random) -> list[int]:
+        return rng.sample(list(self._game_pool.values()), k=count)
 
 
 class WordleMutableMetaConfig(BaseModel):

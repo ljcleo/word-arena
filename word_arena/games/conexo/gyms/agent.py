@@ -6,7 +6,7 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoNote
-from ..generators.common import ConexoConfig
+from ..generators.common import ConexoConfig, ConexoMetaConfig
 from ..generators.generator import ConexoGameGenerator
 from ..players.agent import ConexoAgentPlayer
 from .base import ConexoConfigGym, ConexoExampleConfigGym
@@ -17,7 +17,7 @@ class ConexoAgentGym(
         [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
     ],
     BaseAgentGym[
-        Path,
+        ConexoMetaConfig,
         int,
         ConexoConfig,
         ConexoInfo,
@@ -40,7 +40,9 @@ class ConexoAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=ConexoGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=ConexoMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
             **kwargs,
         )

@@ -40,7 +40,9 @@ class WordleAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=WordleGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=WordleMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
             **kwargs,
         )

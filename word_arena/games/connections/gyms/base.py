@@ -1,16 +1,15 @@
 from collections.abc import Callable
-from pathlib import Path
 from typing import override
 
 from ....common.gym.base import BaseConfigGym
 from ..common import ConnectionsFeedback, ConnectionsFinalResult, ConnectionsGuess, ConnectionsInfo
 from ..formatters.base import ConnectionsFinalResultFormatter
-from ..generators.common import ConnectionsConfig, get_connections_game_count
+from ..generators.common import ConnectionsConfig, ConnectionsMetaConfig
 
 
 class ConnectionsConfigGym[**P](
     BaseConfigGym[
-        Path,
+        ConnectionsMetaConfig,
         ConnectionsConfig,
         ConnectionsInfo,
         None,
@@ -32,12 +31,10 @@ class ConnectionsExampleConfigGym(ConnectionsConfigGym):
         self._input_func: Callable[[str], str] = input_func
 
     @override
-    def create_config(self, *, meta_config: Path) -> ConnectionsConfig:
+    def create_config(self, *, meta_config: ConnectionsMetaConfig) -> ConnectionsConfig:
         return ConnectionsConfig(
             max_guesses=int(self._input_func("Max Guesses: ")),
-            game_id=int(
-                self._input_func(
-                    f"Game ID (0--{get_connections_game_count(data_file=meta_config) - 1}): "
-                )
+            game_id=meta_config.select_game_id(
+                selector=lambda n: int(self._input_func(f"Game ID (0--{n - 1}): "))
             ),
         )

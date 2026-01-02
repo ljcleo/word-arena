@@ -6,7 +6,7 @@ from ....common.gym.agent.common import TrainingConfig
 from ....common.gym.agent.gym import BaseAgentGym
 from ....common.llm.base import BaseLLM
 from ..common import ContextoHintGuess, ContextoHintNote
-from ..generators.common import ContextoHintConfig
+from ..generators.common import ContextoHintConfig, ContextoHintMetaConfig
 from ..generators.generator import ContextoHintGameGenerator
 from ..players.agent import ContextoHintAgentPlayer
 from .base import ContextoHintConfigGym, ContextoHintExampleConfigGym
@@ -17,7 +17,7 @@ class ContextoHintAgentGym(
         [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
     ],
     BaseAgentGym[
-        Path,
+        ContextoHintMetaConfig,
         int,
         ContextoHintConfig,
         None,
@@ -40,7 +40,9 @@ class ContextoHintAgentGym(
         super().__init__(
             log_func=log_func,
             game_generator=ContextoHintGameGenerator(
-                data_file=data_file, mutable_meta_config_pool=mutable_meta_config_pool, seed=seed
+                meta_config=ContextoHintMetaConfig(data_file=data_file),
+                mutable_meta_config_pool=mutable_meta_config_pool,
+                seed=seed,
             ),
             **kwargs,
         )

@@ -30,7 +30,9 @@ class LetrosoManualGym(
         **kwargs,
     ) -> None:
         super().__init__(
-            log_func=log_func, game_provider=LetrosoGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=LetrosoGameProvider(meta_config=LetrosoMetaConfig(data_file=data_file)),
+            **kwargs,
         )
 
     @override

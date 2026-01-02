@@ -4,7 +4,7 @@ from typing import override
 
 from ....common.gym.manual import BaseManualGym
 from ..common import ConnectionsFeedback, ConnectionsFinalResult, ConnectionsGuess, ConnectionsInfo
-from ..generators.common import ConnectionsConfig
+from ..generators.common import ConnectionsConfig, ConnectionsMetaConfig
 from ..generators.provider import ConnectionsGameProvider
 from ..players.manual import ConnectionsManualPlayer
 from .base import ConnectionsConfigGym, ConnectionsExampleConfigGym
@@ -13,7 +13,7 @@ from .base import ConnectionsConfigGym, ConnectionsExampleConfigGym
 class ConnectionsManualGym(
     ConnectionsConfigGym[[Callable[[str], str], Callable[[str], None]]],
     BaseManualGym[
-        Path,
+        ConnectionsMetaConfig,
         ConnectionsConfig,
         ConnectionsInfo,
         None,
@@ -24,7 +24,11 @@ class ConnectionsManualGym(
 ):
     def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func, game_provider=ConnectionsGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=ConnectionsGameProvider(
+                meta_config=ConnectionsMetaConfig(data_file=data_file)
+            ),
+            **kwargs,
         )
 
     @override

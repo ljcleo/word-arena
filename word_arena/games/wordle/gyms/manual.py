@@ -24,7 +24,9 @@ class WordleManualGym(
 ):
     def __init__(self, *, data_file: Path, log_func: Callable[[str], None], **kwargs) -> None:
         super().__init__(
-            log_func=log_func, game_provider=WordleGameProvider(data_file=data_file), **kwargs
+            log_func=log_func,
+            game_provider=WordleGameProvider(meta_config=WordleMetaConfig(data_file=data_file)),
+            **kwargs,
         )
 
     @override
