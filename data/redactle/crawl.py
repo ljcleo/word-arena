@@ -11,7 +11,7 @@ from tenacity import before_sleep_log, retry, wait_random
 
 
 class RedactleGameData(BaseModel):
-    article: list[tuple[str, str | None]]
+    article: list[list[tuple[str, str | None]]]
     lemma_map: dict[str, str]
 
 
@@ -30,13 +30,16 @@ def get_data(*, game_id: int) -> str | bool:
 
         return RedactleGameData(
             article=[
-                (m1 or m2, None if m1 == "" else lemma_map.get(m1.lower(), m1.lower()))
-                for m1, m2 in findall(
-                    "([\u00bf-\u1fff\u2c00-\ud7ff\u2654-\u265f\\w]+)|"
-                    "([^\u00bf-\u1fff\u2c00-\ud7ff\u2654-\u265f\\w]+)",
-                    markdownify(doc["article"]),
-                    flags=IGNORECASE,
-                )
+                [
+                    (m1 or m2, None if m1 == "" else lemma_map.get(m1.lower(), m1.lower()))
+                    for m1, m2 in findall(
+                        "([\u00bf-\u1fff\u2c00-\ud7ff\u2654-\u265f\\w]+)|"
+                        "([^\u00bf-\u1fff\u2c00-\ud7ff\u2654-\u265f\\w]+)",
+                        paragraph,
+                        flags=IGNORECASE,
+                    )
+                ]
+                for paragraph in markdownify(doc["article"]).strip().split("\n")
             ],
             lemma_map=lemma_map,
         ).model_dump_json()

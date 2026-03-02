@@ -95,7 +95,7 @@ def main() -> None:
                 continue
 
             date_str: str = (start_date + timedelta(days=game_id)).strftime("%Y-%m-%d")
-            print(date_str)
+            print(game_id, date_str)
 
             try:
                 data_str: str | None = get_data(date_str=date_str)

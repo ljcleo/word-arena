@@ -59,7 +59,7 @@ def main() -> None:
                 continue
 
             date_str: str = (start_date + timedelta(days=game_id)).strftime("%Y-%m-%d")
-            print(date_str)
+            print(game_id, date_str)
 
             try:
                 groups_str: str | None = get_groups(date_str=date_str)

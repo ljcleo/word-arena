@@ -20,6 +20,7 @@ def parse_text(text: str) -> Iterator[Any]:
     while text != "":
         header, _, text = text.partition("\n")
         len_doc = int(header)
+        len_doc -= sum(1 for c in text[:len_doc] if ord(c) > 0xFFFF)
         yield loads(text[:len_doc])
         text = text[len_doc:]
 
@@ -117,7 +118,7 @@ def main() -> None:
                 continue
 
             date_str: str = target_date.strftime("%Y-%m-%d")
-            print(date_str)
+            print(game_id, date_str)
 
             try:
                 groups_str: str | None = get_groups(date_str=date_str)
