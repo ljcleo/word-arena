@@ -80,6 +80,16 @@ def build_strands_manual_gym(
     )
 
 
+def build_turing_manual_gym(
+    input_func: Callable[[str], str], log_func: Callable[[str], None]
+) -> BaseManualGym:
+    from word_arena.games.turing.gyms.manual import TuringExampleManualGym
+
+    return TuringExampleManualGym(
+        data_file=Path("./data/turing/games.db"), log_func=log_func, input_func=input_func
+    )
+
+
 MANUAL_GYM_BUILDERS: dict[
     str, Callable[[Callable[[str], str], Callable[[str], None]], BaseManualGym]
 ] = {
@@ -91,6 +101,7 @@ MANUAL_GYM_BUILDERS: dict[
     "numberle": build_numberle_manual_gym,
     "connections": build_connections_manual_gym,
     "strands": build_strands_manual_gym,
+    "turing": build_turing_manual_gym,
 }
 
 

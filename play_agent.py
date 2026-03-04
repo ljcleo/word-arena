@@ -126,6 +126,24 @@ def build_strands_agent_gym(
     )
 
 
+def build_turing_agent_gym(
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+) -> BaseAgentGym:
+    from word_arena.games.turing.generators.common import TuringMutableMetaConfig
+    from word_arena.games.turing.gyms.agent import TuringExampleAgentGym
+
+    return TuringExampleAgentGym(
+        data_file=Path("./data/turing/games.db"),
+        mutable_meta_config_pool=(
+            TuringMutableMetaConfig(num_verifiers=num_verifiers, max_guesses=num_verifiers + 2)
+            for num_verifiers in range(4, 7)
+        ),
+        seed=seed,
+        log_func=log_func,
+        input_func=input_func,
+    )
+
+
 AGENT_GYM_BUILDERS: dict[
     str, Callable[[int, Callable[[str], str], Callable[[str], None]], BaseAgentGym]
 ] = {
@@ -137,6 +155,7 @@ AGENT_GYM_BUILDERS: dict[
     "numberle": build_numberle_agent_gym,
     "connections": build_connections_agent_gym,
     "strands": build_strands_agent_gym,
+    "turing": build_turing_agent_gym,
 }
 
 
