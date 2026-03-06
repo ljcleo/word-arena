@@ -26,14 +26,14 @@ which can be lexical, semantic, conceptual, phrasal (can form phrases with the s
 or any general co-membership (e.g., work titles by the same artist).
 
 At the beginning, the game provides the group size and words from all groups (indexed from 0), \
-but not the groups themselves; it is guaranteed that each word belongs to exactly one group. \
+but not the groups themselves; it is guaranteed that each word belongs to exactly one group.
 
 Every time, you choose as many words as the group size to form a guess, \
 then you will see whether the guessed words belong to the same group or not; \
 if yes, then the group is considered found.
 
 If you guess an incorrect number of words, or guess words that already belong to a found group, \
-then the guess will be rejected. \
+then the guess will be rejected.
 
 There may be a guessing limit on the total number of guesses (including rejected ones), \
 and the game halts if the remaining guesses are not enough to find all word groups; \

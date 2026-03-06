@@ -87,7 +87,7 @@ class LetrosoAgentMemory(
 
     @override
     def get_note_example(self) -> LetrosoNote:
-        return LetrosoNote(strategy="Follow these rules and strategies when guessing: ...")
+        return LetrosoNote(strategy="Follow these strategies when guessing: ...")
 
 
 class LetrosoAgentPlayer(

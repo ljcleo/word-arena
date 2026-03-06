@@ -78,7 +78,7 @@ class NumberleAgentMemory(
 
     @override
     def get_note_example(self) -> NumberleNote:
-        return NumberleNote(strategy="Follow these rules and strategies when guessing: ...")
+        return NumberleNote(strategy="Follow these strategies when guessing: ...")
 
 
 class NumberleAgentPlayer(

@@ -89,7 +89,7 @@ class StrandsAgentMemory(
 
     @override
     def get_note_example(self) -> StrandsNote:
-        return StrandsNote(strategy="Follow these rules and strategies when guessing: ...")
+        return StrandsNote(strategy="Follow these strategies when guessing: ...")
 
 
 class StrandsAgentPlayer(
