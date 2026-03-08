@@ -9,12 +9,13 @@ from .base import BaseConfigGym
 
 
 class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
-    BaseConfigGym[MT, CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str], None]]], ABC
+    BaseConfigGym[MT, CT, IT, HT, GT, FT, RT, [Callable[[str], str], Callable[[str, str], None]]],
+    ABC,
 ):
     def __init__(
         self,
         *,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         game_provider: BaseGameProvider[MT, CT, BaseGame[IT, HT, GT, FT, RT]],
         **kwargs,
     ) -> None:
@@ -23,7 +24,7 @@ class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
 
     @override
     def create_player_with_cb(
-        self, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
+        self, input_func: Callable[[str], str], player_log_func: Callable[[str, str], None]
     ) -> tuple[BaseManualPlayer[IT, HT, GT, FT], None, None]:
         return (
             self.create_player(input_func=input_func, player_log_func=player_log_func),
@@ -39,6 +40,6 @@ class BaseManualGym[MT, CT, IT, HT, GT, FT, RT](
 
     @abstractmethod
     def create_player(
-        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
+        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str, str], None]
     ) -> BaseManualPlayer[IT, HT, GT, FT]:
         raise NotImplementedError()

@@ -9,25 +9,25 @@ from .base import BasePlayer
 class BaseLogPlayer[IT, HT, GT, FT](
     BasePlayer[IT, HT, GT, FT], BaseInGameFormatter[IT, HT, GT, FT], ABC
 ):
-    def __init__(self, *, player_log_func: Callable[[str], None], **kwargs) -> None:
+    def __init__(self, *, player_log_func: Callable[[str, str], None], **kwargs) -> None:
         super().__init__(**kwargs)
-        self._player_log_func: Callable[[str], None] = player_log_func
+        self._player_log_func: Callable[[str, str], None] = player_log_func
 
     @override
     def prepare(self, *, game_info: IT) -> None:
         self._game_info: IT = game_info
         for key, value in self.format_game_info(game_info=game_info):
-            self._player_log_func(f"{key}: {value}")
+            self._player_log_func(key, value)
 
     @override
     def guess(self, *, hint: HT) -> GT:
         for key, value in self.format_hint(game_info=self._game_info, hint=hint):
-            self._player_log_func(f"{key}: {value}")
+            self._player_log_func(key, value)
 
         guess: GT = self.make_guess(hint=hint)
 
         for key, value in self.format_guess(game_info=self._game_info, hint=hint, guess=guess):
-            self._player_log_func(f"{key}: {value}")
+            self._player_log_func(key, value)
 
         return guess
 
@@ -36,7 +36,7 @@ class BaseLogPlayer[IT, HT, GT, FT](
         for key, value in self.format_feedback(
             game_info=self._game_info, hint=hint, guess=guess, feedback=feedback
         ):
-            self._player_log_func(f"{key}: {value}")
+            self._player_log_func(key, value)
 
     @abstractmethod
     def make_guess(self, *, hint: HT) -> GT:

@@ -20,7 +20,13 @@ from .base import TuringConfigGym, TuringExampleConfigGym
 
 class TuringAgentGym(
     TuringConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+        [
+            BaseLLM,
+            bool,
+            TrainingConfig | None,
+            Callable[[str, str], None],
+            Callable[[str, str], None],
+        ]
     ],
     BaseAgentGym[
         TuringMetaConfig,
@@ -40,7 +46,7 @@ class TuringAgentGym(
         data_file: Path,
         mutable_meta_config_pool: Iterable[TuringMutableMetaConfig],
         seed: int,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -59,8 +65,8 @@ class TuringAgentGym(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> TuringAgentPlayer:
         return TuringAgentPlayer(
             model=model,
@@ -77,7 +83,7 @@ class TuringExampleAgentGym(TuringExampleConfigGym, TuringAgentGym):
         data_file: Path,
         mutable_meta_config_pool: Iterable[TuringMutableMetaConfig],
         seed: int,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         input_func: Callable[[str], str],
     ) -> None:
         super().__init__(

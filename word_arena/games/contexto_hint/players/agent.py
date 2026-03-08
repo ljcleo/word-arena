@@ -40,7 +40,7 @@ class ContextoHintAgentMemory(
     BaseAgentMemory[None, list[str], ContextoHintGuess, int, list[str], ContextoHintNote],
     ContextoHintAgentMemoryFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str, str], None]) -> None:
         super().__init__(model=model, note_cls=ContextoHintNote, log_func=log_func)
 
     @override
@@ -79,8 +79,8 @@ class ContextoHintAgentPlayer(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> None:
         super().__init__(
             memory=ContextoHintAgentMemory(model=model, log_func=agent_log_func),

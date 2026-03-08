@@ -22,14 +22,20 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, NT: BaseModel](
         GT,
         FT,
         RT,
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]],
+        [
+            BaseLLM,
+            bool,
+            TrainingConfig | None,
+            Callable[[str, str], None],
+            Callable[[str, str], None],
+        ],
     ],
     ABC,
 ):
     def __init__(
         self,
         *,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         game_generator: BaseGameGenerator[MT, UT, CT, BaseGame[IT, HT, GT, FT, RT]],
         **kwargs,
     ) -> None:
@@ -45,8 +51,8 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, NT: BaseModel](
         model: BaseLLM,
         do_analyze: bool,
         training_config: TrainingConfig | None,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> tuple[
         BaseAgentPlayer[IT, HT, GT, FT, NT],
         Callable[[], None],
@@ -85,7 +91,7 @@ class BaseAgentGym[MT, UT, CT, IT, HT, GT: BaseModel, FT, RT, NT: BaseModel](
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> BaseAgentPlayer[IT, HT, GT, FT, NT]:
         raise NotImplementedError()

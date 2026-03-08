@@ -5,7 +5,7 @@ from word_arena.common.gym.agent.gym import BaseAgentGym
 
 
 def build_contexto_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.contexto.gyms.agent import ContextoExampleAgentGym
 
@@ -15,7 +15,7 @@ def build_contexto_agent_gym(
 
 
 def build_contexto_hint_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.contexto_hint.gyms.agent import ContextoHintExampleAgentGym
 
@@ -29,7 +29,7 @@ def build_contexto_hint_agent_gym(
 
 
 def build_wordle_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.wordle.generators.common import WordleMutableMetaConfig
     from word_arena.games.wordle.gyms.agent import WordleExampleAgentGym
@@ -47,7 +47,7 @@ def build_wordle_agent_gym(
 
 
 def build_letroso_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.letroso.generators.common import LetrosoMutableMetaConfig
     from word_arena.games.letroso.gyms.agent import LetrosoExampleAgentGym
@@ -64,7 +64,7 @@ def build_letroso_agent_gym(
 
 
 def build_conexo_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.conexo.gyms.agent import ConexoExampleAgentGym
 
@@ -78,7 +78,7 @@ def build_conexo_agent_gym(
 
 
 def build_numberle_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.numberle.generators.common import NumberleMutableMetaConfig
     from word_arena.games.numberle.gyms.agent import NumberleExampleAgentGym
@@ -99,7 +99,7 @@ def build_numberle_agent_gym(
 
 
 def build_connections_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.connections.gyms.agent import ConnectionsExampleAgentGym
 
@@ -113,7 +113,7 @@ def build_connections_agent_gym(
 
 
 def build_strands_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.strands.gyms.agent import StrandsExampleAgentGym
 
@@ -127,7 +127,7 @@ def build_strands_agent_gym(
 
 
 def build_turing_agent_gym(
-    seed: int, input_func: Callable[[str], str], log_func: Callable[[str], None]
+    seed: int, input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseAgentGym:
     from word_arena.games.turing.generators.common import TuringMutableMetaConfig
     from word_arena.games.turing.gyms.agent import TuringExampleAgentGym
@@ -145,7 +145,7 @@ def build_turing_agent_gym(
 
 
 AGENT_GYM_BUILDERS: dict[
-    str, Callable[[int, Callable[[str], str], Callable[[str], None]], BaseAgentGym]
+    str, Callable[[int, Callable[[str], str], Callable[[str, str], None]], BaseAgentGym]
 ] = {
     "contexto": build_contexto_agent_gym,
     "contexto-hint": build_contexto_hint_agent_gym,
@@ -157,6 +157,10 @@ AGENT_GYM_BUILDERS: dict[
     "strands": build_strands_agent_gym,
     "turing": build_turing_agent_gym,
 }
+
+
+def log(key: str, value: str) -> None:
+    print(f"{key}: {value}")
 
 
 def main() -> None:
@@ -181,7 +185,7 @@ def main() -> None:
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns(), input, print).play(
+    AGENT_GYM_BUILDERS[games[int(input("Game Index: "))]](time_ns(), input, log).play(
         model,
         do_analyze,
         TrainingConfig(
@@ -190,8 +194,8 @@ def main() -> None:
         )
         if input("Train? (y/n): ")[0].lower() == "y"
         else None,
-        print,
-        print,
+        log,
+        log,
     )
 
 

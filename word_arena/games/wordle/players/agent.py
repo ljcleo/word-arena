@@ -44,7 +44,7 @@ class WordleAgentMemory(
     BaseAgentMemory[WordleInfo, None, WordleGuess, WordleFeedback, WordleFinalResult, WordleNote],
     WordleAgentMemoryFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str, str], None]) -> None:
         super().__init__(model=model, note_cls=WordleNote, log_func=log_func)
 
     @override
@@ -78,8 +78,8 @@ class WordleAgentPlayer(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> None:
         super().__init__(
             memory=WordleAgentMemory(model=model, log_func=agent_log_func),

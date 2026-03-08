@@ -22,8 +22,8 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, NT: BaseModel](
         model: BaseLLM,
         do_analyze: bool,
         guess_cls: type[GT],
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
         **kwargs,
     ):
         super().__init__(player_log_func=player_log_func, **kwargs)
@@ -31,7 +31,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, NT: BaseModel](
         self._model: BaseLLM = model
         self._do_analyze: bool = do_analyze
         self._guess_cls: type[GT] = guess_cls
-        self._agent_log_func: Callable[[str], None] = agent_log_func
+        self._agent_log_func: Callable[[str, str], None] = agent_log_func
 
         if do_analyze:
             self._guess_model: type[BaseModel] = create_model(
@@ -78,7 +78,7 @@ class BaseAgentPlayer[IT, HT, GT: BaseModel, FT, NT: BaseModel](
 
         if self._latest_analysis is not None:
             for key, value in self.format_analysis(analysis=self._latest_analysis):
-                self._agent_log_func(f"{key}: {value}")
+                self._agent_log_func(key, value)
 
         return guess
 

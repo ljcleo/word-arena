@@ -17,12 +17,12 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, NT: BaseModel](
     BaseMemory[IT, HT, GT, FT, RT, NT], BaseAgentMemoryFormatter[IT, HT, GT, FT, RT, NT], ABC
 ):
     def __init__(
-        self, model: BaseLLM, note_cls: type[NT], log_func: Callable[[str], None], **kwargs
+        self, model: BaseLLM, note_cls: type[NT], log_func: Callable[[str, str], None], **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self._model: BaseLLM = model
         self._note_cls: type[NT] = note_cls
-        self._log_func: Callable[[str], None] = log_func
+        self._log_func: Callable[[str, str], None] = log_func
 
     @override
     def create_note(self) -> NT:
@@ -37,7 +37,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, NT: BaseModel](
         )
 
         for key, value in self.format_note(note=note):
-            self._log_func(f"{key}: {value}")
+            self._log_func(key, value)
 
         return note
 
@@ -62,7 +62,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, NT: BaseModel](
         )
 
         for key, value in self.format_reflection(reflection=reflection):
-            self._log_func(f"{key}: {value}")
+            self._log_func(key, value)
 
         return reflection
 
@@ -87,7 +87,7 @@ class BaseAgentMemory[IT, HT, GT, FT, RT, NT: BaseModel](
         )
 
         for key, value in self.format_note(note=note):
-            self._log_func(f"{key}: {value}")
+            self._log_func(key, value)
 
         return note
 

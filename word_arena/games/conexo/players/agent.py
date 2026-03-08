@@ -43,7 +43,7 @@ class ConexoAgentMemory(
     BaseAgentMemory[ConexoInfo, None, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoNote],
     ConexoAgentMemoryFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str, str], None]) -> None:
         super().__init__(model=model, note_cls=ConexoNote, log_func=log_func)
 
     @override
@@ -79,8 +79,8 @@ class ConexoAgentPlayer(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> None:
         super().__init__(
             memory=ConexoAgentMemory(model=model, log_func=agent_log_func),

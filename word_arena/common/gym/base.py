@@ -8,9 +8,9 @@ from ..player.base import BasePlayer
 
 
 class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
-    def __init__(self, *, log_func: Callable[[str], None], **kwargs) -> None:
+    def __init__(self, *, log_func: Callable[[str, str], None], **kwargs) -> None:
         super().__init__(**kwargs)
-        self._log_func: Callable[[str], None] = log_func
+        self._log_func: Callable[[str, str], None] = log_func
 
     def play(self, *player_args: P.args, **player_kwargs: P.kwargs) -> None:
         player: BasePlayer[IT, HT, GT, FT]
@@ -25,10 +25,10 @@ class BaseGym[IT, HT, GT, FT, RT, **P](BaseFinalResultFormatter[RT], ABC):
             prepare_player()
 
         game_record: GameRecord = self.create_game().play(player=player)
-        self._log_func(f"Total Guesses: {len(game_record.trajectory)}")
+        self._log_func("Total Guesses", str(len(game_record.trajectory)))
 
         for key, value in self.format_final_result(final_result=game_record.final_result):
-            self._log_func(f"{key}: {value}")
+            self._log_func(key, value)
         if summarize_player is not None:
             summarize_player(game_record)
 

@@ -62,7 +62,7 @@ class TuringAgentMemory(
     BaseAgentMemory[TuringInfo, None, TuringGuess, TuringFeedback, TuringFinalResult, TuringNote],
     TuringAgentMemoryFormatter,
 ):
-    def __init__(self, *, model: BaseLLM, log_func: Callable[[str], None]) -> None:
+    def __init__(self, *, model: BaseLLM, log_func: Callable[[str, str], None]) -> None:
         super().__init__(model=model, note_cls=TuringNote, log_func=log_func)
 
     @override
@@ -96,8 +96,8 @@ class TuringAgentPlayer(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> None:
         super().__init__(
             memory=TuringAgentMemory(model=model, log_func=agent_log_func),

@@ -5,7 +5,7 @@ from word_arena.common.gym.manual import BaseManualGym
 
 
 def build_contexto_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.contexto.gyms.manual import ContextoExampleManualGym
 
@@ -13,7 +13,7 @@ def build_contexto_manual_gym(
 
 
 def build_contexto_hint_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.contexto_hint.gyms.manual import ContextoHintExampleManualGym
 
@@ -23,7 +23,7 @@ def build_contexto_hint_manual_gym(
 
 
 def build_wordle_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.wordle.gyms.manual import WordleExampleManualGym
 
@@ -33,7 +33,7 @@ def build_wordle_manual_gym(
 
 
 def build_letroso_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.letroso.gyms.manual import LetrosoExampleManualGym
 
@@ -43,7 +43,7 @@ def build_letroso_manual_gym(
 
 
 def build_conexo_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.conexo.gyms.manual import ConexoExampleManualGym
 
@@ -52,7 +52,9 @@ def build_conexo_manual_gym(
     )
 
 
-def build_numberle_manual_gym(input_func: Callable[[str], str], log_func: Callable[[str], None]):
+def build_numberle_manual_gym(
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
+):
     from word_arena.games.numberle.gyms.manual import NumberleExampleManualGym
 
     return NumberleExampleManualGym(
@@ -61,7 +63,7 @@ def build_numberle_manual_gym(input_func: Callable[[str], str], log_func: Callab
 
 
 def build_connections_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.connections.gyms.manual import ConnectionsExampleManualGym
 
@@ -71,7 +73,7 @@ def build_connections_manual_gym(
 
 
 def build_strands_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.strands.gyms.manual import StrandsExampleManualGym
 
@@ -81,7 +83,7 @@ def build_strands_manual_gym(
 
 
 def build_turing_manual_gym(
-    input_func: Callable[[str], str], log_func: Callable[[str], None]
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
 ) -> BaseManualGym:
     from word_arena.games.turing.gyms.manual import TuringExampleManualGym
 
@@ -91,7 +93,7 @@ def build_turing_manual_gym(
 
 
 MANUAL_GYM_BUILDERS: dict[
-    str, Callable[[Callable[[str], str], Callable[[str], None]], BaseManualGym]
+    str, Callable[[Callable[[str], str], Callable[[str, str], None]], BaseManualGym]
 ] = {
     "contexto": build_contexto_manual_gym,
     "contexto-hint": build_contexto_hint_manual_gym,
@@ -105,12 +107,16 @@ MANUAL_GYM_BUILDERS: dict[
 }
 
 
+def log(key: str, value: str) -> None:
+    print(f"{key}: {value}")
+
+
 def main() -> None:
     games: list[str] = list(MANUAL_GYM_BUILDERS.keys())
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
-    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]](input, print).play(input, print)
+    MANUAL_GYM_BUILDERS[games[int(input("Game Index: "))]](input, log).play(input, log)
 
 
 if __name__ == "__main__":

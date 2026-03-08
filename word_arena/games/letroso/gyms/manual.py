@@ -11,7 +11,7 @@ from .base import LetrosoConfigGym, LetrosoExampleConfigGym
 
 
 class LetrosoManualGym(
-    LetrosoConfigGym[[Callable[[str], str], Callable[[str], None]]],
+    LetrosoConfigGym[[Callable[[str], str], Callable[[str, str], None]]],
     BaseManualGym[
         LetrosoMetaConfig,
         LetrosoConfig,
@@ -26,7 +26,7 @@ class LetrosoManualGym(
         self,
         *,
         data_file: Path,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -37,13 +37,17 @@ class LetrosoManualGym(
 
     @override
     def create_player(
-        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str], None]
+        self, *, input_func: Callable[[str], str], player_log_func: Callable[[str, str], None]
     ) -> LetrosoManualPlayer:
         return LetrosoManualPlayer(input_func=input_func, player_log_func=player_log_func)
 
 
 class LetrosoExampleManualGym(LetrosoExampleConfigGym, LetrosoManualGym):
     def __init__(
-        self, *, data_file: Path, log_func: Callable[[str], None], input_func: Callable[[str], str]
+        self,
+        *,
+        data_file: Path,
+        log_func: Callable[[str, str], None],
+        input_func: Callable[[str], str],
     ) -> None:
         super().__init__(data_file=data_file, log_func=log_func, input_func=input_func)

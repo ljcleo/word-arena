@@ -18,7 +18,7 @@ class ContextoConfigGym[**P](
 
 class ContextoExampleConfigGym(ContextoConfigGym):
     def __init__(
-        self, *, log_func: Callable[[str], None], input_func: Callable[[str], str], **kwargs
+        self, *, log_func: Callable[[str, str], None], input_func: Callable[[str], str], **kwargs
     ) -> None:
         super().__init__(log_func=log_func, **kwargs)
         self._input_func: Callable[[str], str] = input_func

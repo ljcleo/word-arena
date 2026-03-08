@@ -14,7 +14,13 @@ from .base import WordleConfigGym, WordleExampleConfigGym
 
 class WordleAgentGym(
     WordleConfigGym[
-        [BaseLLM, bool, TrainingConfig | None, Callable[[str], None], Callable[[str], None]]
+        [
+            BaseLLM,
+            bool,
+            TrainingConfig | None,
+            Callable[[str, str], None],
+            Callable[[str, str], None],
+        ]
     ],
     BaseAgentGym[
         WordleMetaConfig,
@@ -34,7 +40,7 @@ class WordleAgentGym(
         data_file: Path,
         mutable_meta_config_pool: Iterable[WordleMutableMetaConfig],
         seed: int,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -53,8 +59,8 @@ class WordleAgentGym(
         *,
         model: BaseLLM,
         do_analyze: bool,
-        player_log_func: Callable[[str], None],
-        agent_log_func: Callable[[str], None],
+        player_log_func: Callable[[str, str], None],
+        agent_log_func: Callable[[str, str], None],
     ) -> WordleAgentPlayer:
         return WordleAgentPlayer(
             model=model,
@@ -71,7 +77,7 @@ class WordleExampleAgentGym(WordleExampleConfigGym, WordleAgentGym):
         data_file: Path,
         mutable_meta_config_pool: Iterable[WordleMutableMetaConfig],
         seed: int,
-        log_func: Callable[[str], None],
+        log_func: Callable[[str, str], None],
         input_func: Callable[[str], str],
     ) -> None:
         super().__init__(
