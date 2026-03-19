@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class ContextoConfig(BaseModel):
+    base_url: str
     max_turns: int
     game_id: int
 

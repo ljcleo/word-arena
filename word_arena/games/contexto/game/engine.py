@@ -20,9 +20,9 @@ class ContextoGameEngine(
     BaseGameEngine[ContextoConfig, int, ContextoGuess, ContextoFeedback, ContextoFinalResult]
 ):
     def __init__(self, *, config: ContextoConfig) -> None:
+        self._base_url: str = config.base_url
         self._game_id: int = config.game_id
         self._max_turns: int = config.max_turns
-        self._base_url: str = "https://api.contexto.me/machado/en"
 
     @override
     def start_game(self) -> int:

@@ -12,7 +12,10 @@ def build_contexto_gym(
     from word_arena.games.contexto.preset.gym import input_config_reader_log_renderer
 
     return input_config_reader_log_renderer(
-        mutable_meta_config_pool=(50,), input_func=input_func, log_func=log_func
+        base_url="https://api.contexto.me/machado/en",
+        mutable_meta_config_pool=(50,),
+        input_func=input_func,
+        log_func=log_func,
     )
 
 
