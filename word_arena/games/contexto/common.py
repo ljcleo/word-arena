@@ -22,8 +22,3 @@ class ContextoFinalResult(BaseModel):
     best_pos: int
     best_word: str
     top_words: list[str]
-
-
-class ContextoNote(BaseModel):
-    law: str
-    strategy: str

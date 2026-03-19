@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import overload
 
 from pydantic import BaseModel
 
@@ -6,10 +7,18 @@ from .common import Message
 
 
 class BaseLLM(ABC):
-    @abstractmethod
-    def query(self, *messages: Message) -> str:
-        raise NotImplementedError()
+    @overload
+    def query(self, *messages: Message, system_instruction: str | None = None) -> str: ...
+
+    @overload
+    def query[T: BaseModel](
+        self, *messages: Message, format: type[T], system_instruction: str | None = None
+    ) -> T: ...
 
     @abstractmethod
-    def parse[T: BaseModel](self, *messages: Message, format: type[T]) -> T:
-        raise NotImplementedError()
+    def query[T: BaseModel](
+        self,
+        *messages: Message,
+        format: type[T] | None = None,
+        system_instruction: str | None = None,
+    ) -> str | T: ...

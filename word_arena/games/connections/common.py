@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class ConnectionsInfo(BaseModel):
     words: list[str]
     group_size: int
-    max_guesses: int
+    max_turns: int
 
 
 class ConnectionsGuess(BaseModel):
@@ -24,8 +24,3 @@ class ConnectionsWordGroup(BaseModel):
 class ConnectionsFinalResult(BaseModel):
     found_groups: list[ConnectionsWordGroup]
     remaining_groups: list[ConnectionsWordGroup]
-
-
-class ConnectionsNote(BaseModel):
-    law: str
-    strategy: str

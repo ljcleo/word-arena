@@ -5,6 +5,6 @@ class ContextoHintGuess(BaseModel):
     index: int
 
 
-class ContextoHintNote(BaseModel):
-    law: str
-    strategy: str
+class ContextoHintFeedback(BaseModel):
+    distance: int
+    next_choices: list[str] | None

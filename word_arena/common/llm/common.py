@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 @enum.unique
 class MessageType(enum.Enum):
-    SYSTEM = enum.auto()
     HUMAN = enum.auto()
     AI = enum.auto()
 
@@ -15,10 +14,6 @@ class MessageType(enum.Enum):
 class Message(BaseModel):
     role: MessageType
     content: str
-
-    @staticmethod
-    def system(*sections: str) -> Message:
-        return Message(role=MessageType.SYSTEM, content="\n\n".join(sections))
 
     @staticmethod
     def human(*sections: str) -> Message:

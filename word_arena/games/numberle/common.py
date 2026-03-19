@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class NumberleInfo(BaseModel):
     num_targets: int
     eq_length: int
-    max_guesses: int
+    max_turns: int
 
 
 class NumberleGuess(BaseModel):
@@ -25,7 +25,3 @@ type NumberleFeedback = NumberleResponse | NumberleError
 class NumberleFinalResult(BaseModel):
     found_indices: set[int]
     answers: list[str]
-
-
-class NumberleNote(BaseModel):
-    strategy: str

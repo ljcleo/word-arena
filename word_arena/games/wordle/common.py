@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class WordleInfo(BaseModel):
     num_targets: int
-    max_guesses: int
+    max_turns: int
 
 
 class WordleGuess(BaseModel):
@@ -24,7 +24,3 @@ type WordleFeedback = WordleResponse | WordleError
 class WordleFinalResult(BaseModel):
     found_indices: set[int]
     answers: list[str]
-
-
-class WordleNote(BaseModel):
-    strategy: str

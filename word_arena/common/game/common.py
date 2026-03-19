@@ -1,13 +1,25 @@
+from enum import Enum, auto, unique
+
 from pydantic import BaseModel
 
 
-class Turn[HT, GT, FT](BaseModel):
-    hint: HT
+@unique
+class GameStatus(Enum):
+    PRE = auto()
+    IN = auto()
+    POST = auto()
+
+
+class GuessFeedback[FT](BaseModel):
+    feedback: FT
+    is_over: bool
+
+
+class Turn[GT, FT](BaseModel):
     guess: GT
     feedback: FT
 
 
-class GameRecord[IT, HT, GT, FT, RT](BaseModel):
+class Trajectory[IT, GT, FT](BaseModel):
     game_info: IT
-    trajectory: list[Turn[HT, GT, FT]]
-    final_result: RT
+    turns: list[Turn[GT, FT]]

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class ConexoInfo(BaseModel):
     words: list[str]
     group_size: int
-    max_guesses: int
+    max_turns: int
 
 
 class ConexoGuess(BaseModel):
@@ -24,8 +24,3 @@ class ConexoWordGroup(BaseModel):
 class ConexoFinalResult(BaseModel):
     found_groups: list[ConexoWordGroup]
     remaining_groups: list[ConexoWordGroup]
-
-
-class ConexoNote(BaseModel):
-    law: str
-    strategy: str

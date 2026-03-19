@@ -1,0 +1,77 @@
+from collections import Counter
+from collections.abc import Mapping
+from typing import override
+
+from ....common.game.engine.base import BaseGameEngine
+from ..common import (
+    WordleError,
+    WordleFeedback,
+    WordleFinalResult,
+    WordleGuess,
+    WordleInfo,
+    WordleResponse,
+)
+from .common import WordleGameStateInterface
+
+
+class WordleGameEngine(BaseGameEngine[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult]):
+    def __init__(
+        self, *, word_pool: Mapping[int, str], target_ids: list[int], max_turns: int
+    ) -> None:
+        self._word_bank: set[str] = set(word_pool.values())
+        self._answers: list[str] = [word_pool[target_id] for target_id in target_ids]
+        self._max_turns: int = max_turns
+
+        self._num_targets: int = len(self._answers)
+        self._num_letters: int = len(self._answers[0])
+
+        for answer in self._answers:
+            assert len(answer) == self._num_letters
+
+    @override
+    def start_game(self) -> WordleInfo:
+        self._found_indices: set[int] = set()
+        return WordleInfo(num_targets=self._num_targets, max_turns=self._max_turns)
+
+    @override
+    def is_over(self, *, state: WordleGameStateInterface) -> bool:
+        num_remains: int = self._num_targets - len(self._found_indices)
+        return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
+
+    @override
+    def process_guess(self, *, guess: WordleGuess) -> WordleFeedback:
+        word: str = guess.word
+
+        if not (len(word) == self._num_letters and word.isalpha() and word.islower()):
+            return WordleError(error="Invalid guess")
+        elif word not in self._word_bank:
+            return WordleError(error="Unknown word")
+
+        patterns: list[str] = []
+
+        for index, answer in enumerate(self._answers):
+            patterns.append(self._calc_pattern(answer=answer, guess=word))
+            if word == answer:
+                self._found_indices.add(index)
+
+        return WordleResponse(patterns=patterns)
+
+    @override
+    def get_final_result(self) -> WordleFinalResult:
+        return WordleFinalResult(found_indices=self._found_indices, answers=self._answers)
+
+    def _calc_pattern(self, *, answer: str, guess: str) -> str:
+        buffer: list[str] = ["." for _ in answer]
+        counter: Counter = Counter(answer)
+
+        for i, (x, y) in enumerate(zip(guess, answer)):
+            if x == y:
+                buffer[i] = "G"
+                counter[y] -= 1
+
+        for i, x in enumerate(guess):
+            if buffer[i] != "G" and counter[x] > 0:
+                buffer[i] = "Y"
+                counter[x] -= 1
+
+        return "".join(buffer)

@@ -6,7 +6,7 @@ from pydantic import BaseModel, WithJsonSchema
 class StrandsInfo(BaseModel):
     board: list[str]
     clue: str
-    max_guesses: int
+    max_turns: int
 
 
 class StrandsGuess(BaseModel):
@@ -26,7 +26,3 @@ type StrandsFeedback = str | int
 class StrandsFinalResult(BaseModel):
     found_indices: set[int]
     answers: list[tuple[str, list[tuple[int, int]]]]
-
-
-class StrandsNote(BaseModel):
-    strategy: str

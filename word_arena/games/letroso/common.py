@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class LetrosoInfo(BaseModel):
     num_targets: int
     max_letters: int
-    max_guesses: int
+    max_turns: int
 
 
 class LetrosoGuess(BaseModel):
@@ -25,7 +25,3 @@ type LetrosoFeedback = LetrosoResponse | LetrosoError
 class LetrosoFinalResult(BaseModel):
     found_indices: set[int]
     answers: list[str]
-
-
-class LetrosoNote(BaseModel):
-    strategy: str
