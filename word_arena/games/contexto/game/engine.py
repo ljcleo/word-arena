@@ -6,20 +6,22 @@ from tenacity import before_sleep_log, retry, wait_random
 
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
+    ContextoConfig,
     ContextoError,
     ContextoFeedback,
     ContextoFinalResult,
     ContextoGuess,
     ContextoResponse,
 )
-from .common import ContextoGameStateInterface
+from .state import ContextoGameStateInterface
 
 
-class ContextoGameEngine(BaseGameEngine[int, ContextoGuess, ContextoFeedback, ContextoFinalResult]):
-    def __init__(self, *, game_id: int, max_turns: int) -> None:
-        self._game_id: int = game_id
-        self._max_turns: int = max_turns
-
+class ContextoGameEngine(
+    BaseGameEngine[ContextoConfig, int, ContextoGuess, ContextoFeedback, ContextoFinalResult]
+):
+    def __init__(self, *, config: ContextoConfig) -> None:
+        self._game_id: int = config.game_id
+        self._max_turns: int = config.max_turns
         self._base_url: str = "https://api.contexto.me/machado/en"
 
     @override

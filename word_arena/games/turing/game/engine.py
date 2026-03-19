@@ -2,21 +2,46 @@ from collections.abc import Callable
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
-from ..common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
-from .common import TuringGameStateInterface
+from ....utils import get_db_cursor
+from ..common import TuringConfig, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
+from .state import TuringGameStateInterface
 
 
-class TuringGameEngine(BaseGameEngine[TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult]):
-    def __init__(
-        self, *, code: int, verifiers: list[list[str]], keys: list[int], max_turns: int
-    ) -> None:
-        self._answer: int = code
-        self._verifiers: list[list[str]] = verifiers
-        self._max_turns: int = max_turns
+class TuringGameEngine(
+    BaseGameEngine[TuringConfig, TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult]
+):
+    def __init__(self, *, config: TuringConfig) -> None:
+        with get_db_cursor(data_file=config.data_file) as cur:
+            card_id: int
+            key: int
+            self._answer: int
+
+            card_id, key, self._answer = cur.execute(
+                f"SELECT card_id, key, code FROM game_{config.num_verifiers} WHERE game_id = ?",
+                (config.game_id,),
+            ).fetchone()
+
+        def unpack(*, data: int, base: int, n: int) -> list[int]:
+            buf: list[int] = []
+
+            for _ in range(n):
+                buf.append(data % base)
+                data //= base
+
+            return buf[::-1]
+
+        self._verifiers: list[list[str]] = [
+            config.card_pool[i] for i in unpack(data=card_id, base=64, n=config.num_verifiers)
+        ]
 
         self._criteria: list[Callable[[int, int, int], bool]] = [
-            eval(f"lambda x, y, z: {verifier[key]}") for verifier, key in zip(verifiers, keys)
+            eval(f"lambda x, y, z: {verifier[key]}")
+            for verifier, key in zip(
+                self._verifiers, unpack(data=key, base=16, n=config.num_verifiers)
+            )
         ]
+
+        self._max_turns: int = config.max_turns
 
     @override
     def start_game(self) -> TuringInfo:

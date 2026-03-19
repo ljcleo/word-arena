@@ -1,3 +1,5 @@
+from typing import Any
+
 from .common import GameStatus, GuessFeedback, Turn
 from .engine.base import BaseGameEngine
 from .renderer.base import BaseGameRenderer
@@ -6,9 +8,12 @@ from .state import GameState, GameStateInterface
 
 class Game[IT, GT, FT, RT]:
     def __init__(
-        self, *, engine: BaseGameEngine[IT, GT, FT, RT], renderer: BaseGameRenderer[IT, GT, FT, RT]
+        self,
+        *,
+        engine: BaseGameEngine[Any, IT, GT, FT, RT],
+        renderer: BaseGameRenderer[IT, GT, FT, RT],
     ) -> None:
-        self._engine: BaseGameEngine[IT, GT, FT, RT] = engine
+        self._engine: BaseGameEngine[Any, IT, GT, FT, RT] = engine
         self._renderer: BaseGameRenderer[IT, GT, FT, RT] = renderer
 
         self._state: GameState[IT, GT, FT, RT] = GameState()

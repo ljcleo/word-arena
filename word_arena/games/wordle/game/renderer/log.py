@@ -3,7 +3,7 @@ from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleResponse
-from ..common import WordleGameStateInterface
+from ..state import WordleGameStateInterface
 
 
 class WordleLogGameRenderer(

@@ -3,7 +3,7 @@ from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
-from ..common import ConexoGameStateInterface
+from ..state import ConexoGameStateInterface
 
 
 class ConexoLogGameRenderer(

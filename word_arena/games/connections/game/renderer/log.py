@@ -9,7 +9,7 @@ from ...common import (
     ConnectionsInfo,
     ConnectionsWordGroup,
 )
-from ..common import ConnectionsGameStateInterface
+from ..state import ConnectionsGameStateInterface
 
 
 class ConnectionsLogGameRenderer(

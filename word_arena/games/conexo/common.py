@@ -1,4 +1,12 @@
+from pathlib import Path
+
 from pydantic import BaseModel
+
+
+class ConexoConfig(BaseModel):
+    data_file: Path
+    max_turns: int
+    game_id: int
 
 
 class ConexoInfo(BaseModel):

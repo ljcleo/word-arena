@@ -1,0 +1,27 @@
+from collections.abc import Callable, Iterable
+from pathlib import Path
+
+from ....common.gym.gym import Gym
+from ..config.common import StrandsMetaConfig
+from ..config.loader import StrandsConfigLoader
+from ..config.reader.input import StrandsInputConfigReader
+from ..game.engine import StrandsGameEngine
+from ..game.renderer.log import StrandsLogGameRenderer
+
+
+def input_config_reader_log_renderer(
+    *,
+    data_file: Path,
+    mutable_meta_config_pool: Iterable[int] | None,
+    input_func: Callable[[str], str],
+    log_func: Callable[[str, str], None],
+) -> Gym:
+    return Gym(
+        config_loader=StrandsConfigLoader(
+            meta_config=StrandsMetaConfig(data_file=data_file),
+            mutable_meta_config_pool=mutable_meta_config_pool,
+            reader=StrandsInputConfigReader(input_func=input_func),
+        ),
+        engine_cls=StrandsGameEngine,
+        renderer=StrandsLogGameRenderer(game_log_func=log_func),
+    )

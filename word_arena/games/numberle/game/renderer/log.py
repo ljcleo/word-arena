@@ -9,7 +9,7 @@ from ...common import (
     NumberleInfo,
     NumberleResponse,
 )
-from ..common import NumberleGameStateInterface
+from ..state import NumberleGameStateInterface
 
 
 class NumberleLogGameRenderer(

@@ -9,7 +9,7 @@ from ...common import (
     LetrosoInfo,
     LetrosoResponse,
 )
-from ..common import LetrosoGameStateInterface
+from ..state import LetrosoGameStateInterface
 
 
 class LetrosoLogGameRenderer(

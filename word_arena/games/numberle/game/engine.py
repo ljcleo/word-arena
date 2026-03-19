@@ -1,10 +1,10 @@
 from collections import Counter
-from collections.abc import Mapping
 from fractions import Fraction
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
+    NumberleConfig,
     NumberleError,
     NumberleFeedback,
     NumberleFinalResult,
@@ -12,20 +12,20 @@ from ..common import (
     NumberleInfo,
     NumberleResponse,
 )
-from .common import NumberleGameStateInterface
+from .state import NumberleGameStateInterface
 
 
 class NumberleGameEngine(
-    BaseGameEngine[NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult]
+    BaseGameEngine[
+        NumberleConfig, NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
+    ]
 ):
-    def __init__(
-        self, *, eq_pool: Mapping[int, str], target_ids: list[int], eq_length: int, max_turns: int
-    ) -> None:
-        self._answers: list[str] = [eq_pool[target_id] for target_id in target_ids]
-        self._eq_length: int = eq_length
-        self._max_turns: int = max_turns
-
+    def __init__(self, *, config: NumberleConfig) -> None:
+        self._answers: list[str] = [config.eq_pool[target_id] for target_id in config.game_ids]
+        self._eq_length: int = config.eq_length
+        self._max_turns: int = config.max_turns
         self._num_targets: int = len(self._answers)
+
         for answer in self._answers:
             assert len(answer) == self._eq_length
 

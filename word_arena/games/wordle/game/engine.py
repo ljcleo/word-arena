@@ -1,9 +1,9 @@
 from collections import Counter
-from collections.abc import Mapping
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
+    WordleConfig,
     WordleError,
     WordleFeedback,
     WordleFinalResult,
@@ -11,17 +11,16 @@ from ..common import (
     WordleInfo,
     WordleResponse,
 )
-from .common import WordleGameStateInterface
+from .state import WordleGameStateInterface
 
 
-class WordleGameEngine(BaseGameEngine[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult]):
-    def __init__(
-        self, *, word_pool: Mapping[int, str], target_ids: list[int], max_turns: int
-    ) -> None:
-        self._word_bank: set[str] = set(word_pool.values())
-        self._answers: list[str] = [word_pool[target_id] for target_id in target_ids]
-        self._max_turns: int = max_turns
-
+class WordleGameEngine(
+    BaseGameEngine[WordleConfig, WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult]
+):
+    def __init__(self, *, config: WordleConfig) -> None:
+        self._word_bank: set[str] = set(config.word_pool.values())
+        self._answers: list[str] = [config.word_pool[target_id] for target_id in config.game_ids]
+        self._max_turns: int = config.max_turns
         self._num_targets: int = len(self._answers)
         self._num_letters: int = len(self._answers[0])
 

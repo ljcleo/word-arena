@@ -1,6 +1,13 @@
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, WithJsonSchema
+
+
+class StrandsConfig(BaseModel):
+    data_file: Path
+    max_turns: int
+    game_id: int
 
 
 class StrandsInfo(BaseModel):

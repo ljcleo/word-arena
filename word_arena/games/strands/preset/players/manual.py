@@ -1,7 +1,8 @@
 from collections.abc import Callable
 
+from .....players.manual.player import ManualPlayer
 from ...players.manual.reader.input import StrandsInputManualReader
 
 
-def input_reader(*, input_func: Callable[[str], str]) -> StrandsInputManualReader:
-    return StrandsInputManualReader(input_func=input_func)
+def input_reader(*, input_func: Callable[[str], str]) -> ManualPlayer:
+    return ManualPlayer(reader=StrandsInputManualReader(input_func=input_func))

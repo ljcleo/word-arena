@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 
 
+class WordleConfig(BaseModel):
+    word_pool: dict[int, str]
+    max_turns: int
+    game_ids: list[int]
+
+
 class WordleInfo(BaseModel):
     num_targets: int
     max_turns: int

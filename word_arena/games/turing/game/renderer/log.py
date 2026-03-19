@@ -3,7 +3,7 @@ from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
-from ..common import TuringGameStateInterface
+from ..state import TuringGameStateInterface
 
 
 class TuringLogGameRenderer(

@@ -3,7 +3,7 @@ from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
-from ..common import StrandsGameStateInterface
+from ..state import StrandsGameStateInterface
 
 
 class StrandsLogGameRenderer(

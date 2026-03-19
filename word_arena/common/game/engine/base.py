@@ -3,7 +3,10 @@ from abc import ABC, abstractmethod
 from ..state import GameStateInterface
 
 
-class BaseGameEngine[IT, GT, FT, RT](ABC):
+class BaseGameEngine[CT, IT, GT, FT, RT](ABC):
+    @abstractmethod
+    def __init__(self, *, config: CT) -> None: ...
+
     @abstractmethod
     def start_game(self) -> IT: ...
 

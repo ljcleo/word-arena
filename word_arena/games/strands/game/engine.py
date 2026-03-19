@@ -1,12 +1,15 @@
 from typing import override
 
+from pydantic import BaseModel
+
 from ....common.game.engine.base import BaseGameEngine
-from ..common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
-from .common import StrandsGameStateInterface
+from ....utils import get_db_cursor
+from ..common import StrandsConfig, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
+from .state import StrandsGameStateInterface
 
 
 class StrandsGameEngine(
-    BaseGameEngine[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
+    BaseGameEngine[StrandsConfig, StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
 ):
     _DIR_MAP: dict[tuple[int, int], int] = {
         coord: index
@@ -17,11 +20,21 @@ class StrandsGameEngine(
 
     _DIR_OFFSET: list[int] = [6, 7, 1, -5, -6, -7, -1, 5]
 
-    def __init__(self, *, board: list[tuple[str, int]], clue: str, max_turns: int) -> None:
-        super().__init__()
-        self._board: list[tuple[str, int]] = board
-        self._clue: str = clue
-        self._max_turns: int = max_turns
+    def __init__(self, *, config: StrandsConfig) -> None:
+        class StrandsGameData(BaseModel):
+            board: list[tuple[str, int]]
+            clue: str
+
+        with get_db_cursor(data_file=config.data_file) as cur:
+            data: StrandsGameData = StrandsGameData.model_validate_json(
+                cur.execute(
+                    "SELECT board FROM game WHERE game_id = ?", (config.game_id,)
+                ).fetchone()[0]
+            )
+
+        self._board: list[tuple[str, int]] = data.board
+        self._clue: str = data.clue
+        self._max_turns: int = config.max_turns
 
         self._2d_board: list[str] = [
             "".join(self._board[x * 6 + y][0] for y in range(6)) for x in range(8)
@@ -31,7 +44,7 @@ class StrandsGameEngine(
         self._end_indices: dict[int, int] = {}
         self._num_targets: int = 1
 
-        for pos, (_, dir) in enumerate(board):
+        for pos, (_, dir) in enumerate(self._board):
             if dir < 8:
                 self._is_start[pos + self._DIR_OFFSET[dir]] = False
             elif dir == 8:

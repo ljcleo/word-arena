@@ -1,21 +1,28 @@
-from collections.abc import Iterable
 from random import Random
 from typing import override
 
+from pydantic import TypeAdapter
+
 from ....common.game.engine.base import BaseGameEngine
-from ..common import (
-    ContextoHintFeedback,
-    ContextoHintGuess,
-)
-from .common import ContextoHintGameStateInterface
+from ....utils import get_db_cursor
+from ..common import ContextoHintConfig, ContextoHintFeedback, ContextoHintGuess
+from .state import ContextoHintGameStateInterface
 
 
 class ContextoHintGameEngine(
-    BaseGameEngine[list[str], ContextoHintGuess, ContextoHintFeedback, list[str]]
+    BaseGameEngine[
+        ContextoHintConfig, list[str], ContextoHintGuess, ContextoHintFeedback, list[str]
+    ]
 ):
-    def __init__(self, *, top_words: Iterable[str], num_candidates: int) -> None:
-        self._top_words: list[str] = list(top_words)
-        self._num_candidates: int = num_candidates
+    def __init__(self, *, config: ContextoHintConfig) -> None:
+        with get_db_cursor(data_file=config.data_file) as cur:
+            self._top_words: list[str] = TypeAdapter(list[str]).validate_json(
+                cur.execute(
+                    "SELECT top_words FROM game WHERE game_id = ?", (config.game_id,)
+                ).fetchone()[0]
+            )
+
+        self._num_candidates: int = config.num_candidates
 
     @override
     def start_game(self) -> list[str]:

@@ -3,7 +3,7 @@ from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
-from ..common import ContextoGameStateInterface
+from ..state import ContextoGameStateInterface
 
 
 class ContextoLogGameRenderer(

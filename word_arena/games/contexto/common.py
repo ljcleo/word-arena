@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
 
+class ContextoConfig(BaseModel):
+    max_turns: int
+    game_id: int
+
+
 class ContextoGuess(BaseModel):
     word: str
 

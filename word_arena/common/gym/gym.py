@@ -1,8 +1,9 @@
 from random import Random
 
-from ..game.config.loader.base import BaseConfigLoader
+from ..config.loader.base import BaseConfigLoader
+from ..game.engine.base import BaseGameEngine
 from ..game.game import Game
-from ..game.loader.base import BaseGameLoader
+from ..game.renderer.base import BaseGameRenderer
 from ..player.base import BasePlayer
 from .common import TrainingConfig
 
@@ -12,10 +13,12 @@ class Gym[MT, UT, CT, IT, GT, FT, RT]:
         self,
         *,
         config_loader: BaseConfigLoader[MT, UT, CT],
-        game_loader: BaseGameLoader[CT, IT, GT, FT, RT],
+        engine_cls: type[BaseGameEngine[CT, IT, GT, FT, RT]],
+        renderer: BaseGameRenderer[IT, GT, FT, RT],
     ) -> None:
         self._config_loader: BaseConfigLoader[MT, UT, CT] = config_loader
-        self._game_loader: BaseGameLoader[CT, IT, GT, FT, RT] = game_loader
+        self._engine_cls: type[BaseGameEngine[CT, IT, GT, FT, RT]] = engine_cls
+        self._renderer: BaseGameRenderer[IT, GT, FT, RT] = renderer
 
     def play(self, *, player: BasePlayer[IT, GT, FT, RT]) -> None:
         player.play(game=self._load_game(rng=None))
@@ -30,8 +33,11 @@ class Gym[MT, UT, CT, IT, GT, FT, RT]:
                 player.evolve()
 
     def _load_game(self, *, rng: Random | None) -> Game[IT, GT, FT, RT]:
-        return self._game_loader.load_game(
-            config=self._config_loader.load_config()
-            if rng is None
-            else self._config_loader.load_random_config(rng=rng)
+        return Game(
+            engine=self._engine_cls(
+                config=self._config_loader.load_config()
+                if rng is None
+                else self._config_loader.load_random_config(rng=rng)
+            ),
+            renderer=self._renderer,
         )

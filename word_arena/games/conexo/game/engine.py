@@ -1,28 +1,46 @@
-from collections.abc import Iterable, Mapping, Sequence
+from random import Random
 from typing import override
 
+from pydantic import TypeAdapter
+
 from ....common.game.engine.base import BaseGameEngine
-from ..common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
-from .common import ConexoGameStateInterface
+from ....utils import create_seed, get_db_cursor
+from ..common import (
+    ConexoConfig,
+    ConexoFeedback,
+    ConexoFinalResult,
+    ConexoGuess,
+    ConexoInfo,
+    ConexoWordGroup,
+)
+from .state import ConexoGameStateInterface
 
 
-class ConexoGameEngine(BaseGameEngine[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult]):
-    def __init__(
-        self, *, words: Sequence[str], groups: Mapping[str, Iterable[int]], max_turns: int
-    ) -> None:
-        self._words: list[str] = list(words)
+class ConexoGameEngine(
+    BaseGameEngine[ConexoConfig, ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult]
+):
+    def __init__(self, *, config: ConexoConfig) -> None:
+        with get_db_cursor(data_file=config.data_file) as cur:
+            groups: dict[str, list[str]] = TypeAdapter(dict[str, list[str]]).validate_json(
+                cur.execute(
+                    "SELECT groups FROM game WHERE game_id = ?", (config.game_id,)
+                ).fetchone()[0]
+            )
+
+        self._num_groups: int = len(groups)
+        self._group_size: int = len(list(groups.values())[0])
+
+        for indices in groups.values():
+            assert len(indices) == self._group_size
+
+        self._words: list[str] = sum(groups.values(), [])
+        Random(create_seed(data="/".join(self._words))).shuffle(self._words)
 
         self._groups: dict[str, set[int]] = {
-            theme: set(indices) for theme, indices in groups.items()
+            theme: set(map(self._words.index, group)) for theme, group in groups.items()
         }
 
-        self._max_turns: int = max_turns
-
-        self._num_groups: int = len(self._groups)
-        self._group_size: int = len(list(self._groups.values())[0])
-
-        for indices in self._groups.values():
-            assert len(indices) == self._group_size
+        self._max_turns: int = config.max_turns
 
     @override
     def start_game(self) -> ConexoInfo:

@@ -1,4 +1,14 @@
+from pathlib import Path
+
 from pydantic import BaseModel
+
+
+class TuringConfig(BaseModel):
+    data_file: Path
+    card_pool: dict[int, list[str]]
+    num_verifiers: int
+    max_turns: int
+    game_id: int
 
 
 class TuringInfo(BaseModel):

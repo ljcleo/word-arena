@@ -1,9 +1,9 @@
 from collections import Counter
-from collections.abc import Mapping
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
+    LetrosoConfig,
     LetrosoError,
     LetrosoFeedback,
     LetrosoFinalResult,
@@ -11,25 +11,17 @@ from ..common import (
     LetrosoInfo,
     LetrosoResponse,
 )
-from .common import LetrosoGameStateInterface
+from .state import LetrosoGameStateInterface
 
 
 class LetrosoGameEngine(
-    BaseGameEngine[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
+    BaseGameEngine[LetrosoConfig, LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
 ):
-    def __init__(
-        self,
-        *,
-        word_pool: Mapping[int, str],
-        target_ids: list[int],
-        max_letters: int,
-        max_turns: int,
-    ) -> None:
-        self._word_bank: set[str] = set(word_pool.values())
-        self._answers: list[str] = [word_pool[target_id] for target_id in target_ids]
-        self._max_letters: int = max_letters
-        self._max_turns: int = max_turns
-
+    def __init__(self, *, config: LetrosoConfig) -> None:
+        self._word_bank: set[str] = set(config.word_pool.values())
+        self._answers: list[str] = [config.word_pool[target_id] for target_id in config.game_ids]
+        self._max_letters: int = config.max_letters
+        self._max_turns: int = config.max_turns
         self._num_targets: int = len(self._answers)
 
     @override
