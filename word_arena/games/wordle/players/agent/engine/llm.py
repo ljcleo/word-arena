@@ -96,7 +96,7 @@ class WordleLLMAgentEngine(
     def prompt_guess(
         self, *, game_state: WordleGameStateInterface, guess: WordleGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback(
@@ -112,7 +112,7 @@ class WordleLLMAgentEngine(
     def prompt_guess_final(
         self, *, game_record: WordleGameRecord, turn_index: int, guess: WordleGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback_final(
@@ -151,9 +151,7 @@ class WordleLLMAgentEngine(
             "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
-    def _prompt_guess(
-        self, *, game_info: WordleInfo, guess: WordleGuess
-    ) -> Iterator[tuple[str, str]]:
+    def _prompt_guess(self, *, guess: WordleGuess) -> Iterator[tuple[str, str]]:
         yield "Guessed Word", guess.word
 
     def _prompt_feedback(self, *, feedback: WordleFeedback) -> Iterator[tuple[str, str]]:

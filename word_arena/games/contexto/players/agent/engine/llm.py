@@ -95,7 +95,7 @@ class ContextoLLMAgentEngine(
     def prompt_guess(
         self, *, game_state: ContextoGameStateInterface, guess: ContextoGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback(
@@ -117,7 +117,7 @@ class ContextoLLMAgentEngine(
     def prompt_guess_final(
         self, *, game_record: ContextoGameRecord, turn_index: int, guess: ContextoGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback_final(
@@ -146,7 +146,7 @@ class ContextoLLMAgentEngine(
     def _prompt_game_info(self, *, game_info: int) -> Iterator[tuple[str, str]]:
         yield "Maximum Number of Guesses", "Unlimited" if game_info <= 0 else str(game_info)
 
-    def _prompt_guess(self, *, game_info: int, guess: ContextoGuess) -> Iterator[tuple[str, str]]:
+    def _prompt_guess(self, *, guess: ContextoGuess) -> Iterator[tuple[str, str]]:
         yield "Guessed Word", guess.word
 
     def _prompt_feedback(self, *, feedback: ContextoFeedback) -> Iterator[tuple[str, str]]:

@@ -108,7 +108,7 @@ class TuringLLMAgentEngine(
     def prompt_guess(
         self, *, game_state: TuringGameStateInterface, guess: TuringGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback(
@@ -124,7 +124,7 @@ class TuringLLMAgentEngine(
     def prompt_guess_final(
         self, *, game_record: TuringGameRecord, turn_index: int, guess: TuringGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback_final(
@@ -154,9 +154,7 @@ class TuringLLMAgentEngine(
             "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
-    def _prompt_guess(
-        self, *, game_info: TuringInfo, guess: TuringGuess
-    ) -> Iterator[tuple[str, str]]:
+    def _prompt_guess(self, *, guess: TuringGuess) -> Iterator[tuple[str, str]]:
         if len(guess.verifiers) == 0:
             yield "Final Guess", str(guess.code)
         else:

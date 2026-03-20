@@ -108,7 +108,7 @@ class NumberleLLMAgentEngine(
     def prompt_guess(
         self, *, game_state: NumberleGameStateInterface, guess: NumberleGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback(
@@ -130,7 +130,7 @@ class NumberleLLMAgentEngine(
     def prompt_guess_final(
         self, *, game_record: NumberleGameRecord, turn_index: int, guess: NumberleGuess
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
+        yield from self._prompt_guess(guess=guess)
 
     @override
     def prompt_feedback_final(
@@ -170,9 +170,7 @@ class NumberleLLMAgentEngine(
             "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
-    def _prompt_guess(
-        self, *, game_info: NumberleInfo, guess: NumberleGuess
-    ) -> Iterator[tuple[str, str]]:
+    def _prompt_guess(self, *, guess: NumberleGuess) -> Iterator[tuple[str, str]]:
         yield "Guessed Equation", guess.equation
 
     def _prompt_feedback(self, *, feedback: NumberleFeedback) -> Iterator[tuple[str, str]]:
