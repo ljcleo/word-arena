@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**WordArena** is a game arena where humans and LLMs play word-based games. It supports 9 games (Wordle, Contexto, Conexo, Connections, Strands, Turing Machine, etc.) with both manual human players and AI agents powered by multiple LLM providers (Anthropic, OpenAI, Google, or a pseudo/mock implementation).
+**WordArena** is a game arena where humans and LLMs play word-based games. It supports 10 games (Wordle, Contexto, ContextoHint, Letroso, Conexo, Numberle, Connections, Strands, Turing Machine, Redactle) with both manual human players and AI agents powered by multiple LLM providers (Anthropic, OpenAI, Google, or a pseudo/mock implementation).
 
 ## Commands
 
@@ -52,7 +52,7 @@ The codebase has three layers: a generic game framework, player implementations,
 
 ### Game Implementations (`word_arena/games/`)
 
-Each of the 9 games follows the same internal layout:
+Each of the 10 games follows the same internal layout:
 
 ```text
 {game}/
@@ -79,6 +79,7 @@ Each of the 9 games follows the same internal layout:
 ### Scripts (`scripts/`)
 
 - **`common.py`** — `log(key, value)` helper
+- **`utils.py`** — helper functions for CLI input (game/LLM selection prompts)
 - **`build_llm.py`** — `LLM_BUILDERS` dict and `build_llm()` factory (keyed by provider name)
 - **`build_gym.py`** — `GYM_BUILDERS` dict and `build_gym()` factory (keyed by game name)
 - **`build_manual_player.py`** — `PLAYER_BUILDERS` dict and `build_player()` factory for manual play
