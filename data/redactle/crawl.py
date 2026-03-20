@@ -16,6 +16,16 @@ class RedactleGameData(BaseModel):
 
 
 @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
+def get_stopwords() -> list[str]:
+    response: Response = get("https://redactle.net/_app/immutable/chunks/CWTuReDc.js")
+
+    if response.status_code == 200:
+        return response.text.partition("stopWords:`")[2].partition("`")[0].strip().split(".")
+    else:
+        raise RuntimeError(response.status_code, response.reason_phrase, response.text)
+
+
+@retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
 def get_data(*, game_id: int) -> str | bool:
     response: Response = get(f"https://redactle.net/api/article/en/daily/{game_id}")
 
@@ -58,6 +68,18 @@ def main() -> None:
     try:
         with con:
             is_table_exist: bool = bool(
+                cur.execute("SELECT 1 FROM sqlite_master WHERE name = 'stopword'").fetchone()
+            )
+
+        with con:
+            cur.execute("DELETE FROM stopword" if is_table_exist else "CREATE TABLE stopword(word)")
+
+            cur.executemany(
+                "INSERT INTO stopword VALUES(?)", tuple((word,) for word in get_stopwords())
+            )
+
+        with con:
+            is_table_exist = bool(
                 cur.execute("SELECT 1 FROM sqlite_master WHERE name = 'game'").fetchone()
             )
 

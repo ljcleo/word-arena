@@ -1,0 +1,33 @@
+from collections.abc import Callable
+from pathlib import Path
+from random import Random
+from typing import Any, override
+
+from pydantic import BaseModel
+
+from ....utils import get_db_cursor
+
+
+class RedactleMetaConfig(BaseModel):
+    data_file: Path
+
+    @override
+    def model_post_init(self, context: Any) -> None:
+        with get_db_cursor(data_file=self.data_file) as cur:
+            self._stop_words: list[str] = [
+                word for (word,) in cur.execute("SELECT word FROM stopword").fetchall()
+            ]
+
+            self._game_pool: list[int] = [
+                row[0] for row in cur.execute("SELECT game_id FROM game ORDER BY game_id")
+            ]
+
+    @property
+    def stop_words(self) -> list[str]:
+        return list(self._stop_words)
+
+    def select_game_id(self, *, selector: Callable[[int], int]) -> int:
+        return self._game_pool[selector(len(self._game_pool))]
+
+    def random_game_id(self, *, rng: Random) -> int:
+        return rng.choice(self._game_pool)

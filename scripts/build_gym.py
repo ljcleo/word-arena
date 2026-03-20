@@ -1,8 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from common import log
-
 from word_arena.common.gym.gym import Gym
 
 
@@ -135,6 +133,19 @@ def build_turing_gym(input_func: Callable[[str], str], log_func: Callable[[str, 
     )
 
 
+def build_redactle_gym(
+    input_func: Callable[[str], str], log_func: Callable[[str, str], None]
+) -> Gym:
+    from word_arena.games.redactle.preset.gym import input_config_reader_log_renderer
+
+    return input_config_reader_log_renderer(
+        data_file=Path("./data/redactle/games.db"),
+        mutable_meta_config_pool=(50,),
+        input_func=input_func,
+        log_func=log_func,
+    )
+
+
 GYM_BUILDERS: dict[str, Callable[[Callable[[str], str], Callable[[str, str], None]], Gym]] = {
     "contexto": build_contexto_gym,
     "contexto-hint": build_contexto_hint_gym,
@@ -145,8 +156,11 @@ GYM_BUILDERS: dict[str, Callable[[Callable[[str], str], Callable[[str, str], Non
     "connections": build_connections_gym,
     "strands": build_strands_gym,
     "turing": build_turing_gym,
+    "redactle": build_redactle_gym,
 }
 
 
 def build_gym(*, game_key: str) -> Gym:
+    from common import log
+
     return GYM_BUILDERS[game_key](input, log)

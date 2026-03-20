@@ -59,6 +59,12 @@ def build_turing_player(input_func: Callable[[str], str]) -> ManualPlayer:
     return input_reader(input_func=input_func)
 
 
+def build_redactle_player(input_func: Callable[[str], str]) -> ManualPlayer:
+    from word_arena.games.redactle.preset.players.manual import input_reader
+
+    return input_reader(input_func=input_func)
+
+
 PLAYER_BUILDERS: dict[str, Callable[[Callable[[str], str]], ManualPlayer]] = {
     "contexto": build_contexto_player,
     "contexto-hint": build_contexto_hint_player,
@@ -69,6 +75,7 @@ PLAYER_BUILDERS: dict[str, Callable[[Callable[[str], str]], ManualPlayer]] = {
     "connections": build_connections_player,
     "strands": build_strands_player,
     "turing": build_turing_player,
+    "redactle": build_redactle_player,
 }
 
 
