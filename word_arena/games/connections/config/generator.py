@@ -1,14 +1,16 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import ConnectionsConfig
 from .common import ConnectionsMetaConfig
 
 
-class ConnectionsConfigLoader(BaseConfigLoader[ConnectionsMetaConfig, int, ConnectionsConfig]):
+class ConnectionsConfigGenerator(
+    BaseConfigGenerator[ConnectionsMetaConfig, int, ConnectionsConfig]
+):
     @override
-    def build_config(
+    def __call__(
         self, *, meta_config: ConnectionsMetaConfig, mutable_meta_config: int, rng: Random
     ) -> ConnectionsConfig:
         return ConnectionsConfig(

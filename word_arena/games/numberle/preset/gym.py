@@ -1,27 +1,28 @@
-from collections.abc import Callable, Iterable
-from pathlib import Path
+from collections.abc import Callable, Sequence
 
 from ....common.gym.gym import Gym
+from ....common.gym.preset import input_config_reader_log_game_renderer
 from ..config.common import NumberleMetaConfig, NumberleMutableMetaConfig
-from ..config.loader import NumberleConfigLoader
+from ..config.generator import NumberleConfigGenerator
 from ..config.reader.input import NumberleInputConfigReader
 from ..game.engine import NumberleGameEngine
 from ..game.renderer.log import NumberleLogGameRenderer
 
 
-def input_config_reader_log_renderer(
+def numberle_input_config_reader_log_game_renderer(
     *,
-    data_file: Path,
-    mutable_meta_config_pool: Iterable[NumberleMutableMetaConfig] | None,
+    meta_config: NumberleMetaConfig,
+    mutable_meta_config_pool: Sequence[NumberleMutableMetaConfig],
     input_func: Callable[[str], str],
     log_func: Callable[[str, str], None],
 ) -> Gym:
-    return Gym(
-        config_loader=NumberleConfigLoader(
-            meta_config=NumberleMetaConfig(data_file=data_file),
-            mutable_meta_config_pool=mutable_meta_config_pool,
-            reader=NumberleInputConfigReader(input_func=input_func),
-        ),
-        engine_cls=NumberleGameEngine,
-        renderer=NumberleLogGameRenderer(game_log_func=log_func),
+    return input_config_reader_log_game_renderer(
+        meta_config=meta_config,
+        mutable_meta_config_pool=mutable_meta_config_pool,
+        input_config_reader_cls=NumberleInputConfigReader,
+        config_generator_cls=NumberleConfigGenerator,
+        game_engine_cls=NumberleGameEngine,
+        log_game_renderer_cls=NumberleLogGameRenderer,
+        input_func=input_func,
+        log_func=log_func,
     )

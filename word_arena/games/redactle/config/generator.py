@@ -1,14 +1,14 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import RedactleConfig
 from .common import RedactleMetaConfig
 
 
-class RedactleConfigLoader(BaseConfigLoader[RedactleMetaConfig, int, RedactleConfig]):
+class RedactleConfigGenerator(BaseConfigGenerator[RedactleMetaConfig, int, RedactleConfig]):
     @override
-    def build_config(
+    def __call__(
         self, *, meta_config: RedactleMetaConfig, mutable_meta_config: int, rng: Random
     ) -> RedactleConfig:
         return RedactleConfig(

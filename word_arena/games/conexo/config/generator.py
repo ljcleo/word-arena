@@ -1,14 +1,14 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import ConexoConfig
 from .common import ConexoMetaConfig
 
 
-class ConexoConfigLoader(BaseConfigLoader[ConexoMetaConfig, int, ConexoConfig]):
+class ConexoConfigGenerator(BaseConfigGenerator[ConexoMetaConfig, int, ConexoConfig]):
     @override
-    def build_config(
+    def __call__(
         self, *, meta_config: ConexoMetaConfig, mutable_meta_config: int, rng: Random
     ) -> ConexoConfig:
         return ConexoConfig(

@@ -1,16 +1,16 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import LetrosoConfig
 from .common import LetrosoMetaConfig, LetrosoMutableMetaConfig
 
 
-class LetrosoConfigLoader(
-    BaseConfigLoader[LetrosoMetaConfig, LetrosoMutableMetaConfig, LetrosoConfig]
+class LetrosoConfigGenerator(
+    BaseConfigGenerator[LetrosoMetaConfig, LetrosoMutableMetaConfig, LetrosoConfig]
 ):
     @override
-    def build_config(
+    def __call__(
         self,
         *,
         meta_config: LetrosoMetaConfig,

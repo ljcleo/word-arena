@@ -1,14 +1,16 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import ContextoHintConfig
 from .common import ContextoHintMetaConfig
 
 
-class ContextoHintConfigLoader(BaseConfigLoader[ContextoHintMetaConfig, int, ContextoHintConfig]):
+class ContextoHintConfigGenerator(
+    BaseConfigGenerator[ContextoHintMetaConfig, int, ContextoHintConfig]
+):
     @override
-    def build_config(
+    def __call__(
         self, *, meta_config: ContextoHintMetaConfig, mutable_meta_config: int, rng: Random
     ) -> ContextoHintConfig:
         return ContextoHintConfig(

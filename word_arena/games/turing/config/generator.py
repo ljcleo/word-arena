@@ -1,14 +1,16 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import TuringConfig
 from .common import TuringMetaConfig, TuringMutableMetaConfig
 
 
-class TuringConfigLoader(BaseConfigLoader[TuringMetaConfig, TuringMutableMetaConfig, TuringConfig]):
+class TuringConfigGenerator(
+    BaseConfigGenerator[TuringMetaConfig, TuringMutableMetaConfig, TuringConfig]
+):
     @override
-    def build_config(
+    def __call__(
         self,
         *,
         meta_config: TuringMetaConfig,

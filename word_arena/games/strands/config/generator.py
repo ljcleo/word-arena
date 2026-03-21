@@ -1,14 +1,14 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import StrandsConfig
 from .common import StrandsMetaConfig
 
 
-class StrandsConfigLoader(BaseConfigLoader[StrandsMetaConfig, int, StrandsConfig]):
+class StrandsConfigGenerator(BaseConfigGenerator[StrandsMetaConfig, int, StrandsConfig]):
     @override
-    def build_config(
+    def __call__(
         self, *, meta_config: StrandsMetaConfig, mutable_meta_config: int, rng: Random
     ) -> StrandsConfig:
         return StrandsConfig(

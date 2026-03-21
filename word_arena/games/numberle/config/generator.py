@@ -1,16 +1,16 @@
 from random import Random
 from typing import override
 
-from ....common.config.loader.base import BaseConfigLoader
+from ....common.config.generator.base import BaseConfigGenerator
 from ..common import NumberleConfig
 from .common import NumberleMetaConfig, NumberleMutableMetaConfig
 
 
-class NumberleConfigLoader(
-    BaseConfigLoader[NumberleMetaConfig, NumberleMutableMetaConfig, NumberleConfig]
+class NumberleConfigGenerator(
+    BaseConfigGenerator[NumberleMetaConfig, NumberleMutableMetaConfig, NumberleConfig]
 ):
     @override
-    def build_config(
+    def __call__(
         self,
         *,
         meta_config: NumberleMetaConfig,

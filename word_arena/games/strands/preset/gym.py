@@ -1,27 +1,28 @@
-from collections.abc import Callable, Iterable
-from pathlib import Path
+from collections.abc import Callable, Sequence
 
 from ....common.gym.gym import Gym
+from ....common.gym.preset import input_config_reader_log_game_renderer
 from ..config.common import StrandsMetaConfig
-from ..config.loader import StrandsConfigLoader
+from ..config.generator import StrandsConfigGenerator
 from ..config.reader.input import StrandsInputConfigReader
 from ..game.engine import StrandsGameEngine
 from ..game.renderer.log import StrandsLogGameRenderer
 
 
-def input_config_reader_log_renderer(
+def strands_input_config_reader_log_game_renderer(
     *,
-    data_file: Path,
-    mutable_meta_config_pool: Iterable[int] | None,
+    meta_config: StrandsMetaConfig,
+    mutable_meta_config_pool: Sequence[int],
     input_func: Callable[[str], str],
     log_func: Callable[[str, str], None],
 ) -> Gym:
-    return Gym(
-        config_loader=StrandsConfigLoader(
-            meta_config=StrandsMetaConfig(data_file=data_file),
-            mutable_meta_config_pool=mutable_meta_config_pool,
-            reader=StrandsInputConfigReader(input_func=input_func),
-        ),
-        engine_cls=StrandsGameEngine,
-        renderer=StrandsLogGameRenderer(game_log_func=log_func),
+    return input_config_reader_log_game_renderer(
+        meta_config=meta_config,
+        mutable_meta_config_pool=mutable_meta_config_pool,
+        input_config_reader_cls=StrandsInputConfigReader,
+        config_generator_cls=StrandsConfigGenerator,
+        game_engine_cls=StrandsGameEngine,
+        log_game_renderer_cls=StrandsLogGameRenderer,
+        input_func=input_func,
+        log_func=log_func,
     )

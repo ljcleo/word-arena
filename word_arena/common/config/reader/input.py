@@ -10,7 +10,7 @@ class BaseInputConfigReader[MT, CT](BaseConfigReader[MT, CT], ABC):
         self._input_func: Callable[[str], str] = input_func
 
     @override
-    def read_config(self, *, meta_config: MT) -> CT:
+    def __call__(self, *, meta_config: MT) -> CT:
         return self.input_config(input_func=self._input_func, meta_config=meta_config)
 
     @abstractmethod
