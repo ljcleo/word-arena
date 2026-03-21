@@ -1,111 +1,15 @@
-from collections.abc import Callable
+from importlib import import_module
+from pathlib import Path
+from typing import Any
 
-from word_arena.common.llm.base import BaseLLM
+from build_llm import build_llm
+from common import log
+from pydantic import BaseModel
+
 from word_arena.players.agent.player import AgentPlayer
 
 
-def build_contexto_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.contexto.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_contexto_hint_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.contexto_hint.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_wordle_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.wordle.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_letroso_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.letroso.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_conexo_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.conexo.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_numberle_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.numberle.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_connections_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.connections.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_strands_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.strands.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_turing_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.turing.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-def build_redactle_player(
-    model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    from word_arena.games.redactle.preset.players.agent import llm_engine_log_renderer
-
-    return llm_engine_log_renderer(model=model, do_analyze=do_analyze, log_func=log_func)
-
-
-PLAYER_BUILDERS: dict[str, Callable[[BaseLLM, bool, Callable[[str, str], None]], AgentPlayer]] = {
-    "contexto": build_contexto_player,
-    "contexto-hint": build_contexto_hint_player,
-    "wordle": build_wordle_player,
-    "letroso": build_letroso_player,
-    "conexo": build_conexo_player,
-    "numberle": build_numberle_player,
-    "connections": build_connections_player,
-    "strands": build_strands_player,
-    "turing": build_turing_player,
-    "redactle": build_redactle_player,
-}
-
-
 def build_player(*, game_key: str, llm_key: str) -> AgentPlayer:
-    from pathlib import Path
-    from typing import Any
-
-    from build_llm import build_llm
-    from common import log
-    from pydantic import BaseModel
-
     class LLMConfig(BaseModel):
         type: str
         config: dict[str, Any]
@@ -113,7 +17,9 @@ def build_player(*, game_key: str, llm_key: str) -> AgentPlayer:
     with (Path("./config/llm") / f"{llm_key}.json").open("rb") as f:
         config: LLMConfig = LLMConfig.model_validate_json(f.read())
 
-    return PLAYER_BUILDERS[game_key](
+    return import_module(
+        f"word_arena.games.{game_key}.preset.players.agent"
+    ).llm_engine_log_renderer(
         build_llm(llm_key=config.type, config=config.config),
         input("Analyze? (y/n): ")[0].lower() == "y",
         log,

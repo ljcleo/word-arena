@@ -2,14 +2,15 @@ from collections.abc import Callable
 
 from .....common.llm.base import BaseLLM
 from .....players.agent.player import AgentPlayer
+from .....players.agent.preset import make_llm_engine_log_renderer
+from ...common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
+from ...players.agent.common import TuringNote
 from ...players.agent.engine.llm import TuringLLMAgentEngine
 from ...players.agent.renderer.log import TuringLogAgentRenderer
 
-
-def llm_engine_log_renderer(
-    *, model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    return AgentPlayer(
-        engine=TuringLLMAgentEngine(model=model, do_analyze=do_analyze),
-        renderer=TuringLogAgentRenderer(agent_log_func=log_func),
-    )
+llm_engine_log_renderer: Callable[
+    [BaseLLM, bool, Callable[[str, str], None]],
+    AgentPlayer[TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult, TuringNote],
+] = make_llm_engine_log_renderer(
+    engine_cls=TuringLLMAgentEngine, renderer_cls=TuringLogAgentRenderer
+)

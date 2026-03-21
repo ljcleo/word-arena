@@ -2,14 +2,15 @@ from collections.abc import Callable
 
 from .....common.llm.base import BaseLLM
 from .....players.agent.player import AgentPlayer
+from .....players.agent.preset import make_llm_engine_log_renderer
+from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess
+from ...players.agent.common import ContextoNote
 from ...players.agent.engine.llm import ContextoLLMAgentEngine
 from ...players.agent.renderer.log import ContextoLogAgentRenderer
 
-
-def llm_engine_log_renderer(
-    *, model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    return AgentPlayer(
-        engine=ContextoLLMAgentEngine(model=model, do_analyze=do_analyze),
-        renderer=ContextoLogAgentRenderer(agent_log_func=log_func),
-    )
+llm_engine_log_renderer: Callable[
+    [BaseLLM, bool, Callable[[str, str], None]],
+    AgentPlayer[int, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoNote],
+] = make_llm_engine_log_renderer(
+    engine_cls=ContextoLLMAgentEngine, renderer_cls=ContextoLogAgentRenderer
+)

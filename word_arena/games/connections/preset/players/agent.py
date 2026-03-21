@@ -2,14 +2,21 @@ from collections.abc import Callable
 
 from .....common.llm.base import BaseLLM
 from .....players.agent.player import AgentPlayer
+from .....players.agent.preset import make_llm_engine_log_renderer
+from ...common import ConnectionsFeedback, ConnectionsFinalResult, ConnectionsGuess, ConnectionsInfo
+from ...players.agent.common import ConnectionsNote
 from ...players.agent.engine.llm import ConnectionsLLMAgentEngine
 from ...players.agent.renderer.log import ConnectionsLogAgentRenderer
 
-
-def llm_engine_log_renderer(
-    *, model: BaseLLM, do_analyze: bool, log_func: Callable[[str, str], None]
-) -> AgentPlayer:
-    return AgentPlayer(
-        engine=ConnectionsLLMAgentEngine(model=model, do_analyze=do_analyze),
-        renderer=ConnectionsLogAgentRenderer(agent_log_func=log_func),
-    )
+llm_engine_log_renderer: Callable[
+    [BaseLLM, bool, Callable[[str, str], None]],
+    AgentPlayer[
+        ConnectionsInfo,
+        ConnectionsGuess,
+        ConnectionsFeedback,
+        ConnectionsFinalResult,
+        ConnectionsNote,
+    ],
+] = make_llm_engine_log_renderer(
+    engine_cls=ConnectionsLLMAgentEngine, renderer_cls=ConnectionsLogAgentRenderer
+)
