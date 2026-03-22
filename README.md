@@ -10,7 +10,7 @@ A game arena where humans and LLMs compete at word-based puzzles. Play manually,
 ## Games
 
 | Game | Source | Description |
-|------|--------|-------------|
+| ---- | ------ | ----------- |
 | **Wordle** | [nytimes.com](https://www.nytimes.com/games/wordle) | Guess the hidden 5-letter word in 6 tries |
 | **Letroso** | [letroso.com](https://letroso.com) | Guess the hidden word with variant lengths |
 | **Contexto** | [contexto.me](https://contexto.me) | Find the secret word by semantic similarity — no letter hints |
@@ -37,23 +37,25 @@ python scripts/play_agent.py
 
 ## LLM Providers
 
-Supports **Anthropic**, **OpenAI** (Chat & Responses API), **Google Gemini**, and a **pseudo** mock for testing. Add API credentials under `config/llm/`:
+Supports **Anthropic**, **OpenAI** (Chat & Responses API), **Google Gemini**, and a **pseudo** mock for testing. Add API credentials under `config/llms/`:
 
 ```json
 {
-  "provider": "anthropic",
-  "api_key": "sk-...",
-  "model": "claude-opus-4-6"
+  "type": "anthropic",
+  "config": {
+    "api_key": "sk-...",
+    "model": "claude-opus-4-6"
+  }
 }
 ```
 
-The `pseudo.json` and `manual.json` configs are committed and work out of the box.
+The `pseudo.json` and `manual_input.json` configs are committed and work out of the box.
 
 ## Architecture
 
 The framework is built around five generic abstractions:
 
-```
+```text
 Gym → Game (Engine + Renderer) → Player (Manual | Agent)
          ↑                              ↑
     ConfigLoader                    BaseLLM
@@ -65,7 +67,7 @@ LLM agents follow a structured turn cycle: `prepare → [analyze_and_guess → d
 
 ## Project Structure
 
-```
+```text
 word_arena/
   common/       # Generic framework: config, game, player, gym, llm
   games/        # 10 game implementations
@@ -74,29 +76,36 @@ word_arena/
 scripts/
   play_manual.py
   play_agent.py
-config/llm/     # LLM configs (API keys gitignored)
+config/
+  llms/         # LLM configs (API keys gitignored)
+  games/        # Per-game preset configs (meta + mutable config pools)
 data/           # SQLite game databases + crawl scripts
 ```
 
 ## Roadmap
 
-#### Evaluation
+### Evaluation
+
 - [ ] Per-game benchmark reports: win rate, average guesses, token cost per LLM
 - [ ] Elo-style leaderboard across providers and models
 - [ ] Prompt variant grid search via `TrainingConfig`
 
-#### Performance
+### Performance
+
 - [ ] Async parallel game execution for faster training runs
 - [ ] Response caching for online games (Contexto)
 
-#### Agent Intelligence
+### Agent Intelligence
+
 - [ ] Cross-session memory: persist strategy notes between runs
 
-#### Interface
+### Interface
+
 - [ ] TUI with `textual`: rich terminal UI by swapping the renderer and input reader, no core changes needed
 - [ ] Web UI: FastAPI + WebSocket backend streaming game state to a browser frontend
 - [ ] Agent replay viewer: watch recorded LLM sessions without re-running inference
 
-#### Developer Experience
+### Developer Experience
+
 - [ ] Structured CLI with subcommands (`play`, `train`, `bench`) via `typer`
 - [ ] Unit tests for game engines and config loaders

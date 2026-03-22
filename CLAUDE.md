@@ -78,18 +78,19 @@ Each of the 10 games follows the same internal layout:
 
 ### Scripts (`scripts/`)
 
-- **`common.py`** — `log(key, value)` helper
-- **`utils.py`** — helper functions for CLI input (game/LLM selection prompts)
-- **`build_llm.py`** — `LLM_BUILDERS` dict and `build_llm()` factory (keyed by provider name)
-- **`build_gym.py`** — `GYM_BUILDERS` dict and `build_gym()` factory (keyed by game name)
-- **`build_manual_player.py`** — `PLAYER_BUILDERS` dict and `build_player()` factory for manual play
-- **`build_agent_player.py`** — `PLAYER_BUILDERS` dict and `build_player()` factory for agent play
+- **`common.py`** — `log(key, value)` helper and `make_cls_prefix(key)` utility (converts `"game_name"` → `"GameName"`)
+- **`utils.py`** — CLI input prompts; enumerates available game/LLM keys by scanning `config/games/` and `config/llms/`
+- **`build_llm.py`** — `LLM_CONFIG_PATH` and `build_llm()` factory; reads `config/llms/{key}.json`, dynamically imports engine and renderer classes
+- **`build_gym.py`** — `GAME_CONFIG_PATH` and `build_gym()` factory; reads `config/games/{key}.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig` and the preset callable
+- **`build_manual_player.py`** — `build_player()` factory for manual play
+- **`build_agent_player.py`** — `build_player()` factory for agent play
 - **`play_manual.py`** — CLI entry point: prompts for game, runs `gym.play(player)`
 - **`play_agent.py`** — CLI entry point: prompts for game and LLM, optionally runs `gym.train()`
 
 ### Configuration
 
-- LLM configs live in `config/llm/*.json`. `manual.json` and `pseudo.json` are committed; real API configs are gitignored.
+- LLM configs live in `config/llms/*.json`. `manual_input.json` and `pseudo.json` are committed; real API configs are gitignored. Format: `{"type": "<provider>", "config": {...}}`.
+- Game preset configs live in `config/games/*.json`. Format: `{"meta_config": {...}, "mutable_meta_config_pool": [...]}`. Fields match the corresponding `{Game}MetaConfig` and `{Game}MutableMetaConfig` Pydantic models.
 - Game data is stored as SQLite databases in `data/{game_name}/games.db`.
 
 ### Data Flow
@@ -112,7 +113,7 @@ scripts/play_*.py
 3. Implement engine, state type alias, and renderer in `game/`
 4. Implement manual input reader and agent engine/renderer in `players/`
 5. Add factory functions in `preset/gym.py` and `preset/players/{manual,agent}.py`
-6. Register in `scripts/build_gym.py`, `scripts/build_manual_player.py`, and `scripts/build_agent_player.py`
+6. Add `config/games/{name}.json` with `meta_config` (fields for `{Game}MetaConfig`) and `mutable_meta_config_pool` (list of `{Game}MutableMetaConfig` dicts, or plain ints if there is no `MutableMetaConfig`); no script registration needed
 
 ### Adding a New LLM Provider
 
