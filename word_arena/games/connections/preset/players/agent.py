@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from .....common.llm.base import BaseLLM
+from .....common.llm.llm import LLM
 from .....players.agent.player import AgentPlayer
 from .....players.agent.preset import make_llm_engine_log_renderer
 from ...common import ConnectionsFeedback, ConnectionsFinalResult, ConnectionsGuess, ConnectionsInfo
@@ -9,7 +9,7 @@ from ...players.agent.engine.llm import ConnectionsLLMAgentEngine
 from ...players.agent.renderer.log import ConnectionsLogAgentRenderer
 
 llm_engine_log_renderer: Callable[
-    [BaseLLM, bool, Callable[[str, str], None]],
+    [LLM, bool, Callable[[str, str], None]],
     AgentPlayer[
         ConnectionsInfo,
         ConnectionsGuess,

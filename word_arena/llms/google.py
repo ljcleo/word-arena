@@ -1,6 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Generator
 from logging import WARNING, getLogger
-from typing import Literal, overload, override
+from typing import Literal, override
 
 from google.genai import Client
 from google.genai.types import (
@@ -14,8 +14,8 @@ from google.genai.types import (
 from pydantic import BaseModel
 from tenacity import before_sleep_log, retry, wait_random
 
-from ..common.llm.base import BaseLLM
 from ..common.llm.common import Message, MessageType
+from ..common.llm.engine.base import BaseLLMEngine
 
 
 class GoogleLLMConfig(BaseModel):
@@ -27,25 +27,14 @@ class GoogleLLMConfig(BaseModel):
     timeout: int = 7200
 
 
-class GoogleLLM(BaseLLM):
-    def __init__(
-        self, *, config: GoogleLLMConfig, llm_log_func: Callable[[str, str], None]
-    ) -> None:
-        self._config: GoogleLLMConfig = config
-        self._llm_log_func: Callable[[str, str], None] = llm_log_func
+class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig]):
+    def __init__(self, *, config: GoogleLLMConfig) -> None:
+        super().__init__(config=config)
 
         self._client: Client = Client(
-            api_key=config.api_key,
-            http_options=HttpOptions(base_url=config.base_url, timeout=self._config.timeout),
+            api_key=self.config.api_key,
+            http_options=HttpOptions(base_url=self.config.base_url, timeout=self.config.timeout),
         )
-
-    @overload
-    def query(self, *messages: Message, system_instruction: str | None = None) -> str: ...
-
-    @overload
-    def query[T: BaseModel](
-        self, *messages: Message, format: type[T], system_instruction: str | None = None
-    ) -> T: ...
 
     @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
@@ -54,7 +43,7 @@ class GoogleLLM(BaseLLM):
         *messages: Message,
         format: type[T] | None = None,
         system_instruction: str | None = None,
-    ) -> str | T:
+    ) -> Generator[str, None, str | T]:
         chat_messages: list[Content] = []
 
         for message in messages:
@@ -76,15 +65,15 @@ class GoogleLLM(BaseLLM):
 
         for chunk in self._client.models.generate_content_stream(
             contents=chat_messages,
-            model=self._config.model,
+            model=self.config.model,
             config=GenerateContentConfig(
                 system_instruction=system_instruction,
                 response_mime_type=response_mime_type,
                 response_json_schema=response_json_schema,
                 thinking_config=ThinkingConfig(
-                    include_thoughts=True, thinking_level=self._config.thinking_level
+                    include_thoughts=True, thinking_level=self.config.thinking_level
                 ),
-                max_output_tokens=self._config.max_output_tokens,
+                max_output_tokens=self.config.max_output_tokens,
             ),
         ):
             if chunk.candidates is not None:
@@ -96,7 +85,7 @@ class GoogleLLM(BaseLLM):
                             text: str | None = part.text
                             if text is not None:
                                 if part.thought:
-                                    self._llm_log_func("LLM Thought", text)
+                                    yield text
                                 else:
                                     answer_parts.append(text)
 

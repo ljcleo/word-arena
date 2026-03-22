@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from logging import WARNING, getLogger
-from typing import overload, override
+from typing import override
 
 from openai import OpenAI, omit
 from openai.types.responses import ParsedResponse, ResponseInputItemParam
@@ -7,8 +8,8 @@ from openai.types.shared.reasoning_effort import ReasoningEffort
 from pydantic import BaseModel
 from tenacity import before_sleep_log, retry, wait_random
 
-from ..common.llm.base import BaseLLM
 from ..common.llm.common import Message, MessageType
+from ..common.llm.engine.base import BaseLLMEngine
 
 
 class OpenaiResponsesLLMConfig(BaseModel):
@@ -21,23 +22,13 @@ class OpenaiResponsesLLMConfig(BaseModel):
     timeout: int = 7200
 
 
-class OpenaiResponsesLLM(BaseLLM):
+class OpenaiResponsesLLMEngine(BaseLLMEngine[OpenaiResponsesLLMConfig]):
     def __init__(self, *, config: OpenaiResponsesLLMConfig) -> None:
-        self._config: OpenaiResponsesLLMConfig = config
+        super().__init__(config=config)
 
         self._client: OpenAI = OpenAI(
-            api_key=config.api_key,
-            base_url=config.base_url,
-            timeout=self._config.timeout,
+            api_key=self.config.api_key, base_url=self.config.base_url, timeout=self.config.timeout
         )
-
-    @overload
-    def query(self, *messages: Message, system_instruction: str | None = None) -> str: ...
-
-    @overload
-    def query[T: BaseModel](
-        self, *messages: Message, format: type[T], system_instruction: str | None = None
-    ) -> T: ...
 
     @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
@@ -46,10 +37,10 @@ class OpenaiResponsesLLM(BaseLLM):
         *messages: Message,
         format: type[T] | None = None,
         system_instruction: str | None = None,
-    ) -> str | T:
+    ) -> Generator[str, None, str | T]:
         chat_messages: list[ResponseInputItemParam] = []
 
-        if self._config.use_system_message and system_instruction is not None:
+        if self.config.use_system_message and system_instruction is not None:
             chat_messages.append({"role": "developer", "content": system_instruction})
             system_instruction = None
 
@@ -63,14 +54,16 @@ class OpenaiResponsesLLM(BaseLLM):
 
         with self._client.responses.stream(
             input=chat_messages,
-            model=self._config.model,
+            model=self.config.model,
             instructions=omit if system_instruction is None else system_instruction,
             text_format=omit if format is None else format,
-            reasoning={"effort": self._config.reasoning_effort},
-            max_output_tokens=self._config.max_output_tokens,
+            reasoning={"effort": self.config.reasoning_effort},
+            max_output_tokens=self.config.max_output_tokens,
             store=False,
         ) as stream:
             response: ParsedResponse[T] = stream.get_final_response()
+
+        yield from ()
 
         if format is None:
             return response.output_text

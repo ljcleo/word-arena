@@ -1,14 +1,14 @@
-from collections.abc import Callable
+from collections.abc import Generator
 from logging import WARNING, getLogger
-from typing import Literal, overload, override
+from typing import Literal, override
 
 from anthropic import Anthropic, omit
 from anthropic.types import MessageParam
 from pydantic import BaseModel
 from tenacity import before_sleep_log, retry, wait_random
 
-from ..common.llm.base import BaseLLM
 from ..common.llm.common import Message, MessageType
+from ..common.llm.engine.base import BaseLLMEngine
 
 
 class AnthropicLLMConfig(BaseModel):
@@ -20,24 +20,13 @@ class AnthropicLLMConfig(BaseModel):
     timeout: int = 7200
 
 
-class AnthropicLLM(BaseLLM):
-    def __init__(
-        self, *, config: AnthropicLLMConfig, llm_log_func: Callable[[str, str], None]
-    ) -> None:
-        self._config: AnthropicLLMConfig = config
-        self._llm_log_func: Callable[[str, str], None] = llm_log_func
+class AnthropicLLMEngine(BaseLLMEngine[AnthropicLLMConfig]):
+    def __init__(self, *, config: AnthropicLLMConfig) -> None:
+        super().__init__(config=config)
 
         self._client: Anthropic = Anthropic(
-            api_key=config.api_key, base_url=config.base_url, timeout=config.timeout
+            api_key=self.config.api_key, base_url=self.config.base_url, timeout=self.config.timeout
         )
-
-    @overload
-    def query(self, *messages: Message, system_instruction: str | None = None) -> str: ...
-
-    @overload
-    def query[T: BaseModel](
-        self, *messages: Message, format: type[T], system_instruction: str | None = None
-    ) -> T: ...
 
     @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
@@ -46,7 +35,7 @@ class AnthropicLLM(BaseLLM):
         *messages: Message,
         format: type[T] | None = None,
         system_instruction: str | None = None,
-    ) -> str | T:
+    ) -> Generator[str, None, str | T]:
         chat_messages: list[MessageParam] = []
 
         for message in messages:
@@ -62,12 +51,12 @@ class AnthropicLLM(BaseLLM):
 
         with self._client.messages.stream(
             messages=chat_messages,
-            model=self._config.model,
+            model=self.config.model,
             system=omit if system_instruction is None else system_instruction,
             output_format=omit if format is None else format,
             thinking={"type": "adaptive"},
-            output_config={"effort": self._config.thinking_effort},
-            max_tokens=self._config.max_tokens,
+            output_config={"effort": self.config.thinking_effort},
+            max_tokens=self.config.max_tokens,
         ) as stream:
             buffer: list[str] = []
 
@@ -79,7 +68,7 @@ class AnthropicLLM(BaseLLM):
                         buffer.append(event.delta.thinking)
                 elif event.type == "content_block_stop":
                     if len(buffer) > 0:
-                        self._llm_log_func("LLM Thought", "".join(buffer))
+                        yield "".join(buffer)
                         buffer.clear()
 
             for content in stream.get_final_message().content:

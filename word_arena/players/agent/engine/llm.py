@@ -5,7 +5,8 @@ from typing import override
 
 from pydantic import BaseModel, create_model
 
-from ....common.llm.base import BaseLLM, Message
+from ....common.llm.common import Message
+from ....common.llm.llm import LLM
 from ..common import Analysis, AnalyzedGuess, GameRecord, GameSummary, Reflection
 from ..state import AgentGameStateInterface, AgentNoteStateInterface
 from .base import BaseAgentEngine
@@ -61,8 +62,8 @@ def maybe_iter_with_title(*, title: str, sections: Iterable[str]) -> Iterator[st
 class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     BaseAgentEngine[IT, GT, FT, RT, NT], ABC
 ):
-    def __init__(self, *, model: BaseLLM, do_analyze: bool):
-        self._model: BaseLLM = model
+    def __init__(self, *, model: LLM, do_analyze: bool):
+        self._model: LLM = model
         self._do_analyze: bool = do_analyze
 
     @override

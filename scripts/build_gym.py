@@ -3,7 +3,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from common import log
+from common import log, make_cls_prefix
 from pydantic import BaseModel
 
 from word_arena.common.gym.gym import Gym
@@ -20,7 +20,7 @@ def build_gym(*, game_key: str) -> Gym:
     with (GAME_CONFIG_PATH / f"{game_key}.json").open("rb") as f:
         config: GameConfig = GameConfig.model_validate_json(f.read())
 
-    prefix: str = "".join(part.capitalize() for part in game_key.split("_"))
+    prefix: str = make_cls_prefix(key=game_key)
     config_module: ModuleType = import_module(f"word_arena.games.{game_key}.config.common")
     meta_cls: type[BaseModel] = getattr(config_module, f"{prefix}MetaConfig")
     mutable_cls: type[BaseModel] | None = getattr(config_module, f"{prefix}MutableMetaConfig", None)
