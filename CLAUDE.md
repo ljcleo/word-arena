@@ -65,11 +65,6 @@ Each of the 10 games follows the same internal layout:
   players/
     manual/          # Game-specific input reader for ManualPlayer
     agent/           # Game-specific AgentEngine and renderer for AgentPlayer
-  preset/
-    gym.py           # Factory: assembles Gym (config loader + engine + renderer)
-    players/
-      manual.py      # Factory: assembles ManualPlayer
-      agent.py       # Factory: assembles AgentPlayer
 ```
 
 ### LLM Adapters (`word_arena/llms/`)
@@ -81,9 +76,9 @@ Each of the 10 games follows the same internal layout:
 - **`common.py`** — `log(key, value)` helper and `make_cls_prefix(key)` utility (converts `"game_name"` → `"GameName"`)
 - **`utils.py`** — CLI input prompts; enumerates available game/LLM keys by scanning `config/games/` and `config/llms/`
 - **`build_llm.py`** — `LLM_CONFIG_PATH` and `build_llm()` factory; reads `config/llms/{key}.json`, dynamically imports engine and renderer classes
-- **`build_gym.py`** — `GAME_CONFIG_PATH` and `build_gym()` factory; reads `config/games/{key}.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig` and the preset callable
-- **`build_manual_player.py`** — `build_player()` factory for manual play
-- **`build_agent_player.py`** — `build_player()` factory for agent play
+- **`build_gym.py`** — `GAME_CONFIG_PATH` and `build_gym()` factory; reads `config/games/{key}.json`, dynamically imports and directly instantiates `{Game}MetaConfig` / `{Game}MutableMetaConfig`, `{Game}InputConfigReader`, `{Game}ConfigGenerator`, `{Game}GameEngine`, `{Game}LogGameRenderer` to construct a `Gym`
+- **`build_manual_player.py`** — `build_player()` factory for manual play; dynamically imports `{Game}InputManualReader` and constructs a `ManualPlayer` directly
+- **`build_agent_player.py`** — `build_player()` factory for agent play; dynamically imports `{Game}LLMAgentEngine` and `{Game}LogAgentRenderer` and constructs an `AgentPlayer` directly
 - **`play_manual.py`** — CLI entry point: prompts for game, runs `gym.play(player)`
 - **`play_agent.py`** — CLI entry point: prompts for game and LLM, optionally runs `gym.train()`
 
@@ -112,8 +107,7 @@ scripts/play_*.py
 2. Add `config/` with MetaConfig, MutableMetaConfig, ConfigLoader, and InputConfigReader
 3. Implement engine, state type alias, and renderer in `game/`
 4. Implement manual input reader and agent engine/renderer in `players/`
-5. Add factory functions in `preset/gym.py` and `preset/players/{manual,agent}.py`
-6. Add `config/games/{name}.json` with `meta_config` (fields for `{Game}MetaConfig`) and `mutable_meta_config_pool` (list of `{Game}MutableMetaConfig` dicts, or plain ints if there is no `MutableMetaConfig`); no script registration needed
+5. Add `config/games/{name}.json` with `meta_config` (fields for `{Game}MetaConfig`) and `mutable_meta_config_pool` (list of `{Game}MutableMetaConfig` dicts, or plain ints if there is no `MutableMetaConfig`); no script registration needed
 
 ### Adding a New LLM Provider
 

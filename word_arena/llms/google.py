@@ -55,7 +55,7 @@ class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig, Content]):
         answer_parts: list[str] = []
 
         for chunk in self._client.models.generate_content_stream(
-            contents=messages,
+            contents=list(messages),
             model=self.config.model,
             config=GenerateContentConfig(
                 system_instruction=system_instruction,

@@ -15,7 +15,7 @@ class TuringInputManualReader(BaseInputManualReader[TuringGuess]):
             s.strip()
             for s in input_func(
                 f"Input code for guess {turn_id + 1}; "
-                "to verify, further input `;` and the verifier indices (no space between indices): "
+                "to verify, further input `;` and the verifier indices (separated by commas): "
             )
             .strip()
             .partition(";")
