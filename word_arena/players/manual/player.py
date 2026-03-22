@@ -21,9 +21,7 @@ class ManualPlayer[GT](BasePlayer[Any, GT, Any, Any]):
         self._num_turns += 1
 
     @override
-    def reflect(self, *, final_result: Any) -> None:
-        pass
+    def reflect(self, *, final_result: Any) -> None: ...
 
     @override
-    def evolve(self) -> None:
-        pass
+    def evolve(self) -> None: ...

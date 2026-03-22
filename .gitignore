@@ -13,7 +13,7 @@ wheels/
 .vscode
 
 # Data
-/config/llm/*
-!/config/llm/manual.json
-!/config/llm/pseudo.json
+/config/llms/*
+!/config/llms/manual-input.json
+!/config/llms/auto-reply.json
 /data/**/games.db

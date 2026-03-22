@@ -3,10 +3,8 @@ from collections.abc import Generator
 
 from pydantic import BaseModel
 
-from ..common import Message
 
-
-class BaseLLMEngine[CT](ABC):
+class BaseLLMEngine[CT, PT](ABC):
     def __init__(self, *, config: CT) -> None:
         self._config: CT = config
 
@@ -15,9 +13,12 @@ class BaseLLMEngine[CT](ABC):
         return self._config
 
     @abstractmethod
-    def query[T: BaseModel](
-        self,
-        *messages: Message,
-        format: type[T] | None = None,
-        system_instruction: str | None = None,
-    ) -> Generator[str, None, str | T]: ...
+    def make_human_message(self, *, content: str) -> PT: ...
+
+    @abstractmethod
+    def make_ai_message(self, *, content: str) -> PT: ...
+
+    @abstractmethod
+    def query(
+        self, *messages: PT, format: type[BaseModel] | None, system_instruction: str | None
+    ) -> Generator[str, None, str]: ...

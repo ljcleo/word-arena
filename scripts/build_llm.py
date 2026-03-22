@@ -26,8 +26,12 @@ def build_llm(*, llm_key: str) -> LLM:
     module: ModuleType = import_module(f"word_arena.llms.{config.type}")
     config_cls: type[BaseModel] = getattr(module, f"{prefix}LLMConfig")
     engine_cls: type[BaseLLMEngine] = getattr(module, f"{prefix}LLMEngine")
+    engine: BaseLLMEngine = engine_cls(config=config_cls.model_validate(config.config))
 
-    return LLM(
-        engine=engine_cls(config=config_cls.model_validate(config.config)),
-        renderer=LogLLMRenderer(llm_log_func=log),
-    )
+    if config.type == "manual_input":
+        from word_arena.llms.manual_input import ManualInputLLMEngine
+
+        assert isinstance(engine, ManualInputLLMEngine)
+        engine.input_func = input
+
+    return LLM(engine=engine, renderer=LogLLMRenderer(llm_log_func=log))

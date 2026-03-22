@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from logging import WARNING, getLogger
 from typing import Literal, override
 
 from google.genai import Client
@@ -12,9 +11,7 @@ from google.genai.types import (
     ThinkingLevel,
 )
 from pydantic import BaseModel
-from tenacity import before_sleep_log, retry, wait_random
 
-from ..common.llm.common import Message, MessageType
 from ..common.llm.engine.base import BaseLLMEngine
 
 
@@ -27,7 +24,7 @@ class GoogleLLMConfig(BaseModel):
     timeout: int = 7200
 
 
-class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig]):
+class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig, Content]):
     def __init__(self, *, config: GoogleLLMConfig) -> None:
         super().__init__(config=config)
 
@@ -36,24 +33,18 @@ class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig]):
             http_options=HttpOptions(base_url=self.config.base_url, timeout=self.config.timeout),
         )
 
-    @retry(wait=wait_random(max=3), before_sleep=before_sleep_log(getLogger(__name__), WARNING))
     @override
-    def query[T: BaseModel](
-        self,
-        *messages: Message,
-        format: type[T] | None = None,
-        system_instruction: str | None = None,
-    ) -> Generator[str, None, str | T]:
-        chat_messages: list[Content] = []
+    def make_human_message(self, *, content: str) -> Content:
+        return Content(parts=[Part(content)], role="user")
 
-        for message in messages:
-            if message.role == MessageType.HUMAN:
-                chat_messages.append(Content(role="user", parts=[Part(message.content)]))
-            elif message.role == MessageType.AI:
-                chat_messages.append(Content(role="model", parts=[Part(message.content)]))
-            else:
-                raise RuntimeError(message.role)
+    @override
+    def make_ai_message(self, *, content: str) -> Content:
+        return Content(parts=[Part(content)], role="model")
 
+    @override
+    def query(
+        self, *messages: Content, format: type[BaseModel] | None, system_instruction: str | None
+    ) -> Generator[str, None, str]:
         response_mime_type: Literal["application/json"] | None = None
         response_json_schema: dict | None = None
 
@@ -64,7 +55,7 @@ class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig]):
         answer_parts: list[str] = []
 
         for chunk in self._client.models.generate_content_stream(
-            contents=chat_messages,
+            contents=messages,
             model=self.config.model,
             config=GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -78,17 +69,18 @@ class GoogleLLMEngine(BaseLLMEngine[GoogleLLMConfig]):
         ):
             if chunk.candidates is not None:
                 content: Content | None = chunk.candidates[0].content
+
                 if content is not None:
                     parts: list[Part] | None = content.parts
+
                     if parts is not None:
                         for part in parts:
                             text: str | None = part.text
+
                             if text is not None:
                                 if part.thought:
                                     yield text
                                 else:
                                     answer_parts.append(text)
 
-        assert len(answer_parts) > 0
-        answer: str = "".join(answer_parts)
-        return answer if format is None else format.model_validate_json(answer)
+        return "".join(answer_parts)
