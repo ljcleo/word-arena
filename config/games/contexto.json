@@ -1,0 +1,8 @@
+{
+    "meta_config": {
+        "base_url": "https://api.contexto.me/machado/en"
+    },
+    "mutable_meta_config_pool": [
+        50
+    ]
+}

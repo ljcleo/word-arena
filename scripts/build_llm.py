@@ -1,9 +1,18 @@
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from common import log
+from pydantic import BaseModel
 
 from word_arena.common.llm.base import BaseLLM
+
+LLM_CONFIG_PATH: Path = Path("./config/llms")
+
+
+class LLMConfig(BaseModel):
+    type: str
+    config: dict[str, Any]
 
 
 def build_pseudo_llm(config: dict[str, Any]) -> BaseLLM:
@@ -45,5 +54,8 @@ LLM_BUILDERS: dict[str, Callable[[dict[str, Any]], BaseLLM]] = {
 }
 
 
-def build_llm(*, llm_key: str, config: dict[str, Any]) -> BaseLLM:
-    return LLM_BUILDERS[llm_key](config)
+def build_llm(*, llm_key: str) -> BaseLLM:
+    with (LLM_CONFIG_PATH / f"{llm_key}.json").open("rb") as f:
+        config: LLMConfig = LLMConfig.model_validate_json(f.read())
+
+    return LLM_BUILDERS[config.type](config.config)

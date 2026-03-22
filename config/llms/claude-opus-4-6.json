@@ -1,0 +1,11 @@
+{
+    "type": "anthropic",
+    "config": {
+        "api_key": "sk-Ewm1zzgVMYQmWSFt0HTvPDIQUcDlNCLVXpIrxTcTT21GCuGO",
+        "base_url": "https://api.poixe.com",
+        "model": "claude-opus-4-6",
+        "thinking_effort": "high",
+        "max_tokens": 32768,
+        "timeout": 7200
+    }
+}

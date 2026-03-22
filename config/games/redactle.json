@@ -1,0 +1,8 @@
+{
+    "meta_config": {
+        "data_file": "./data/redactle/games.db"
+    },
+    "mutable_meta_config_pool": [
+        50
+    ]
+}

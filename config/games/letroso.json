@@ -1,0 +1,12 @@
+{
+    "meta_config": {
+        "data_file": "./data/letroso/games.db"
+    },
+    "mutable_meta_config_pool": [
+        {
+            "max_letters": 10,
+            "max_turns": 20,
+            "num_targets": 1
+        }
+    ]
+}

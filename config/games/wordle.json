@@ -1,0 +1,27 @@
+{
+    "meta_config": {
+        "data_file": "./data/wordle/games.db"
+    },
+    "mutable_meta_config_pool": [
+        {
+            "max_turns": 6,
+            "num_targets": 1
+        },
+        {
+            "max_turns": 7,
+            "num_targets": 2
+        },
+        {
+            "max_turns": 9,
+            "num_targets": 4
+        },
+        {
+            "max_turns": 13,
+            "num_targets": 8
+        },
+        {
+            "max_turns": 21,
+            "num_targets": 16
+        }
+    ]
+}

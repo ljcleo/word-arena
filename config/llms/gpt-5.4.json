@@ -1,0 +1,12 @@
+{
+    "type": "openai-responses",
+    "config": {
+        "api_key": "sk-Ewm1zzgVMYQmWSFt0HTvPDIQUcDlNCLVXpIrxTcTT21GCuGO",
+        "base_url": "https://api.poixe.com/v1",
+        "model": "gpt-5.4",
+        "reasoning_effort": "high",
+        "max_output_tokens": 32768,
+        "use_system_message": false,
+        "timeout": 7200
+    }
+}
