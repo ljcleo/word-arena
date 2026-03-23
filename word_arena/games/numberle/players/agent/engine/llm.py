@@ -1,7 +1,11 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import (
     NumberleFeedback,
     NumberleFinalResult,
@@ -9,12 +13,23 @@ from ....common import (
     NumberleInfo,
     NumberleResponse,
 )
-from ..common import (
-    NumberleGameRecord,
-    NumberleGameStateInterface,
-    NumberleNote,
-    NumberleNoteStateInterface,
-)
+
+
+class NumberleNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type NumberleGameStateInterface = AgentGameStateInterface[
+    NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
+]
+
+type NumberleNoteStateInterface = AgentNoteStateInterface[
+    NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult, NumberleNote
+]
+
+type NumberleGameRecord = GameRecord[
+    NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
+]
 
 NUMBERLE_ROLE_DEF = """\
 You are an intelligent AI good at basic arithmetics.

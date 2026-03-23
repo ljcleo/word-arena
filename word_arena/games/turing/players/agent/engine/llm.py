@@ -1,14 +1,27 @@
 from collections.abc import Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
-from ..common import (
-    TuringGameRecord,
-    TuringGameStateInterface,
-    TuringNote,
-    TuringNoteStateInterface,
-)
+
+
+class TuringNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type TuringGameStateInterface = AgentGameStateInterface[
+    TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult
+]
+
+type TuringNoteStateInterface = AgentNoteStateInterface[
+    TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult, TuringNote
+]
+
+type TuringGameRecord = GameRecord[TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult]
 
 TURING_ROLE_DEF = """\
 You are an intelligent AI good at logic deduction.

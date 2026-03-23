@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ...common.game.common import Trajectory
 
 
 class Analysis(BaseModel):
-    analysis: str
-    plan: str
+    analysis: str = Field(title="Analysis")
+    plan: str = Field(title="Plan")
 
 
 class AnalyzedGuess[GT](BaseModel):
@@ -22,8 +22,8 @@ class GameRecord[IT, GT, FT, RT](BaseModel):
 
 
 class Reflection(BaseModel):
-    summary: str
-    reflection: str
+    summary: str = Field(title="Game Summary")
+    reflection: str = Field(title="Reflection")
 
 
 class GameSummary[IT, GT, FT, RT](BaseModel):

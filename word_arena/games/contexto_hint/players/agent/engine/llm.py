@@ -1,14 +1,30 @@
 from collections.abc import Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import ContextoHintFeedback, ContextoHintGuess
-from ..common import (
-    ContextoHintGameRecord,
-    ContextoHintGameStateInterface,
-    ContextoHintNote,
-    ContextoHintNoteStateInterface,
-)
+
+
+class ContextoHintNote(BaseModel):
+    law: str = Field(title="Word Similarity Laws")
+    strategy: str = Field(title="Possible Strategies")
+
+
+type ContextoHintGameStateInterface = AgentGameStateInterface[
+    list[str], ContextoHintGuess, ContextoHintFeedback, list[str]
+]
+
+type ContextoHintNoteStateInterface = AgentNoteStateInterface[
+    list[str], ContextoHintGuess, ContextoHintFeedback, list[str], ContextoHintNote
+]
+
+type ContextoHintGameRecord = GameRecord[
+    list[str], ContextoHintGuess, ContextoHintFeedback, list[str]
+]
 
 CONTEXTO_HINT_ROLE_DEF = """\
 You are an intelligent AI good at understanding word relations.

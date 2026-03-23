@@ -1,7 +1,11 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import (
     RedactleFeedback,
     RedactleFinalResult,
@@ -9,12 +13,23 @@ from ....common import (
     RedactleInfo,
     RedactleResponse,
 )
-from ..common import (
-    RedactleGameRecord,
-    RedactleGameStateInterface,
-    RedactleNote,
-    RedactleNoteStateInterface,
-)
+
+
+class RedactleNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type RedactleGameStateInterface = AgentGameStateInterface[
+    RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult
+]
+
+type RedactleNoteStateInterface = AgentNoteStateInterface[
+    RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult, RedactleNote
+]
+
+type RedactleGameRecord = GameRecord[
+    RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult
+]
 
 REDACTLE_ROLE_DEF = """\
 You are an intelligent AI with broad general knowledge spanning multiple domains.

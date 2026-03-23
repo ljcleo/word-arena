@@ -1,7 +1,11 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import (
     LetrosoFeedback,
     LetrosoFinalResult,
@@ -9,12 +13,21 @@ from ....common import (
     LetrosoInfo,
     LetrosoResponse,
 )
-from ..common import (
-    LetrosoGameRecord,
-    LetrosoGameStateInterface,
-    LetrosoNote,
-    LetrosoNoteStateInterface,
-)
+
+
+class LetrosoNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type LetrosoGameStateInterface = AgentGameStateInterface[
+    LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult
+]
+
+type LetrosoNoteStateInterface = AgentNoteStateInterface[
+    LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoNote
+]
+
+type LetrosoGameRecord = GameRecord[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
 
 LETROSO_ROLE_DEF = """\
 You are an intelligent AI with a good English vocabulary.

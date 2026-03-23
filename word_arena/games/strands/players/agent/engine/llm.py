@@ -1,14 +1,27 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
-from ..common import (
-    StrandsGameRecord,
-    StrandsGameStateInterface,
-    StrandsNote,
-    StrandsNoteStateInterface,
-)
+
+
+class StrandsNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type StrandsGameStateInterface = AgentGameStateInterface[
+    StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult
+]
+
+type StrandsNoteStateInterface = AgentNoteStateInterface[
+    StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult, StrandsNote
+]
+
+type StrandsGameRecord = GameRecord[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
 
 STRANDS_ROLE_DEF = """\
 You are an intelligent AI with a good English vocabulary.

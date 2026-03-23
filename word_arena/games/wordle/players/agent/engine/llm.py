@@ -1,14 +1,27 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleResponse
-from ..common import (
-    WordleGameRecord,
-    WordleGameStateInterface,
-    WordleNote,
-    WordleNoteStateInterface,
-)
+
+
+class WordleNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+type WordleGameStateInterface = AgentGameStateInterface[
+    WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult
+]
+
+type WordleNoteStateInterface = AgentNoteStateInterface[
+    WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult, WordleNote
+]
+
+type WordleGameRecord = GameRecord[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult]
 
 WORDLE_ROLE_DEF = """\
 You are an intelligent AI with a good English vocabulary.

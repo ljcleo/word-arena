@@ -1,7 +1,11 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import (
     ConnectionsFeedback,
     ConnectionsFinalResult,
@@ -9,12 +13,24 @@ from ....common import (
     ConnectionsInfo,
     ConnectionsWordGroup,
 )
-from ..common import (
-    ConnectionsGameRecord,
-    ConnectionsGameStateInterface,
-    ConnectionsNote,
-    ConnectionsNoteStateInterface,
-)
+
+
+class ConnectionsNote(BaseModel):
+    law: str = Field(title="Word Group Laws")
+    strategy: str = Field(title="Possible Strategies")
+
+
+type ConnectionsGameStateInterface = AgentGameStateInterface[
+    ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback, ConnectionsFinalResult
+]
+
+type ConnectionsNoteStateInterface = AgentNoteStateInterface[
+    ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback, ConnectionsFinalResult, ConnectionsNote
+]
+
+type ConnectionsGameRecord = GameRecord[
+    ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback, ConnectionsFinalResult
+]
 
 CONNECTIONS_ROLE_DEF = """\
 You are an intelligent AI good at understanding word relations.

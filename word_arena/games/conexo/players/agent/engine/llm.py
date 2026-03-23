@@ -1,14 +1,29 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel, Field
+
+from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
+from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ....common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
-from ..common import (
-    ConexoGameRecord,
-    ConexoGameStateInterface,
-    ConexoNote,
-    ConexoNoteStateInterface,
-)
+
+
+class ConexoNote(BaseModel):
+    law: str = Field(title="Word Group Laws")
+    strategy: str = Field(title="Possible Strategies")
+
+
+type ConexoGameStateInterface = AgentGameStateInterface[
+    ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult
+]
+
+type ConexoNoteStateInterface = AgentNoteStateInterface[
+    ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoNote
+]
+
+type ConexoGameRecord = GameRecord[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult]
+
 
 CONEXO_ROLE_DEF = """\
 You are an intelligent AI good at understanding word relations.
