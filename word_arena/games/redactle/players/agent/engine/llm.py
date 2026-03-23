@@ -105,10 +105,6 @@ class RedactleLLMAgentEngine(
         return RedactleGuess(word="history")
 
     @override
-    def prompt_note(self, *, note_state: RedactleNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: RedactleGameStateInterface
     ) -> Iterator[tuple[str, str]]:
@@ -169,9 +165,9 @@ class RedactleLLMAgentEngine(
             else "Failed",
         )
 
-        yield ("Found Words", self._format_items(items=final_result.found_words))
+        yield "Found Words", self._format_items(items=final_result.found_words)
         yield "Article Title", final_result.title
-        yield ("Title Words", self._format_items(items=final_result.title_words))
+        yield "Title Words", self._format_items(items=final_result.title_words)
         yield (
             "Full Article",
             self._format_article(game_info=game_record.trajectory.game_info, feedback_history=None),

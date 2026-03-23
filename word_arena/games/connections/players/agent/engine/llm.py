@@ -120,13 +120,6 @@ class ConnectionsLLMAgentEngine(
         return ConnectionsGuess(indices=list(range(game_state.game_info.group_size)))
 
     @override
-    def prompt_note(
-        self, *, note_state: ConnectionsNoteStateInterface
-    ) -> Iterator[tuple[str, str]]:
-        yield "Word Group Laws", note_state.note.law
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: ConnectionsGameStateInterface
     ) -> Iterator[tuple[str, str]]:

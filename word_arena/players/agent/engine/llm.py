@@ -123,7 +123,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
             Message.human(
                 *maybe_iter_with_title(
                     title="# Current Notes",
-                    sections=leaves_to_xmls(items=self.prompt_note(note_state=note_state)),
+                    sections=leaves_to_xmls(items=self._prompt_note(note_state=note_state)),
                 ),
                 *maybe_iter_with_title(
                     title="# Game Record",
@@ -147,7 +147,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
             Message.human(
                 *maybe_iter_with_title(
                     title="# Current Notes",
-                    sections=leaves_to_xmls(items=self.prompt_note(note_state=note_state)),
+                    sections=leaves_to_xmls(items=self._prompt_note(note_state=note_state)),
                 ),
                 *maybe_iter_with_title(
                     title="# Trials", sections=self._make_history_prompt(note_state=note_state)
@@ -192,11 +192,6 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
 
     @abstractmethod
     def get_guess_example(self, *, game_state: AgentGameStateInterface[IT, GT, FT, RT]) -> GT: ...
-
-    @abstractmethod
-    def prompt_note(
-        self, *, note_state: AgentNoteStateInterface[IT, GT, FT, RT, NT]
-    ) -> Iterator[tuple[str, str]]: ...
 
     @abstractmethod
     def prompt_game_info(
@@ -257,7 +252,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                 *maybe_iter_with_title(title="# Game Rule", sections=self.make_game_rule_prompt()),
                 *maybe_iter_with_title(
                     title="# Current Notes",
-                    sections=leaves_to_xmls(items=self.prompt_note(note_state=note_state)),
+                    sections=leaves_to_xmls(items=self._prompt_note(note_state=note_state)),
                 ),
             )
         )
@@ -372,11 +367,18 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                 ),
             )
 
+    def _prompt_note(
+        self, *, note_state: AgentNoteStateInterface[IT, GT, FT, RT, NT]
+    ) -> Iterator[tuple[str, str]]:
+        yield from self._prompt_model(data=note_state.note)
+
     def _prompt_analysis(self, *, analysis: Analysis | None) -> Iterator[tuple[str, str]]:
         if analysis is not None:
-            yield "Analysis", analysis.analysis
-            yield "Plan", analysis.plan
+            yield from self._prompt_model(data=analysis)
 
     def _prompt_reflection(self, *, reflection: Reflection) -> Iterator[tuple[str, str]]:
-        yield "Game Summary", reflection.summary
-        yield "Reflection", reflection.reflection
+        yield from self._prompt_model(data=reflection)
+
+    def _prompt_model(self, *, data: BaseModel) -> Iterator[tuple[str, str]]:
+        for key, field in type(data).model_fields.items():
+            yield str(field.title), str(getattr(data, key))

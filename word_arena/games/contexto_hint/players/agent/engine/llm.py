@@ -121,13 +121,6 @@ class ContextoHintLLMAgentEngine(
         return ContextoHintGuess(index=len(choices) - 1)
 
     @override
-    def prompt_note(
-        self, *, note_state: ContextoHintNoteStateInterface
-    ) -> Iterator[tuple[str, str]]:
-        yield "Word Similarity Laws", note_state.note.law
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: ContextoHintGameStateInterface
     ) -> Iterator[tuple[str, str]]:

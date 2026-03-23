@@ -110,10 +110,6 @@ class NumberleLLMAgentEngine(
         return NumberleGuess(equation="5-4*3/2+1=0")
 
     @override
-    def prompt_note(self, *, note_state: NumberleNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: NumberleGameStateInterface
     ) -> Iterator[tuple[str, str]]:

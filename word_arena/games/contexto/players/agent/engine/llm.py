@@ -95,11 +95,6 @@ class ContextoLLMAgentEngine(
         return ContextoGuess(word="play")
 
     @override
-    def prompt_note(self, *, note_state: ContextoNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Word Similarity Laws", note_state.note.law
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: ContextoGameStateInterface
     ) -> Iterator[tuple[str, str]]:

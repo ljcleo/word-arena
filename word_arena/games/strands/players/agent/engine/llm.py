@@ -106,10 +106,6 @@ class StrandsLLMAgentEngine(
         return StrandsGuess(coords=[(0, 0), (0, 1), (1, 2), (1, 1), (0, 2)])
 
     @override
-    def prompt_note(self, *, note_state: StrandsNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: StrandsGameStateInterface
     ) -> Iterator[tuple[str, str]]:

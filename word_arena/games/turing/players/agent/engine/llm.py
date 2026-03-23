@@ -108,10 +108,6 @@ class TuringLLMAgentEngine(
         return TuringGuess(code=123, verifiers=[0, 1, 2])
 
     @override
-    def prompt_note(self, *, note_state: TuringNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: TuringGameStateInterface
     ) -> Iterator[tuple[str, str]]:

@@ -121,10 +121,6 @@ class LetrosoLLMAgentEngine(
         return LetrosoGuess(word="feedback")
 
     @override
-    def prompt_note(self, *, note_state: LetrosoNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: LetrosoGameStateInterface
     ) -> Iterator[tuple[str, str]]:

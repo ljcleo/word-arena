@@ -96,10 +96,6 @@ class WordleLLMAgentEngine(
         return WordleGuess(word="world")
 
     @override
-    def prompt_note(self, *, note_state: WordleNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: WordleGameStateInterface
     ) -> Iterator[tuple[str, str]]:

@@ -105,11 +105,6 @@ class ConexoLLMAgentEngine(
         return ConexoGuess(indices=list(range(game_state.game_info.group_size)))
 
     @override
-    def prompt_note(self, *, note_state: ConexoNoteStateInterface) -> Iterator[tuple[str, str]]:
-        yield "Word Group Laws", note_state.note.law
-        yield "Possible Strategies", note_state.note.strategy
-
-    @override
     def prompt_game_info(
         self, *, game_state: ConexoGameStateInterface
     ) -> Iterator[tuple[str, str]]:
