@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
 from ..state import TuringGameStateInterface
 
@@ -13,7 +14,7 @@ class TuringLogGameRenderer(
     def format_game_info(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
         game_info: TuringInfo = state.game_info
         for index, card in enumerate(game_info.verifiers):
-            yield f"Verifier {index}", " ; ".join(card)
+            yield f"Verifier {index}", join_or_na(card)
 
         yield (
             "Maximum Number of Guesses",
@@ -28,7 +29,7 @@ class TuringLogGameRenderer(
             yield "Final Guess", str(guess.code)
         else:
             yield "Verifying Guess", str(guess.code)
-            yield "Verifiers", "/".join(map(str, guess.verifiers))
+            yield "Verifiers", join_or_na(map(str, guess.verifiers))
 
     @override
     def format_last_feedback(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
@@ -36,7 +37,7 @@ class TuringLogGameRenderer(
 
         if isinstance(feedback, list):
             yield "Validation Result", "Accept"
-            yield "Verification Result", "/".join("Y" if result else "N" for result in feedback)
+            yield "Verification Result", join_or_na("Y" if result else "N" for result in feedback)
         elif isinstance(feedback, bool):
             yield "Validation Result", "Accept"
             yield "Final Guess Result", "Correct" if feedback else "Incorrect"

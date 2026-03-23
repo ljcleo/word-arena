@@ -1,7 +1,8 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import (
     LetrosoFeedback,
     LetrosoFinalResult,
@@ -40,7 +41,7 @@ class LetrosoLogGameRenderer(
 
         if isinstance(feedback, LetrosoResponse):
             yield "Validation Result", "Accept"
-            yield "Match Pattern", "/".join(feedback.patterns)
+            yield "Match Pattern", join_or_na(feedback.patterns)
         else:
             yield "Validation Result", "Reject"
             yield "Reason", feedback.error
@@ -56,13 +57,7 @@ class LetrosoLogGameRenderer(
 
         yield (
             "Found Words",
-            self._format_found_words(
-                words=map(final_result.answers.__getitem__, final_result.found_indices)
-            ),
+            join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Words", "/".join(final_result.answers)
-
-    def _format_found_words(self, *, words: Iterable[str]) -> str:
-        result: str = ", ".join(words)
-        return "N/A" if result == "" else result
+        yield "Secret Words", join_or_na(final_result.answers)

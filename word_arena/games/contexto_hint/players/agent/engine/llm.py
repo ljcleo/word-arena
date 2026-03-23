@@ -3,9 +3,11 @@ from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import ContextoHintFeedback, ContextoHintGuess
 
 
@@ -26,13 +28,19 @@ type ContextoHintGameRecord = GameRecord[
     list[str], ContextoHintGuess, ContextoHintFeedback, list[str]
 ]
 
-CONTEXTO_HINT_ROLE_DEF = """\
+
+class ContextoHintLLMAgentEngine(
+    BaseLLMAgentEngine[
+        list[str], ContextoHintGuess, ContextoHintFeedback, list[str], ContextoHintNote
+    ]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI good at understanding word relations.
 
 You are playing a game where you need to find a secret word.\
 """
 
-CONTEXTO_HINT_GAME_RULE = """\
+    GAME_RULE = """\
 The game holds a word list with 500 words, including the secret word, \
 sorted by the similarity to the secret word.
 
@@ -54,29 +62,8 @@ It is guaranteed that there is a candidate word closer than the current best gue
 Your guess should be the **index of the guessed word**, NOT the word itself.\
 """
 
-
-class ContextoHintLLMAgentEngine(
-    BaseLLMAgentEngine[
-        list[str], ContextoHintGuess, ContextoHintFeedback, list[str], ContextoHintNote
-    ]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[ContextoHintGuess]:
-        return ContextoHintGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[ContextoHintNote]:
-        return ContextoHintNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield CONTEXTO_HINT_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield CONTEXTO_HINT_GAME_RULE
+    NOTE_CLS = ContextoHintNote
+    GUESS_CLS = ContextoHintGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -122,88 +109,43 @@ class ContextoHintLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: ContextoHintGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
+        final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info, final_result=None)
+        yield self._format_choices(
+            choices=trajectory.game_info, top_words=final_result, is_first=True
+        )
 
     @override
     def prompt_guess(
-        self, *, game_state: ContextoHintGameStateInterface, guess: ContextoHintGuess
+        self,
+        *,
+        trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
+        turn_index: int,
+        guess: ContextoHintGuess,
+        final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
         choices: list[str] | None = (
-            game_state.game_info
-            if len(game_state.turns) == 0
-            else game_state.turns[-1].feedback.next_choices
+            trajectory.game_info
+            if turn_index == 0
+            else trajectory.turns[turn_index - 1].feedback.next_choices
         )
 
         assert choices is not None
-        yield from self._prompt_guess(choices=choices, guess=guess)
+        index: int = guess.index
+        yield "Selected Word", f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})"
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: ContextoHintGameStateInterface,
-        guess: ContextoHintGuess,
-        feedback: ContextoHintFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback, final_result=None)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: ContextoHintGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(
-            game_info=game_record.trajectory.game_info, final_result=game_record.final_result
-        )
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: ContextoHintGameRecord, turn_index: int, guess: ContextoHintGuess
-    ) -> Iterator[tuple[str, str]]:
-        choices: list[str] | None = (
-            game_record.trajectory.game_info
-            if turn_index == 0
-            else game_record.trajectory.turns[turn_index - 1].feedback.next_choices
-        )
-
-        assert choices is not None
-        yield from self._prompt_guess(choices=choices, guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: ContextoHintGameRecord,
+        trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
         turn_index: int,
         guess: ContextoHintGuess,
         feedback: ContextoHintFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback, final_result=game_record.final_result)
-
-    @override
-    def prompt_final_result(
-        self, *, game_record: ContextoHintGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        final_result: list[str] = game_record.final_result
-        yield "Secret Word", final_result[0]
-        yield "Top 30 Words", ", ".join(final_result[:30])
-
-    def _prompt_game_info(
-        self, *, game_info: list[str], final_result: list[str] | None
-    ) -> Iterator[tuple[str, str]]:
-        yield self._format_choices(choices=game_info, top_words=final_result, is_first=True)
-
-    def _prompt_guess(
-        self, *, choices: list[str], guess: ContextoHintGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield (
-            "Selected Word This Round",
-            self._format_guess_index(choices=choices, index=guess.index),
-        )
-
-    def _prompt_feedback(
-        self, *, feedback: ContextoHintFeedback, final_result: list[str] | None
+        final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
         if feedback.distance < 0:
             yield "Validation Result", "Reject"
@@ -217,6 +159,14 @@ class ContextoHintLLMAgentEngine(
                 choices=feedback.next_choices, top_words=final_result, is_first=False
             )
 
+    @override
+    def prompt_final_result(
+        self, *, game_record: ContextoHintGameRecord
+    ) -> Iterator[tuple[str, str]]:
+        final_result: list[str] = game_record.final_result
+        yield "Secret Word", final_result[0]
+        yield "Top 30 Words", join_or_na(final_result[:30])
+
     def _format_choices(
         self, *, choices: list[str], top_words: list[str] | None, is_first: bool
     ) -> tuple[str, str]:
@@ -224,10 +174,7 @@ class ContextoHintLLMAgentEngine(
             None if top_words is None else {word: pos + 1 for pos, word in enumerate(top_words)}
         )
 
-        return f"Candidates for {'the First' if is_first else 'Next'} Round", "; ".join(
+        return f"Candidates for {'the First' if is_first else 'Next'} Round", join_or_na(
             f"{index}. {word}" if word_pos is None else f"{index}. {word} ({word_pos[word]})"
             for index, word in enumerate(choices)
         )
-
-    def _format_guess_index(self, *, choices: list[str], index: int) -> str:
-        return f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})"

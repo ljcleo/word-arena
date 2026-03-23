@@ -5,6 +5,7 @@ from typing import override
 
 from pydantic import BaseModel, create_model
 
+from ....common.game.common import Trajectory
 from ....common.llm.common import Message
 from ....common.llm.llm import LLM
 from ..common import Analysis, AnalyzedGuess, GameRecord, GameSummary, Reflection
@@ -62,6 +63,11 @@ def maybe_iter_with_title(*, title: str, sections: Iterable[str]) -> Iterator[st
 class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     BaseAgentEngine[IT, GT, FT, RT, NT], ABC
 ):
+    ROLE_DEFINITION: str
+    GAME_RULE: str
+    NOTE_CLS: type[NT]
+    GUESS_CLS: type[GT]
+
     def __init__(self, *, model: LLM, do_analyze: bool):
         self._model: LLM = model
         self._do_analyze: bool = do_analyze
@@ -74,7 +80,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                 "Initialize some notes that help you make a good guess in a turn.",
                 *self._make_note_format_prompt(),
             ),
-            format=self.note_cls,
+            format=self.NOTE_CLS,
             system_instruction=self._make_reflect_system_instruction(
                 status="You have not played the game yet."
             ),
@@ -98,7 +104,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
         if self._do_analyze:
             full_guess: BaseModel = self._model.query(
                 *messages,
-                format=create_model("Guess", analysis=Analysis, guess=self.guess_cls),
+                format=create_model("Guess", analysis=Analysis, guess=self.GUESS_CLS),
                 system_instruction=system_instruction,
             )
 
@@ -107,7 +113,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
             assert analysis is not None
         else:
             guess = self._model.query(
-                *messages, format=self.guess_cls, system_instruction=system_instruction
+                *messages, format=self.GUESS_CLS, system_instruction=system_instruction
             )
 
         return AnalyzedGuess(analysis=analysis, guess=guess)
@@ -156,25 +162,11 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                 "Create some improved notes based on what you have learned from your trials.",
                 *self._make_note_format_prompt(),
             ),
-            format=self.note_cls,
+            format=self.NOTE_CLS,
             system_instruction=self._make_reflect_system_instruction(
                 status="You have played the game a few times."
             ),
         )
-
-    @property
-    @abstractmethod
-    def guess_cls(self) -> type[GT]: ...
-
-    @property
-    @abstractmethod
-    def note_cls(self) -> type[NT]: ...
-
-    @abstractmethod
-    def make_role_def_prompt(self) -> Iterator[str]: ...
-
-    @abstractmethod
-    def make_game_rule_prompt(self) -> Iterator[str]: ...
 
     @abstractmethod
     def make_note_detail_prompt(self) -> Iterator[str]: ...
@@ -195,32 +187,28 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
 
     @abstractmethod
     def prompt_game_info(
-        self, *, game_state: AgentGameStateInterface[IT, GT, FT, RT]
+        self, *, trajectory: Trajectory[IT, GT, FT], final_result: RT | None
     ) -> Iterator[tuple[str, str]]: ...
 
     @abstractmethod
     def prompt_guess(
-        self, *, game_state: AgentGameStateInterface[IT, GT, FT, RT], guess: GT
+        self,
+        *,
+        trajectory: Trajectory[IT, GT, FT],
+        turn_index: int,
+        guess: GT,
+        final_result: RT | None,
     ) -> Iterator[tuple[str, str]]: ...
 
     @abstractmethod
     def prompt_feedback(
-        self, *, game_state: AgentGameStateInterface[IT, GT, FT, RT], guess: GT, feedback: FT
-    ) -> Iterator[tuple[str, str]]: ...
-
-    @abstractmethod
-    def prompt_game_info_final(
-        self, *, game_record: GameRecord[IT, GT, FT, RT]
-    ) -> Iterator[tuple[str, str]]: ...
-
-    @abstractmethod
-    def prompt_guess_final(
-        self, *, game_record: GameRecord[IT, GT, FT, RT], turn_index: int, guess: GT
-    ) -> Iterator[tuple[str, str]]: ...
-
-    @abstractmethod
-    def prompt_feedback_final(
-        self, *, game_record: GameRecord[IT, GT, FT, RT], turn_index: int, guess: GT, feedback: FT
+        self,
+        *,
+        trajectory: Trajectory[IT, GT, FT],
+        turn_index: int,
+        guess: GT,
+        feedback: FT,
+        final_result: RT | None,
     ) -> Iterator[tuple[str, str]]: ...
 
     @abstractmethod
@@ -231,8 +219,8 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     def _make_reflect_system_instruction(self, *, status: str) -> str:
         return "\n\n".join(
             (
-                *maybe_iter_with_title(title="# Identity", sections=self.make_role_def_prompt()),
-                *maybe_iter_with_title(title="# Game Rule", sections=self.make_game_rule_prompt()),
+                *maybe_iter_with_title(title="# Identity", sections=self._make_role_def_prompt()),
+                *maybe_iter_with_title(title="# Game Rule", sections=self._make_game_rule_prompt()),
                 "# Current Status",
                 status,
             )
@@ -248,8 +236,8 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     ) -> str:
         return "\n\n".join(
             (
-                *maybe_iter_with_title(title="# Identity", sections=self.make_role_def_prompt()),
-                *maybe_iter_with_title(title="# Game Rule", sections=self.make_game_rule_prompt()),
+                *maybe_iter_with_title(title="# Identity", sections=self._make_role_def_prompt()),
+                *maybe_iter_with_title(title="# Game Rule", sections=self._make_game_rule_prompt()),
                 *maybe_iter_with_title(
                     title="# Current Notes",
                     sections=leaves_to_xmls(items=self._prompt_note(note_state=note_state)),
@@ -262,26 +250,15 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     ) -> Iterator[str]:
         yield from maybe_iter_with_title(
             title="# Game Info",
-            sections=leaves_to_xmls(items=self.prompt_game_info(game_state=game_state)),
+            sections=leaves_to_xmls(
+                items=self.prompt_game_info(trajectory=game_state.trajectory, final_result=None)
+            ),
         )
 
         yield from maybe_iter_with_title(
             title="# Guess History",
-            sections=chain(
-                *(
-                    maybe_to_xml(
-                        key=f"Guess {index + 1}",
-                        values=leaves_to_xmls(
-                            items=chain(
-                                self.prompt_guess(game_state=game_state, guess=turn.guess),
-                                self.prompt_feedback(
-                                    game_state=game_state, guess=turn.guess, feedback=turn.feedback
-                                ),
-                            )
-                        ),
-                    )
-                    for index, turn in enumerate(game_state.turns)
-                )
+            sections=self._make_trajectory_prompt(
+                trajectory=game_state.trajectory, final_result=None
             ),
         )
 
@@ -318,26 +295,14 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     def _make_game_record_prompt(self, *, game_record: GameRecord[IT, GT, FT, RT]) -> Iterator[str]:
         yield from two_layer_to_xml(
             key="Game Info",
-            items=self.prompt_game_info_final(game_record=game_record),
+            items=self.prompt_game_info(
+                trajectory=game_record.trajectory, final_result=game_record.final_result
+            ),
         )
 
-        for index, turn in enumerate(game_record.trajectory.turns):
-            yield from maybe_to_xml(
-                key=f"Guess {index + 1}",
-                values=leaves_to_xmls(
-                    items=chain(
-                        self.prompt_guess_final(
-                            game_record=game_record, turn_index=index, guess=turn.guess
-                        ),
-                        self.prompt_feedback_final(
-                            game_record=game_record,
-                            turn_index=index,
-                            guess=turn.guess,
-                            feedback=turn.feedback,
-                        ),
-                    ),
-                ),
-            )
+        yield from self._make_trajectory_prompt(
+            trajectory=game_record.trajectory, final_result=game_record.final_result
+        )
 
         yield from two_layer_to_xml(
             key="Latest Analysis", items=self._prompt_analysis(analysis=game_record.last_analysis)
@@ -363,6 +328,37 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                     *two_layer_to_xml(
                         key="Reflection",
                         items=self._prompt_reflection(reflection=summary.reflection),
+                    ),
+                ),
+            )
+
+    def _make_role_def_prompt(self) -> Iterator[str]:
+        yield self.ROLE_DEFINITION
+
+    def _make_game_rule_prompt(self) -> Iterator[str]:
+        yield self.GAME_RULE
+
+    def _make_trajectory_prompt(
+        self, *, trajectory: Trajectory[IT, GT, FT], final_result: RT | None
+    ) -> Iterator[str]:
+        for index, turn in enumerate(trajectory.turns):
+            yield from maybe_to_xml(
+                key=f"Guess {index + 1}",
+                values=leaves_to_xmls(
+                    items=chain(
+                        self.prompt_guess(
+                            trajectory=trajectory,
+                            turn_index=index,
+                            guess=turn.guess,
+                            final_result=final_result,
+                        ),
+                        self.prompt_feedback(
+                            trajectory=trajectory,
+                            turn_index=index,
+                            guess=turn.guess,
+                            feedback=turn.feedback,
+                            final_result=final_result,
+                        ),
                     ),
                 ),
             )

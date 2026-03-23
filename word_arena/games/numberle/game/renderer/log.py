@@ -1,7 +1,8 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import (
     NumberleFeedback,
     NumberleFinalResult,
@@ -40,7 +41,7 @@ class NumberleLogGameRenderer(
 
         if isinstance(feedback, NumberleResponse):
             yield "Validation Result", "Accept"
-            yield "Match Pattern", "/".join(feedback.patterns)
+            yield "Match Pattern", join_or_na(feedback.patterns)
         else:
             yield "Validation Result", "Reject"
             yield "Reason", feedback.error
@@ -58,13 +59,7 @@ class NumberleLogGameRenderer(
 
         yield (
             "Found Equations",
-            self._format_found_eqs(
-                eqs=map(final_result.answers.__getitem__, final_result.found_indices)
-            ),
+            join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Equations", "/".join(final_result.answers)
-
-    def _format_found_eqs(self, *, eqs: Iterable[str]) -> str:
-        result: str = ", ".join(eqs)
-        return "N/A" if result == "" else result
+        yield "Secret Equations", join_or_na(final_result.answers)

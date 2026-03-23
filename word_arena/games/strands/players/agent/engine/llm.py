@@ -3,9 +3,11 @@ from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 
 
@@ -23,13 +25,17 @@ type StrandsNoteStateInterface = AgentNoteStateInterface[
 
 type StrandsGameRecord = GameRecord[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
 
-STRANDS_ROLE_DEF = """\
+
+class StrandsLLMAgentEngine(
+    BaseLLMAgentEngine[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult, StrandsNote]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI with a good English vocabulary.
 
 You are playing a game where you need to find secret words arranged in a grid.
 """
 
-STRANDS_GAME_RULE = """\
+    GAME_RULE = """\
 The game holds a spangram and several theme words, and gives a clue about them; \
 a spangram can have one or more words, while each theme word is strictly one word.
 
@@ -63,27 +69,8 @@ therefore, you should try your best to minimize the number of guesses.
 Your guess should be the **list of coordinates of the guessed path**, NOT the word itself.\
 """
 
-
-class StrandsLLMAgentEngine(
-    BaseLLMAgentEngine[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult, StrandsNote]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[StrandsGuess]:
-        return StrandsGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[StrandsNote]:
-        return StrandsNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield STRANDS_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield STRANDS_GAME_RULE
+    NOTE_CLS = StrandsNote
+    GUESS_CLS = StrandsGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -107,48 +94,71 @@ class StrandsLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: StrandsGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
+        game_info: StrandsInfo = trajectory.game_info
+        yield "Board", "\n".join(game_info.board)
+        yield "Clue", game_info.clue
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+        )
 
     @override
     def prompt_guess(
-        self, *, game_state: StrandsGameStateInterface, guess: StrandsGuess
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        turn_index: int,
+        guess: StrandsGuess,
+        final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
+        word: str = "(N/A)"
+        buffer: list[str] = []
+        visited: set[tuple[int, int]] = set()
+
+        for i in range(len(guess.coords)):
+            cx: int
+            cy: int
+            cx, cy = guess.coords[i]
+
+            if not (0 <= cx < 8 and 0 <= cy < 6 and (cx, cy) not in visited):
+                break
+
+            buffer.append(trajectory.game_info.board[cx][cy])
+            visited.add((cx, cy))
+
+            if i < len(guess.coords) - 1:
+                dx: int = guess.coords[i + 1][0] - cx
+                dy: int = guess.coords[i + 1][1] - cy
+
+                if not ((dx != 0 or dy != 0) and -1 <= dx <= 1 and -1 <= dy <= 1):
+                    break
+        else:
+            word = "".join(buffer)
+
+        yield "Guessed Word", self._format_word(word=word, coords=guess.coords)
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: StrandsGameStateInterface,
-        guess: StrandsGuess,
-        feedback: StrandsFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: StrandsGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: StrandsGameRecord, turn_index: int, guess: StrandsGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: StrandsGameRecord,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
         turn_index: int,
         guess: StrandsGuess,
         feedback: StrandsFeedback,
+        final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, int):
+            yield "Validation Result", "Accept"
+            yield "Guess Result", ("Missed", "Theme Word", "Spangram")[feedback]
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback
 
     @override
     def prompt_final_result(self, *, game_record: StrandsGameRecord) -> Iterator[tuple[str, str]]:
@@ -194,55 +204,8 @@ class StrandsLLMAgentEngine(
                 ),
             )
 
-    def _prompt_game_info(self, *, game_info: StrandsInfo) -> Iterator[tuple[str, str]]:
-        yield "Board", "\n".join(game_info.board)
-        yield "Clue", game_info.clue
-
-        yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
-        )
-
-    def _prompt_guess(
-        self, *, game_info: StrandsInfo, guess: StrandsGuess
-    ) -> Iterator[tuple[str, str]]:
-        word: str = "(N/A)"
-        buffer: list[str] = []
-        visited: set[tuple[int, int]] = set()
-
-        for i in range(len(guess.coords)):
-            cx: int
-            cy: int
-            cx, cy = guess.coords[i]
-
-            if not (0 <= cx < 8 and 0 <= cy < 6 and (cx, cy) not in visited):
-                break
-
-            buffer.append(game_info.board[cx][cy])
-            visited.add((cx, cy))
-
-            if i < len(guess.coords) - 1:
-                dx: int = guess.coords[i + 1][0] - cx
-                dy: int = guess.coords[i + 1][1] - cy
-
-                if not ((dx != 0 or dy != 0) and -1 <= dx <= 1 and -1 <= dy <= 1):
-                    break
-        else:
-            word = "".join(buffer)
-
-        coords_str: str = " -> ".join(f"({x}, {y})" for x, y in guess.coords)
-        yield "Guessed Word", f"{word} [{coords_str}]"
-
-    def _prompt_feedback(self, *, feedback: StrandsFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, int):
-            yield "Validation Result", "Accept"
-            yield "Guess Result", ("Missed", "Theme Word", "Spangram")[feedback]
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback
-
     def _format_words(self, *, infos: Iterable[tuple[str, list[tuple[int, int]]]]) -> str:
-        return "; ".join(self._format_word(word=word, coords=coords) for word, coords in infos)
+        return join_or_na((self._format_word(word=word, coords=coords) for word, coords in infos))
 
     def _format_word(self, *, word: str, coords: list[tuple[int, int]]) -> str:
         coords_str: str = " -> ".join(f"({x}, {y})" for x, y in coords)

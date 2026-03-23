@@ -1,11 +1,13 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import (
     NumberleFeedback,
     NumberleFinalResult,
@@ -31,13 +33,19 @@ type NumberleGameRecord = GameRecord[
     NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
 ]
 
-NUMBERLE_ROLE_DEF = """\
+
+class NumberleLLMAgentEngine(
+    BaseLLMAgentEngine[
+        NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult, NumberleNote
+    ]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI good at basic arithmetics.
 
 You are playing a game where you need to find one or more secret equations.\
 """
 
-NUMBERLE_GAME_RULE = """\
+    GAME_RULE = """\
 All secret equations have the same number of characters, with both hand sides \
 basic arithmetic expressions containing digits and `+-*/` only, connected by a single `=`; \
 brackets, negative numbers, decimals, leading zeros, and zero divisions are NOT allowed.
@@ -65,29 +73,8 @@ Your guess should be a \
 **single equation obeying the length and format constraints without any whitespaces**.\
 """
 
-
-class NumberleLLMAgentEngine(
-    BaseLLMAgentEngine[
-        NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult, NumberleNote
-    ]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[NumberleGuess]:
-        return NumberleGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[NumberleNote]:
-        return NumberleNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield NUMBERLE_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield NUMBERLE_GAME_RULE
+    NOTE_CLS = NumberleNote
+    GUESS_CLS = NumberleGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -111,48 +98,47 @@ class NumberleLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: NumberleGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
+        final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
+        game_info: NumberleInfo = trajectory.game_info
+        yield "Number of Secret Equations", str(game_info.num_targets)
+        yield "Equation Length in Characters", str(game_info.eq_length)
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+        )
 
     @override
     def prompt_guess(
-        self, *, game_state: NumberleGameStateInterface, guess: NumberleGuess
+        self,
+        *,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
+        turn_index: int,
+        guess: NumberleGuess,
+        final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
+        yield "Guessed Equation", guess.equation
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: NumberleGameStateInterface,
-        guess: NumberleGuess,
-        feedback: NumberleFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: NumberleGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: NumberleGameRecord, turn_index: int, guess: NumberleGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: NumberleGameRecord,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
         turn_index: int,
         guess: NumberleGuess,
         feedback: NumberleFeedback,
+        final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, NumberleResponse):
+            yield "Validation Result", "Accept"
+            yield "Match Pattern", join_or_na(feedback.patterns)
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback.error
 
     @override
     def prompt_final_result(self, *, game_record: NumberleGameRecord) -> Iterator[tuple[str, str]]:
@@ -165,33 +151,7 @@ class NumberleLLMAgentEngine(
 
         yield (
             "Found Equations",
-            self._format_found_eqs(
-                eqs=map(final_result.answers.__getitem__, final_result.found_indices)
-            ),
+            join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Equations", "/".join(final_result.answers)
-
-    def _prompt_game_info(self, *, game_info: NumberleInfo) -> Iterator[tuple[str, str]]:
-        yield "Number of Secret Equations", str(game_info.num_targets)
-        yield "Equation Length in Characters", str(game_info.eq_length)
-
-        yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
-        )
-
-    def _prompt_guess(self, *, guess: NumberleGuess) -> Iterator[tuple[str, str]]:
-        yield "Guessed Equation", guess.equation
-
-    def _prompt_feedback(self, *, feedback: NumberleFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, NumberleResponse):
-            yield "Validation Result", "Accept"
-            yield "Match Pattern", "/".join(feedback.patterns)
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
-
-    def _format_found_eqs(self, *, eqs: Iterable[str]) -> str:
-        result: str = ", ".join(eqs)
-        return "N/A" if result == "" else result
+        yield "Secret Equations", join_or_na(final_result.answers)

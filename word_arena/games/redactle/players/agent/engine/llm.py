@@ -3,9 +3,11 @@ from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import (
     RedactleFeedback,
     RedactleFinalResult,
@@ -31,13 +33,19 @@ type RedactleGameRecord = GameRecord[
     RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult
 ]
 
-REDACTLE_ROLE_DEF = """\
+
+class RedactleLLMAgentEngine(
+    BaseLLMAgentEngine[
+        RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult, RedactleNote
+    ]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI with broad general knowledge spanning multiple domains.
 
 You are playing a game where you must identify the title of a hidden Wikipedia article.\
 """
 
-REDACTLE_GAME_RULE = """\
+    GAME_RULE = """\
 You are shown a Wikipedia article in English where all meaningful words are redacted, \
 that is, replaced with █-characters of the same length; \
 common function words (stop words) and punctuation are always visible as-is.
@@ -60,29 +68,8 @@ therefore, you should try your best to minimize the number of guesses.
 Your guess must be a **single word (in any language) without any whitespace**.\
 """
 
-
-class RedactleLLMAgentEngine(
-    BaseLLMAgentEngine[
-        RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult, RedactleNote
-    ]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[RedactleGuess]:
-        return RedactleGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[RedactleNote]:
-        return RedactleNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield REDACTLE_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield REDACTLE_GAME_RULE
+    NOTE_CLS = RedactleNote
+    GUESS_CLS = RedactleGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -106,53 +93,61 @@ class RedactleLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: RedactleGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(
-            game_info=game_state.game_info,
-            feedback_history=[turn.feedback for turn in game_state.turns],
+        game_info: RedactleInfo = trajectory.game_info
+
+        if final_result is None:
+            yield (
+                "Current Article",
+                self._format_article(
+                    game_info=game_info,
+                    feedback_history=[turn.feedback for turn in trajectory.turns],
+                ),
+            )
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
     def prompt_guess(
-        self, *, game_state: RedactleGameStateInterface, guess: RedactleGuess
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        turn_index: int,
+        guess: RedactleGuess,
+        final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
+        yield "Guessed Word", guess.word
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: RedactleGameStateInterface,
-        guess: RedactleGuess,
-        feedback: RedactleFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: RedactleGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(
-            game_info=game_record.trajectory.game_info, feedback_history=None
-        )
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: RedactleGameRecord, turn_index: int, guess: RedactleGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: RedactleGameRecord,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
         turn_index: int,
         guess: RedactleGuess,
         feedback: RedactleFeedback,
+        final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, RedactleResponse):
+            yield "Validation Result", "Accept"
+            yield "Lemma", feedback.lemma
+
+            yield (
+                "Positions",
+                join_or_na(
+                    f"L{line_index}:{word_index}" for line_index, word_index in feedback.positions
+                ),
+            )
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback.error
 
     @override
     def prompt_final_result(self, *, game_record: RedactleGameRecord) -> Iterator[tuple[str, str]]:
@@ -165,48 +160,13 @@ class RedactleLLMAgentEngine(
             else "Failed",
         )
 
-        yield "Found Words", self._format_items(items=final_result.found_words)
+        yield "Found Words", join_or_na(final_result.found_words)
         yield "Article Title", final_result.title
-        yield "Title Words", self._format_items(items=final_result.title_words)
+        yield "Title Words", join_or_na(final_result.title_words)
         yield (
             "Full Article",
             self._format_article(game_info=game_record.trajectory.game_info, feedback_history=None),
         )
-
-    def _prompt_game_info(
-        self, *, game_info: RedactleInfo, feedback_history: Iterable[RedactleFeedback] | None
-    ) -> Iterator[tuple[str, str]]:
-        if feedback_history is not None:
-            yield (
-                "Current Article",
-                self._format_article(game_info=game_info, feedback_history=feedback_history),
-            )
-
-        yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
-        )
-
-    def _prompt_guess(self, *, guess: RedactleGuess) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
-
-    def _prompt_feedback(self, *, feedback: RedactleFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, RedactleResponse):
-            yield "Validation Result", "Accept"
-            yield "Lemma", feedback.lemma
-
-            yield (
-                "Positions",
-                self._format_items(
-                    items=(
-                        f"L{line_index}:{word_index}"
-                        for line_index, word_index in feedback.positions
-                    )
-                ),
-            )
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
 
     def _format_article(
         self, *, game_info: RedactleInfo, feedback_history: Iterable[RedactleFeedback] | None
@@ -236,7 +196,3 @@ class RedactleLLMAgentEngine(
             else "█" * len(word)
             for word, lemma in line
         )
-
-    def _format_items(self, *, items: Iterable[str]) -> str:
-        result: str = ", ".join(items)
-        return "N/A" if result == "" else result

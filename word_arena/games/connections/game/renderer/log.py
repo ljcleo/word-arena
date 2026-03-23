@@ -10,6 +10,7 @@ from ...common import (
     ConnectionsWordGroup,
 )
 from ..state import ConnectionsGameStateInterface
+from .....utils import join_or_na
 
 
 class ConnectionsLogGameRenderer(
@@ -22,7 +23,7 @@ class ConnectionsLogGameRenderer(
         self, *, state: ConnectionsGameStateInterface
     ) -> Iterator[tuple[str, str]]:
         game_info: ConnectionsInfo = state.game_info
-        yield "Words", "; ".join(f"{index}. {word}" for index, word in enumerate(game_info.words))
+        yield "Words", join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words))
         yield "Group Size", str(game_info.group_size)
 
         yield (
@@ -36,7 +37,7 @@ class ConnectionsLogGameRenderer(
     ) -> Iterator[tuple[str, str]]:
         yield (
             "Selected Words",
-            ", ".join(
+            join_or_na(
                 self._format_guess_index(words=state.game_info.words, index=index)
                 for index in guess.indices
             ),
@@ -78,5 +79,5 @@ class ConnectionsLogGameRenderer(
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConnectionsWordGroup]) -> str:
-        result: str = "; ".join(f"{', '.join(group.words)} ({group.theme})" for group in groups)
+        result: str = "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)
         return "N/A" if result == "" else result

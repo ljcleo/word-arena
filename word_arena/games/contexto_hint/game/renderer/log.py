@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import ContextoHintFeedback, ContextoHintGuess
 from ..state import ContextoHintGameStateInterface
 
@@ -51,10 +52,10 @@ class ContextoHintLogGameRenderer(
     ) -> Iterator[tuple[str, str]]:
         final_result: list[str] = state.final_result
         yield "Secret Word", final_result[0]
-        yield "Top 30 Words", ", ".join(final_result[:30])
+        yield "Top 30 Words", join_or_na(final_result[:30])
 
     def _format_choices(self, *, choices: list[str], is_first: bool) -> tuple[str, str]:
-        return f"Candidates for {'the First' if is_first else 'Next'} Round", "; ".join(
+        return f"Candidates for {'the First' if is_first else 'Next'} Round", join_or_na(
             f"{index}. {word}" for index, word in enumerate(choices)
         )
 

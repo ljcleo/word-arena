@@ -4,6 +4,7 @@ from typing import override
 from .....common.game.renderer.log import BaseLogGameRenderer
 from ...common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
 from ..state import ConexoGameStateInterface
+from .....utils import join_or_na
 
 
 class ConexoLogGameRenderer(
@@ -12,7 +13,7 @@ class ConexoLogGameRenderer(
     @override
     def format_game_info(self, *, state: ConexoGameStateInterface) -> Iterator[tuple[str, str]]:
         game_info: ConexoInfo = state.game_info
-        yield "Words", "; ".join(f"{index}. {word}" for index, word in enumerate(game_info.words))
+        yield "Words", join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words))
         yield "Group Size", str(game_info.group_size)
 
         yield (
@@ -26,7 +27,7 @@ class ConexoLogGameRenderer(
     ) -> Iterator[tuple[str, str]]:
         yield (
             "Selected Words",
-            ", ".join(
+            join_or_na(
                 self._format_guess_index(words=state.game_info.words, index=index)
                 for index in guess.indices
             ),
@@ -64,5 +65,5 @@ class ConexoLogGameRenderer(
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConexoWordGroup]) -> str:
-        result: str = "; ".join(f"{', '.join(group.words)} ({group.theme})" for group in groups)
+        result: str = "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)
         return "N/A" if result == "" else result

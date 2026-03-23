@@ -1,11 +1,13 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import (
     LetrosoFeedback,
     LetrosoFinalResult,
@@ -29,13 +31,17 @@ type LetrosoNoteStateInterface = AgentNoteStateInterface[
 
 type LetrosoGameRecord = GameRecord[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
 
-LETROSO_ROLE_DEF = """\
+
+class LetrosoLLMAgentEngine(
+    BaseLLMAgentEngine[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoNote]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI with a good English vocabulary.
 
 You are playing a game where you need to find one or more secret words.\
 """
 
-LETROSO_GAME_RULE = """\
+    GAME_RULE = """\
 All secret words are selected from a large vocabulary that covers most of the English words, \
 yet their lengths may vary.
 
@@ -78,27 +84,8 @@ therefore, you should try your best to minimize the number of guesses.
 Your guess should be a **single word with only lowercase letters within the length constraint**.\
 """
 
-
-class LetrosoLLMAgentEngine(
-    BaseLLMAgentEngine[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult, LetrosoNote]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[LetrosoGuess]:
-        return LetrosoGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[LetrosoNote]:
-        return LetrosoNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield LETROSO_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield LETROSO_GAME_RULE
+    NOTE_CLS = LetrosoNote
+    GUESS_CLS = LetrosoGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -122,48 +109,47 @@ class LetrosoLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: LetrosoGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
+        final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
+        game_info: LetrosoInfo = trajectory.game_info
+        yield "Number of Secret Words", str(game_info.num_targets)
+        yield "Maximum Number of Letters in One Guess", str(game_info.max_letters)
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+        )
 
     @override
     def prompt_guess(
-        self, *, game_state: LetrosoGameStateInterface, guess: LetrosoGuess
+        self,
+        *,
+        trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
+        turn_index: int,
+        guess: LetrosoGuess,
+        final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
+        yield "Guessed Word", guess.word
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: LetrosoGameStateInterface,
-        guess: LetrosoGuess,
-        feedback: LetrosoFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: LetrosoGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: LetrosoGameRecord, turn_index: int, guess: LetrosoGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: LetrosoGameRecord,
+        trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
         turn_index: int,
         guess: LetrosoGuess,
         feedback: LetrosoFeedback,
+        final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, LetrosoResponse):
+            yield "Validation Result", "Accept"
+            yield "Match Pattern", join_or_na(feedback.patterns)
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback.error
 
     @override
     def prompt_final_result(self, *, game_record: LetrosoGameRecord) -> Iterator[tuple[str, str]]:
@@ -176,33 +162,7 @@ class LetrosoLLMAgentEngine(
 
         yield (
             "Found Words",
-            self._format_found_words(
-                words=map(final_result.answers.__getitem__, final_result.found_indices)
-            ),
+            join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Words", "/".join(final_result.answers)
-
-    def _prompt_game_info(self, *, game_info: LetrosoInfo) -> Iterator[tuple[str, str]]:
-        yield "Number of Secret Words", str(game_info.num_targets)
-        yield "Maximum Number of Letters in One Guess", str(game_info.max_letters)
-
-        yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
-        )
-
-    def _prompt_guess(self, *, guess: LetrosoGuess) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
-
-    def _prompt_feedback(self, *, feedback: LetrosoFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, LetrosoResponse):
-            yield "Validation Result", "Accept"
-            yield "Match Pattern", "/".join(feedback.patterns)
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
-
-    def _format_found_words(self, *, words: Iterable[str]) -> str:
-        result: str = ", ".join(words)
-        return "N/A" if result == "" else result
+        yield "Secret Words", join_or_na(final_result.answers)

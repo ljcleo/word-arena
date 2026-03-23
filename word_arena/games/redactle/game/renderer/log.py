@@ -1,7 +1,8 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import (
     RedactleFeedback,
     RedactleFinalResult,
@@ -43,11 +44,8 @@ class RedactleLogGameRenderer(
 
             yield (
                 "Positions",
-                self._format_items(
-                    items=(
-                        f"L{line_index}:{word_index}"
-                        for line_index, word_index in feedback.positions
-                    )
+                join_or_na(
+                    f"L{line_index}:{word_index}" for line_index, word_index in feedback.positions
                 ),
             )
 
@@ -69,9 +67,9 @@ class RedactleLogGameRenderer(
             else "Failed",
         )
 
-        yield ("Found Words", self._format_items(items=final_result.found_words))
+        yield "Found Words", join_or_na(final_result.found_words)
         yield "Article Title", final_result.title
-        yield ("Title Words", self._format_items(items=final_result.title_words))
+        yield "Title Words", join_or_na(final_result.title_words)
         yield "Full Article", self._format_article(state=state, is_final=True)
 
     def _format_article(self, *, state: RedactleGameStateInterface, is_final: bool) -> str:
@@ -100,7 +98,3 @@ class RedactleLogGameRenderer(
             else "█" * len(word)
             for word, lemma in line
         )
-
-    def _format_items(self, *, items: Iterable[str]) -> str:
-        result: str = ", ".join(items)
-        return "N/A" if result == "" else result

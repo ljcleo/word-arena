@@ -2,6 +2,7 @@ from collections.abc import Iterable, Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 from ..state import StrandsGameStateInterface
 
@@ -48,8 +49,7 @@ class StrandsLogGameRenderer(
         else:
             word = "".join(buffer)
 
-        coords_str: str = " -> ".join(f"({x}, {y})" for x, y in guess.coords)
-        yield "Guessed Word", f"{word} [{coords_str}]"
+        yield "Guessed Word", self._format_word(word=word, coords=guess.coords)
 
     @override
     def format_last_feedback(
@@ -109,7 +109,7 @@ class StrandsLogGameRenderer(
             )
 
     def _format_words(self, *, infos: Iterable[tuple[str, list[tuple[int, int]]]]) -> str:
-        return "; ".join(self._format_word(word=word, coords=coords) for word, coords in infos)
+        return join_or_na(self._format_word(word=word, coords=coords) for word, coords in infos)
 
     def _format_word(self, *, word: str, coords: list[tuple[int, int]]) -> str:
         coords_str: str = " -> ".join(f"({x}, {y})" for x, y in coords)

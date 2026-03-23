@@ -3,9 +3,11 @@ from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
 
 
@@ -25,13 +27,16 @@ type ConexoNoteStateInterface = AgentNoteStateInterface[
 type ConexoGameRecord = GameRecord[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult]
 
 
-CONEXO_ROLE_DEF = """\
+class ConexoLLMAgentEngine(
+    BaseLLMAgentEngine[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoNote]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI good at understanding word relations.
 
 You are playing a game where you need to find the groups behind words.\
 """
 
-CONEXO_GAME_RULE = """\
+    GAME_RULE = """\
 The game holds several word groups of the same size; \
 each group has a common theme that shall cover all words in the group, \
 which can be lexical, semantic, conceptual, phrasal (can form phrases with the same word), \
@@ -54,27 +59,8 @@ therefore, you should try your best to minimize the number of guesses.
 Your guess should be the **indices of the guessed words**, NOT the words themselves.\
 """
 
-
-class ConexoLLMAgentEngine(
-    BaseLLMAgentEngine[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult, ConexoNote]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[ConexoGuess]:
-        return ConexoGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[ConexoNote]:
-        return ConexoNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield CONEXO_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield CONEXO_GAME_RULE
+    NOTE_CLS = ConexoNote
+    GUESS_CLS = ConexoGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -86,8 +72,8 @@ class ConexoLLMAgentEngine(
         example: range = range(game_state.game_info.group_size)
 
         yield (
-            f"For example, reply {', '.join(map(str, example))} if you choose "
-            f"{', '.join(game_state.game_info.words[index] for index in example)}."
+            f"For example, reply {join_or_na(map(str, example))} if you choose "
+            f"{join_or_na(game_state.game_info.words[index] for index in example)}."
         )
 
     @override
@@ -106,54 +92,18 @@ class ConexoLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: ConexoGameStateInterface
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
-
-    @override
-    def prompt_guess(
-        self, *, game_state: ConexoGameStateInterface, guess: ConexoGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_state.game_info, guess=guess)
-
-    @override
-    def prompt_feedback(
-        self, *, game_state: ConexoGameStateInterface, guess: ConexoGuess, feedback: ConexoFeedback
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(self, *, game_record: ConexoGameRecord) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: ConexoGameRecord, turn_index: int, guess: ConexoGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(game_info=game_record.trajectory.game_info, guess=guess)
-
-    @override
-    def prompt_feedback_final(
         self,
         *,
-        game_record: ConexoGameRecord,
-        turn_index: int,
-        guess: ConexoGuess,
-        feedback: ConexoFeedback,
+        trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback],
+        final_result: ConexoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        game_info: ConexoInfo = trajectory.game_info
 
-    @override
-    def prompt_final_result(self, *, game_record: ConexoGameRecord) -> Iterator[tuple[str, str]]:
-        final_result: ConexoFinalResult = game_record.final_result
-        yield "Game Result", "Victory" if len(final_result.remaining_groups) == 0 else "Failed"
-        yield "Found Groups", self._format_groups(groups=final_result.found_groups)
+        yield (
+            "Words",
+            join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words)),
+        )
 
-        if len(final_result.remaining_groups) > 0:
-            yield ("Groups Not Found", self._format_groups(groups=final_result.remaining_groups))
-
-    def _prompt_game_info(self, *, game_info: ConexoInfo) -> Iterator[tuple[str, str]]:
-        yield "Words", "; ".join(f"{index}. {word}" for index, word in enumerate(game_info.words))
         yield "Group Size", str(game_info.group_size)
 
         yield (
@@ -161,18 +111,36 @@ class ConexoLLMAgentEngine(
             "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
-    def _prompt_guess(
-        self, *, game_info: ConexoInfo, guess: ConexoGuess
+    @override
+    def prompt_guess(
+        self,
+        *,
+        trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback],
+        turn_index: int,
+        guess: ConexoGuess,
+        final_result: ConexoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        words: list[str] = trajectory.game_info.words
+
         yield (
             "Selected Words",
-            ", ".join(
-                self._format_guess_index(words=game_info.words, index=index)
+            join_or_na(
+                f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
             ),
         )
 
-    def _prompt_feedback(self, *, feedback: ConexoFeedback) -> Iterator[tuple[str, str]]:
+    @override
+    def prompt_feedback(
+        self,
+        *,
+        trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback],
+        turn_index: int,
+        guess: ConexoGuess,
+        feedback: ConexoFeedback,
+        final_result: ConexoFinalResult | None,
+    ) -> Iterator[tuple[str, str]]:
+
         message: str | None = feedback.message
 
         if feedback.accepted:
@@ -187,9 +155,14 @@ class ConexoLLMAgentEngine(
             yield "Validation Result", "Reject"
             yield "Reason", "N/A" if message is None else message
 
-    def _format_guess_index(self, *, words: list[str], index: int) -> str:
-        return f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
+    @override
+    def prompt_final_result(self, *, game_record: ConexoGameRecord) -> Iterator[tuple[str, str]]:
+        final_result: ConexoFinalResult = game_record.final_result
+        yield "Game Result", "Victory" if len(final_result.remaining_groups) == 0 else "Failed"
+        yield "Found Groups", self._format_groups(groups=final_result.found_groups)
+
+        if len(final_result.remaining_groups) > 0:
+            yield ("Groups Not Found", self._format_groups(groups=final_result.remaining_groups))
 
     def _format_groups(self, *, groups: Iterable[ConexoWordGroup]) -> str:
-        result: str = "; ".join(f"{', '.join(group.words)} ({group.theme})" for group in groups)
-        return "N/A" if result == "" else result
+        return "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)

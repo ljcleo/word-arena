@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
 from ..state import ContextoGameStateInterface
 
@@ -47,4 +48,4 @@ class ContextoLogGameRenderer(
             yield "Best Guess", f"{final_result.best_word} ({final_result.best_pos + 1})"
 
         yield "Secret Word", final_result.top_words[0]
-        yield "Top 30 Words", ", ".join(final_result.top_words[:30])
+        yield "Top 30 Words", join_or_na(final_result.top_words[:30])

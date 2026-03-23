@@ -1,11 +1,13 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleResponse
 
 
@@ -23,13 +25,17 @@ type WordleNoteStateInterface = AgentNoteStateInterface[
 
 type WordleGameRecord = GameRecord[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult]
 
-WORDLE_ROLE_DEF = """\
+
+class WordleLLMAgentEngine(
+    BaseLLMAgentEngine[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult, WordleNote]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI with a good English vocabulary.
 
 You are playing a game where you need to find one or more secret words.\
 """
 
-WORDLE_GAME_RULE = """\
+    GAME_RULE = """\
 All secret words have 5 letters, and are selected from a large vocabulary that \
 covers most of the 5-letter English words.
 
@@ -53,27 +59,8 @@ therefore, you should try your best to minimize the number of guesses.
 Your guess must be a **single word with 5 lowercase letters**.\
 """
 
-
-class WordleLLMAgentEngine(
-    BaseLLMAgentEngine[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult, WordleNote]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[WordleGuess]:
-        return WordleGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[WordleNote]:
-        return WordleNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield WORDLE_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield WORDLE_GAME_RULE
+    NOTE_CLS = WordleNote
+    GUESS_CLS = WordleGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -97,42 +84,46 @@ class WordleLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: WordleGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
+        final_result: WordleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
+        game_info: WordleInfo = trajectory.game_info
+        yield "Number of Secret Words", str(game_info.num_targets)
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+        )
 
     @override
     def prompt_guess(
-        self, *, game_state: WordleGameStateInterface, guess: WordleGuess
+        self,
+        *,
+        trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
+        turn_index: int,
+        guess: WordleGuess,
+        final_result: WordleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
+        yield "Guessed Word", guess.word
 
     @override
     def prompt_feedback(
-        self, *, game_state: WordleGameStateInterface, guess: WordleGuess, feedback: WordleFeedback
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(self, *, game_record: WordleGameRecord) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: WordleGameRecord, turn_index: int, guess: WordleGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
-
-    @override
-    def prompt_feedback_final(
         self,
         *,
-        game_record: WordleGameRecord,
+        trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
         turn_index: int,
         guess: WordleGuess,
         feedback: WordleFeedback,
+        final_result: WordleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, WordleResponse):
+            yield "Validation Result", "Accept"
+            yield "Match Pattern", join_or_na(feedback.patterns)
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback.error
 
     @override
     def prompt_final_result(self, *, game_record: WordleGameRecord) -> Iterator[tuple[str, str]]:
@@ -145,32 +136,7 @@ class WordleLLMAgentEngine(
 
         yield (
             "Found Words",
-            self._format_found_words(
-                words=map(final_result.answers.__getitem__, final_result.found_indices)
-            ),
+            join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Words", "/".join(final_result.answers)
-
-    def _prompt_game_info(self, *, game_info: WordleInfo) -> Iterator[tuple[str, str]]:
-        yield "Number of Secret Words", str(game_info.num_targets)
-
-        yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
-        )
-
-    def _prompt_guess(self, *, guess: WordleGuess) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
-
-    def _prompt_feedback(self, *, feedback: WordleFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, WordleResponse):
-            yield "Validation Result", "Accept"
-            yield "Match Pattern", "/".join(feedback.patterns)
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
-
-    def _format_found_words(self, *, words: Iterable[str]) -> str:
-        result: str = ", ".join(words)
-        return "N/A" if result == "" else result
+        yield "Secret Words", join_or_na(final_result.answers)

@@ -3,9 +3,11 @@ from typing import override
 
 from pydantic import BaseModel, Field
 
+from ......common.game.common import Trajectory
 from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
+from ......utils import join_or_na
 from ....common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
 
 
@@ -24,13 +26,17 @@ type ContextoNoteStateInterface = AgentNoteStateInterface[
 
 type ContextoGameRecord = GameRecord[int, ContextoGuess, ContextoFeedback, ContextoFinalResult]
 
-CONTEXTO_ROLE_DEF = """\
+
+class ContextoLLMAgentEngine(
+    BaseLLMAgentEngine[int, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoNote]
+):
+    ROLE_DEFINITION = """\
 You are an intelligent AI good at understanding word relations.
 
 You are playing a game where you need to find a secret word.\
 """
 
-CONTEXTO_GAME_RULE = """\
+    GAME_RULE = """\
 The game holds a word list with tens of thousands words, including the secret word, \
 sorted by the similarity to the secret word.
 
@@ -50,27 +56,8 @@ You should try your best to minimize the number of guesses; there may be a guess
 Your guess should be a **single word with only lowercase letters and no hyphens**.\
 """
 
-
-class ContextoLLMAgentEngine(
-    BaseLLMAgentEngine[int, ContextoGuess, ContextoFeedback, ContextoFinalResult, ContextoNote]
-):
-    @property
-    @override
-    def guess_cls(self) -> type[ContextoGuess]:
-        return ContextoGuess
-
-    @property
-    @override
-    def note_cls(self) -> type[ContextoNote]:
-        return ContextoNote
-
-    @override
-    def make_role_def_prompt(self) -> Iterator[str]:
-        yield CONTEXTO_ROLE_DEF
-
-    @override
-    def make_game_rule_prompt(self) -> Iterator[str]:
-        yield CONTEXTO_GAME_RULE
+    NOTE_CLS = ContextoNote
+    GUESS_CLS = ContextoGuess
 
     @override
     def make_note_detail_prompt(self) -> Iterator[str]:
@@ -96,48 +83,42 @@ class ContextoLLMAgentEngine(
 
     @override
     def prompt_game_info(
-        self, *, game_state: ContextoGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
+        final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_state.game_info)
+        game_info: int = trajectory.game_info
+        yield "Maximum Number of Guesses", "Unlimited" if game_info <= 0 else str(game_info)
 
     @override
     def prompt_guess(
-        self, *, game_state: ContextoGameStateInterface, guess: ContextoGuess
+        self,
+        *,
+        trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
+        turn_index: int,
+        guess: ContextoGuess,
+        final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
+        yield "Guessed Word", guess.word
 
     @override
     def prompt_feedback(
         self,
         *,
-        game_state: ContextoGameStateInterface,
-        guess: ContextoGuess,
-        feedback: ContextoFeedback,
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
-
-    @override
-    def prompt_game_info_final(
-        self, *, game_record: ContextoGameRecord
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_game_info(game_info=game_record.trajectory.game_info)
-
-    @override
-    def prompt_guess_final(
-        self, *, game_record: ContextoGameRecord, turn_index: int, guess: ContextoGuess
-    ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_guess(guess=guess)
-
-    @override
-    def prompt_feedback_final(
-        self,
-        *,
-        game_record: ContextoGameRecord,
+        trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
         turn_index: int,
         guess: ContextoGuess,
         feedback: ContextoFeedback,
+        final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield from self._prompt_feedback(feedback=feedback)
+        if isinstance(feedback, ContextoResponse):
+            yield "Validation Result", "Accept"
+            yield "Lemma Form", feedback.lemma
+            yield "Position", str(feedback.distance + 1)
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback.error
 
     @override
     def prompt_final_result(self, *, game_record: ContextoGameRecord) -> Iterator[tuple[str, str]]:
@@ -150,19 +131,4 @@ class ContextoLLMAgentEngine(
             yield "Best Guess", f"{final_result.best_word} ({final_result.best_pos + 1})"
 
         yield "Secret Word", final_result.top_words[0]
-        yield "Top 30 Words", ", ".join(final_result.top_words[:30])
-
-    def _prompt_game_info(self, *, game_info: int) -> Iterator[tuple[str, str]]:
-        yield "Maximum Number of Guesses", "Unlimited" if game_info <= 0 else str(game_info)
-
-    def _prompt_guess(self, *, guess: ContextoGuess) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
-
-    def _prompt_feedback(self, *, feedback: ContextoFeedback) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, ContextoResponse):
-            yield "Validation Result", "Accept"
-            yield "Lemma Form", feedback.lemma
-            yield "Position", str(feedback.distance + 1)
-        else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+        yield "Top 30 Words", join_or_na(final_result.top_words[:30])
