@@ -2,9 +2,9 @@ from collections.abc import Iterable, Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
 from ..state import ConexoGameStateInterface
-from .....utils import join_or_na
 
 
 class ConexoLogGameRenderer(
@@ -25,10 +25,12 @@ class ConexoLogGameRenderer(
     def format_guess(
         self, *, state: ConexoGameStateInterface, guess: ConexoGuess
     ) -> Iterator[tuple[str, str]]:
+        words: list[str] = state.game_info.words
+
         yield (
             "Selected Words",
             join_or_na(
-                self._format_guess_index(words=state.game_info.words, index=index)
+                f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
             ),
         )
@@ -58,10 +60,6 @@ class ConexoLogGameRenderer(
 
         if len(final_result.remaining_groups) > 0:
             yield ("Groups Not Found", self._format_groups(groups=final_result.remaining_groups))
-
-    @classmethod
-    def _format_guess_index(cls, *, words: list[str], index: int) -> str:
-        return f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConexoWordGroup]) -> str:

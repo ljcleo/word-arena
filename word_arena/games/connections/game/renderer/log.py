@@ -2,6 +2,7 @@ from collections.abc import Iterable, Iterator
 from typing import override
 
 from .....common.game.renderer.log import BaseLogGameRenderer
+from .....utils import join_or_na
 from ...common import (
     ConnectionsFeedback,
     ConnectionsFinalResult,
@@ -10,7 +11,6 @@ from ...common import (
     ConnectionsWordGroup,
 )
 from ..state import ConnectionsGameStateInterface
-from .....utils import join_or_na
 
 
 class ConnectionsLogGameRenderer(
@@ -35,10 +35,12 @@ class ConnectionsLogGameRenderer(
     def format_guess(
         self, *, state: ConnectionsGameStateInterface, guess: ConnectionsGuess
     ) -> Iterator[tuple[str, str]]:
+        words: list[str] = state.game_info.words
+
         yield (
             "Selected Words",
             join_or_na(
-                self._format_guess_index(words=state.game_info.words, index=index)
+                f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
             ),
         )
@@ -72,10 +74,6 @@ class ConnectionsLogGameRenderer(
 
         if len(final_result.remaining_groups) > 0:
             yield "Groups Not Found", self._format_groups(groups=final_result.remaining_groups)
-
-    @classmethod
-    def _format_guess_index(cls, *, words: list[str], index: int) -> str:
-        return f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConnectionsWordGroup]) -> str:

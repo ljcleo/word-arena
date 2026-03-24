@@ -25,10 +25,8 @@ class ContextoHintLogGameRenderer(
         )
 
         assert choices is not None
-        yield (
-            "Selected Word This Round",
-            self._format_guess_index(choices=choices, index=guess.index),
-        )
+        index: int = guess.index
+        yield "Selected Word", f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})"
 
     @override
     def format_last_feedback(
@@ -58,6 +56,3 @@ class ContextoHintLogGameRenderer(
         return f"Candidates for {'the First' if is_first else 'Next'} Round", join_or_na(
             f"{index}. {word}" for index, word in enumerate(choices)
         )
-
-    def _format_guess_index(self, *, choices: list[str], index: int) -> str:
-        return f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})"

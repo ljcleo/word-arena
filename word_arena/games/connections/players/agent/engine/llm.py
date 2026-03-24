@@ -136,10 +136,12 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         guess: ConnectionsGuess,
         final_result: ConnectionsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        words: list[str] = trajectory.game_info.words
+
         yield (
             "Selected Words",
             join_or_na(
-                self._format_guess_index(words=trajectory.game_info.words, index=index)
+                f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
             ),
         )
@@ -178,9 +180,6 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
 
         if len(final_result.remaining_groups) > 0:
             yield ("Groups Not Found", self._format_groups(groups=final_result.remaining_groups))
-
-    def _format_guess_index(self, *, words: list[str], index: int) -> str:
-        return f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
 
     def _format_groups(self, *, groups: Iterable[ConnectionsWordGroup]) -> str:
         return "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)
