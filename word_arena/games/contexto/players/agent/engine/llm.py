@@ -57,6 +57,11 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
 """
 
     NOTE_CLS = ContextoNote
+
+    NOTE_EXAMPLE = ContextoNote(
+        law="...", strategy="Follow these rules and strategies when guessing: ..."
+    )
+
     GUESS_CLS = ContextoGuess
 
     @override
@@ -70,12 +75,6 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you guessed very close or very far words."
-
-    @override
-    def get_note_example(self) -> ContextoNote:
-        return ContextoNote(
-            law="...", strategy="Follow these rules and strategies when guessing: ..."
-        )
 
     @override
     def get_guess_example(self, *, game_state: ContextoGameStateInterface) -> ContextoGuess:

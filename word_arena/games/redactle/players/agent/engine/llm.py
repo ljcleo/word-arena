@@ -69,6 +69,7 @@ Your guess must be a **single word (in any language) without any whitespace**.\
 """
 
     NOTE_CLS = RedactleNote
+    NOTE_EXAMPLE = RedactleNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = RedactleGuess
 
     @override
@@ -82,10 +83,6 @@ Your guess must be a **single word (in any language) without any whitespace**.\
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you had little information gain."
-
-    @override
-    def get_note_example(self) -> RedactleNote:
-        return RedactleNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: RedactleGameStateInterface) -> RedactleGuess:

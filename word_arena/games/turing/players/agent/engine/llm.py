@@ -72,6 +72,7 @@ Your guess should be a **3-digit code plus a list of verifier indices \
 """
 
     NOTE_CLS = TuringNote
+    NOTE_EXAMPLE = TuringNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = TuringGuess
 
     @override
@@ -85,10 +86,6 @@ Your guess should be a **3-digit code plus a list of verifier indices \
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you had little information gain."
-
-    @override
-    def get_note_example(self) -> TuringNote:
-        return TuringNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: TuringGameStateInterface) -> TuringGuess:

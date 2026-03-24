@@ -66,6 +66,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     ROLE_DEFINITION: str
     GAME_RULE: str
     NOTE_CLS: type[NT]
+    NOTE_EXAMPLE: NT
     GUESS_CLS: type[GT]
 
     def __init__(self, *, model: LLM, do_analyze: bool):
@@ -180,9 +181,6 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     def make_reflect_detail_prompt(self) -> Iterator[str]: ...
 
     @abstractmethod
-    def get_note_example(self) -> NT: ...
-
-    @abstractmethod
     def get_guess_example(self, *, game_state: AgentGameStateInterface[IT, GT, FT, RT]) -> GT: ...
 
     @abstractmethod
@@ -229,7 +227,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
     def _make_note_format_prompt(self) -> Iterator[str]:
         yield from self.make_note_detail_prompt()
         yield "Make your response clear and concise."
-        yield make_json_prompt(example=self.get_note_example())
+        yield make_json_prompt(example=self.NOTE_EXAMPLE)
 
     def _make_guess_system_instruction(
         self, *, note_state: AgentNoteStateInterface[IT, GT, FT, RT, NT]

@@ -60,6 +60,7 @@ Your guess must be a **single word with 5 lowercase letters**.\
 """
 
     NOTE_CLS = WordleNote
+    NOTE_EXAMPLE = WordleNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = WordleGuess
 
     @override
@@ -73,10 +74,6 @@ Your guess must be a **single word with 5 lowercase letters**.\
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you had little information gain."
-
-    @override
-    def get_note_example(self) -> WordleNote:
-        return WordleNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: WordleGameStateInterface) -> WordleGuess:

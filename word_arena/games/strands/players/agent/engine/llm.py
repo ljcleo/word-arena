@@ -70,6 +70,7 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
 """
 
     NOTE_CLS = StrandsNote
+    NOTE_EXAMPLE = StrandsNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = StrandsGuess
 
     @override
@@ -83,10 +84,6 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you successfully found a theme word or spangram."
-
-    @override
-    def get_note_example(self) -> StrandsNote:
-        return StrandsNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: StrandsGameStateInterface) -> StrandsGuess:

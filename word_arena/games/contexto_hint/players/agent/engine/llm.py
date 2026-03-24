@@ -63,6 +63,11 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
 """
 
     NOTE_CLS = ContextoHintNote
+
+    NOTE_EXAMPLE = ContextoHintNote(
+        law="...", strategy="Follow these rules and strategies when guessing: ..."
+    )
+
     GUESS_CLS = ContextoHintGuess
 
     @override
@@ -88,12 +93,6 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         yield (
             "Pay attention to the rounds where you failed to choose the word "
             "with the closest position among the candidates."
-        )
-
-    @override
-    def get_note_example(self) -> ContextoHintNote:
-        return ContextoHintNote(
-            law="...", strategy="Follow these rules and strategies when guessing: ..."
         )
 
     @override

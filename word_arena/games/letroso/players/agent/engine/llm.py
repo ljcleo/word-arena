@@ -85,6 +85,7 @@ Your guess should be a **single word with only lowercase letters within the leng
 """
 
     NOTE_CLS = LetrosoNote
+    NOTE_EXAMPLE = LetrosoNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = LetrosoGuess
 
     @override
@@ -98,10 +99,6 @@ Your guess should be a **single word with only lowercase letters within the leng
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you had little information gain."
-
-    @override
-    def get_note_example(self) -> LetrosoNote:
-        return LetrosoNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: LetrosoGameStateInterface) -> LetrosoGuess:

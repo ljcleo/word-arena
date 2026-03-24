@@ -74,6 +74,7 @@ Your guess should be a \
 """
 
     NOTE_CLS = NumberleNote
+    NOTE_EXAMPLE = NumberleNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = NumberleGuess
 
     @override
@@ -87,10 +88,6 @@ Your guess should be a \
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you had little information gain."
-
-    @override
-    def get_note_example(self) -> NumberleNote:
-        return NumberleNote(strategy="Follow these strategies when guessing: ...")
 
     @override
     def get_guess_example(self, *, game_state: NumberleGameStateInterface) -> NumberleGuess:

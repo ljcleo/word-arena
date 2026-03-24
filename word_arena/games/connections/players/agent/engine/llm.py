@@ -74,6 +74,11 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
 """
 
     NOTE_CLS = ConnectionsNote
+
+    NOTE_EXAMPLE = ConnectionsNote(
+        law="...", strategy="Follow these rules and strategies when guessing: ..."
+    )
+
     GUESS_CLS = ConnectionsGuess
 
     @override
@@ -95,12 +100,6 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
     @override
     def make_reflect_detail_prompt(self) -> Iterator[str]:
         yield "Pay attention to the rounds where you successfully found a group."
-
-    @override
-    def get_note_example(self) -> ConnectionsNote:
-        return ConnectionsNote(
-            law="...", strategy="Follow these rules and strategies when guessing: ..."
-        )
 
     @override
     def get_guess_example(self, *, game_state: ConnectionsGameStateInterface) -> ConnectionsGuess:
