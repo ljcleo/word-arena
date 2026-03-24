@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 
+from ..state import ManualGameStateInterface
 
-class BaseManualReader[GT](ABC):
+
+class BaseManualReader[IT, GT, FT](ABC):
     @abstractmethod
-    def read_guess(self, *, turn_id: int) -> GT: ...
+    def read_guess(self, *, game_state: ManualGameStateInterface[IT, GT, FT]) -> GT: ...

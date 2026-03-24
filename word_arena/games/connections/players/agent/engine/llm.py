@@ -131,7 +131,7 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         self,
         *,
         trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ConnectionsGuess,
         final_result: ConnectionsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -150,7 +150,7 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         self,
         *,
         trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ConnectionsGuess,
         feedback: ConnectionsFeedback,
         final_result: ConnectionsFinalResult | None,
@@ -178,7 +178,7 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         yield "Found Groups", self._format_groups(groups=final_result.found_groups)
 
         if len(final_result.remaining_groups) > 0:
-            yield ("Groups Not Found", self._format_groups(groups=final_result.remaining_groups))
+            yield "Groups Not Found", self._format_groups(groups=final_result.remaining_groups)
 
     def _format_groups(self, *, groups: Iterable[ConnectionsWordGroup]) -> str:
-        return "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)
+        return join_or_na(f"{'/'.join(group.words)} ({group.theme})" for group in groups)

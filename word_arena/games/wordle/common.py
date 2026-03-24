@@ -20,11 +20,7 @@ class WordleResponse(BaseModel):
     patterns: list[str]
 
 
-class WordleError(BaseModel):
-    error: str
-
-
-type WordleFeedback = WordleResponse | WordleError
+type WordleFeedback = WordleResponse | bool
 
 
 class WordleFinalResult(BaseModel):

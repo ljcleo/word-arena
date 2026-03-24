@@ -1,16 +1,13 @@
 from importlib import import_module
-from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from common import log, make_cls_prefix
+from common import LLM_CONFIG_PATH, log, make_cls_prefix
 from pydantic import BaseModel
 
 from word_arena.common.llm.engine.base import BaseLLMEngine
 from word_arena.common.llm.llm import LLM
 from word_arena.common.llm.renderer.log import LogLLMRenderer
-
-LLM_CONFIG_PATH: Path = Path("./config/llms")
 
 
 class LLMConfig(BaseModel):

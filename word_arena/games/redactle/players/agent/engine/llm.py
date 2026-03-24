@@ -116,7 +116,7 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         self,
         *,
         trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: RedactleGuess,
         final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -127,7 +127,7 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         self,
         *,
         trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: RedactleGuess,
         feedback: RedactleFeedback,
         final_result: RedactleFinalResult | None,
@@ -144,7 +144,7 @@ Your guess must be a **single word (in any language) without any whitespace**.\
             )
         else:
             yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+            yield "Reason", "word too common" if feedback else "invalid guess"
 
     @override
     def prompt_final_result(self, *, game_record: RedactleGameRecord) -> Iterator[tuple[str, str]]:

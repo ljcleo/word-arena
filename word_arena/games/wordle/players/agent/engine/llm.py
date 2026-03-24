@@ -99,7 +99,7 @@ Your guess must be a **single word with 5 lowercase letters**.\
         self,
         *,
         trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: WordleGuess,
         final_result: WordleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -110,7 +110,7 @@ Your guess must be a **single word with 5 lowercase letters**.\
         self,
         *,
         trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: WordleGuess,
         feedback: WordleFeedback,
         final_result: WordleFinalResult | None,
@@ -120,7 +120,7 @@ Your guess must be a **single word with 5 lowercase letters**.\
             yield "Match Pattern", join_or_na(feedback.patterns)
         else:
             yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+            yield "Reason", "unknown word" if feedback else "invalid guess"
 
     @override
     def prompt_final_result(self, *, game_record: WordleGameRecord) -> Iterator[tuple[str, str]]:

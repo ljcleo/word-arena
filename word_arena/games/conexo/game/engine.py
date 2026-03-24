@@ -56,9 +56,8 @@ class ConexoGameEngine(
     @override
     def process_guess(self, *, guess: ConexoGuess):
         indices: set[int] = set(guess.indices)
-
         if not (len(indices) == self._group_size and indices.issubset(self._remaining_indices)):
-            return ConexoFeedback(accepted=False, message="Invalid guess")
+            return ConexoFeedback(accepted=False, message=None)
 
         for theme, theme_indices in self._groups.items():
             if theme_indices == indices:

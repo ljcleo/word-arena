@@ -95,7 +95,7 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         self,
         *,
         trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ContextoGuess,
         final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -106,7 +106,7 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         self,
         *,
         trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ContextoGuess,
         feedback: ContextoFeedback,
         final_result: ContextoFinalResult | None,
@@ -117,7 +117,13 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
             yield "Position", str(feedback.distance + 1)
         else:
             yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+
+            yield (
+                "Reason",
+                "guess should only contain lowercase letters"
+                if feedback.error is None
+                else feedback.error,
+            )
 
     @override
     def prompt_final_result(self, *, game_record: ContextoGameRecord) -> Iterator[tuple[str, str]]:

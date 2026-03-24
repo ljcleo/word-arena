@@ -110,7 +110,7 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         self,
         *,
         trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: StrandsGuess,
         final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -145,7 +145,7 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         self,
         *,
         trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: StrandsGuess,
         feedback: StrandsFeedback,
         final_result: StrandsFinalResult | None,

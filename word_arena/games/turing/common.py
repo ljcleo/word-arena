@@ -1,3 +1,4 @@
+from enum import StrEnum, auto, unique
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -21,7 +22,14 @@ class TuringGuess(BaseModel):
     verifiers: list[int]
 
 
-type TuringFeedback = list[bool] | bool | str
+@unique
+class TuringError(StrEnum):
+    INVALID_CODE = auto()
+    TOO_MANY_VERIFIERS = auto()
+    INVALID_VERIFIER = auto()
+
+
+type TuringFeedback = list[bool] | bool | TuringError
 
 
 class TuringFinalResult(BaseModel):

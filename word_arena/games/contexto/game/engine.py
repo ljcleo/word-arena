@@ -38,7 +38,7 @@ class ContextoGameEngine(
     def process_guess(self, *, guess: ContextoGuess) -> ContextoFeedback:
         word: str = guess.word
         if not (word.isalpha() and word.islower()):
-            return ContextoError(error="Your guess should only contain lowercase letters")
+            return ContextoError(error=None)
 
         return self._fetch_feedback(word=word)
 

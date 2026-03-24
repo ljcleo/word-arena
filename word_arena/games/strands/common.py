@@ -1,3 +1,4 @@
+from enum import unique, auto, StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -27,7 +28,16 @@ class StrandsGuess(BaseModel):
     ]
 
 
-type StrandsFeedback = str | int
+@unique
+class StrandsError(StrEnum):
+    EMPTY = auto()
+    OUT_OF_BOUNDS = auto()
+    NOT_CONTINUOUS = auto()
+    OVERLAP = auto()
+    USED = auto()
+
+
+type StrandsFeedback = int | StrandsError
 
 
 class StrandsFinalResult(BaseModel):

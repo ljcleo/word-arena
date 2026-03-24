@@ -4,7 +4,14 @@ from pydantic import BaseModel
 
 from ....common.game.engine.base import BaseGameEngine
 from ....utils import get_db_cursor
-from ..common import StrandsConfig, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
+from ..common import (
+    StrandsConfig,
+    StrandsFeedback,
+    StrandsFinalResult,
+    StrandsGuess,
+    StrandsInfo,
+    StrandsError,
+)
 from .state import StrandsGameStateInterface
 
 
@@ -69,7 +76,7 @@ class StrandsGameEngine(
         coords: list[tuple[int, int]] = guess.coords
 
         if len(coords) == 0:
-            return "Empty guess"
+            return StrandsError.EMPTY
 
         coords_pos: list[int] = [x * 6 + y for x, y in coords]
 
@@ -80,18 +87,18 @@ class StrandsGameEngine(
 
         for x, y in coords:
             if not (0 <= x < 8 and 0 <= y < 6):
-                return "Path out of bounds"
+                return StrandsError.OUT_OF_BOUNDS
 
         for diff in coords_diff:
             if diff not in self._DIR_MAP:
-                return "Path not continuous"
+                return StrandsError.NOT_CONTINUOUS
 
         if len(set(coords)) != len(coords):
-            return "Path overlapping with itself"
+            return StrandsError.OVERLAP
 
         for pos in coords_pos:
             if self._visited[pos]:
-                return "Path contains used cells"
+                return StrandsError.USED
 
         start_match: bool = self._is_start[coords_pos[0]]
         code: int = 0

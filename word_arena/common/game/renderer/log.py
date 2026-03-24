@@ -6,9 +6,14 @@ from ..state import GameStateInterface
 from .base import BaseGameRenderer
 
 
-class BaseLogGameRenderer[IT, GT, FT, RT](BaseGameRenderer[IT, GT, FT, RT], ABC):
-    def __init__(self, *, game_log_func: Callable[[str, str], None]) -> None:
+class BaseLogGameRenderer[PT, IT, GT, FT, RT](BaseGameRenderer[IT, GT, FT, RT], ABC):
+    def __init__(self, *, game_log_func: Callable[[str, str], None], prompt_config: PT) -> None:
         self._game_log_func: Callable[[str, str], None] = game_log_func
+        self._prompt_config: PT = prompt_config
+
+    @property
+    def prompt_config(self) -> PT:
+        return self._prompt_config
 
     @override
     def render_game_info(self, *, state: GameStateInterface[IT, GT, FT, RT]) -> None:

@@ -67,7 +67,7 @@ class ConnectionsGameEngine(
         indices: set[int] = set(guess.indices)
 
         if not (len(indices) == self._group_size and indices.issubset(self._remaining_indices)):
-            return ConnectionsFeedback(accepted=False, message="Invalid guess")
+            return ConnectionsFeedback(accepted=False, message=None)
 
         for theme, theme_indices in self._groups.items():
             if theme_indices == indices:

@@ -1,24 +1,62 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel
+
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
-from ...common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
+from ...common import StrandsError, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 from ..state import StrandsGameStateInterface
 
 
+class StrandsInfoPromptConfig(BaseModel):
+    board: str
+    clue: str
+    max_turns: str
+    unlimited: str
+
+
+class StrandsFeedbackPromptConfig(BaseModel):
+    result: str
+    accept: str
+    guess_result: str
+    guess_verdicts: tuple[str, str, str]
+    reject: str
+    reject_reason: str
+    reject_messages: dict[StrandsError, str]
+
+
+class StrandsFinalResultPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_spangram: str
+    found_theme_words: str
+    missed_spangram: str
+    missed_theme_words: str
+
+
+class StrandsLogPromptConfig(BaseModel):
+    game_info: StrandsInfoPromptConfig
+    guess: str
+    feedback: StrandsFeedbackPromptConfig
+    final_result: StrandsFinalResultPromptConfig
+
+
 class StrandsLogGameRenderer(
-    BaseLogGameRenderer[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
+    BaseLogGameRenderer[
+        StrandsLogPromptConfig, StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult
+    ]
 ):
     @override
     def format_game_info(self, *, state: StrandsGameStateInterface) -> Iterator[tuple[str, str]]:
         game_info: StrandsInfo = state.game_info
-        yield "Board", "\n".join(game_info.board)
-        yield "Clue", game_info.clue
+        prompt: StrandsInfoPromptConfig = self.prompt_config.game_info
+        yield prompt.board, "\n".join(game_info.board)
+        yield prompt.clue, game_info.clue
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -49,28 +87,30 @@ class StrandsLogGameRenderer(
         else:
             word = "".join(buffer)
 
-        yield "Guessed Word", self._format_word(word=word, coords=guess.coords)
+        yield self.prompt_config.guess, self._format_word(word=word, coords=guess.coords)
 
     @override
     def format_last_feedback(
         self, *, state: StrandsGameStateInterface
     ) -> Iterator[tuple[str, str]]:
         feedback: StrandsFeedback = state.turns[-1].feedback
+        prompt: StrandsFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, int):
-            yield "Validation Result", "Accept"
-            yield "Guess Result", ("Missed", "Theme Word", "Spangram")[feedback]
+            yield prompt.result, prompt.accept
+            yield prompt.guess_result, prompt.guess_verdicts[feedback]
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def format_final_result(self, *, state: StrandsGameStateInterface) -> Iterator[tuple[str, str]]:
         final_result: StrandsFinalResult = state.final_result
+        prompt: StrandsFinalResultPromptConfig = self.prompt_config.final_result
 
         yield (
-            "Game Result",
-            "Victory" if len(final_result.found_indices) == len(final_result.answers) else "Failed",
+            prompt.result,
+            prompt.verdicts[len(final_result.found_indices) == len(final_result.answers)],
         )
 
         spangram_str: str = self._format_words(infos=final_result.answers[:1])
@@ -87,22 +127,22 @@ class StrandsLogGameRenderer(
         ]
 
         if spangram_found:
-            yield "Found Spangram", spangram_str
+            yield prompt.found_spangram, spangram_str
 
         if len(found_theme_indices) > 0:
             yield (
-                "Found Theme Words",
+                prompt.found_theme_words,
                 self._format_words(
                     infos=map(final_result.answers.__getitem__, found_theme_indices)
                 ),
             )
 
         if not spangram_found:
-            yield "Spangram Not Found", spangram_str
+            yield prompt.missed_spangram, spangram_str
 
         if len(missed_theme_indices) > 0:
             yield (
-                "Theme Words Not Found",
+                prompt.missed_theme_words,
                 self._format_words(
                     infos=map(final_result.answers.__getitem__, missed_theme_indices)
                 ),

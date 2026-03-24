@@ -5,7 +5,6 @@ from typing import override
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
     NumberleConfig,
-    NumberleError,
     NumberleFeedback,
     NumberleFinalResult,
     NumberleGuess,
@@ -45,9 +44,8 @@ class NumberleGameEngine(
     @override
     def process_guess(self, *, guess: NumberleGuess) -> NumberleFeedback:
         eq: str = guess.equation
-
         if not (len(eq) == self._eq_length and self._validate_eq(eq=eq)):
-            return NumberleError(error="Invalid guess")
+            return None
 
         patterns: list[str] = []
 

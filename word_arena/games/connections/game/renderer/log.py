@@ -1,6 +1,8 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
+from pydantic import BaseModel
+
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import (
@@ -13,9 +15,43 @@ from ...common import (
 from ..state import ConnectionsGameStateInterface
 
 
+class ConnectionsInfoPromptConfig(BaseModel):
+    words: str
+    group_size: str
+    max_turns: str
+    unlimited: str
+
+
+class ConnectionsFeedbackPromptConfig(BaseModel):
+    result: str
+    accept: str
+    theme: str
+    reject: str
+    reject_reason: str
+    invalid_guess: str
+
+
+class ConnectionsFinalResultPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_groups: str
+    remaining_groups: str
+
+
+class ConnectionsLogPromptConfig(BaseModel):
+    game_info: ConnectionsInfoPromptConfig
+    guess: str
+    feedback: ConnectionsFeedbackPromptConfig
+    final_result: ConnectionsFinalResultPromptConfig
+
+
 class ConnectionsLogGameRenderer(
     BaseLogGameRenderer[
-        ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback, ConnectionsFinalResult
+        ConnectionsLogPromptConfig,
+        ConnectionsInfo,
+        ConnectionsGuess,
+        ConnectionsFeedback,
+        ConnectionsFinalResult,
     ]
 ):
     @override
@@ -23,12 +59,18 @@ class ConnectionsLogGameRenderer(
         self, *, state: ConnectionsGameStateInterface
     ) -> Iterator[tuple[str, str]]:
         game_info: ConnectionsInfo = state.game_info
-        yield "Words", join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words))
-        yield "Group Size", str(game_info.group_size)
+        prompt: ConnectionsInfoPromptConfig = self.prompt_config.game_info
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.words,
+            join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words)),
+        )
+
+        yield prompt.group_size, str(game_info.group_size)
+
+        yield (
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -38,7 +80,7 @@ class ConnectionsLogGameRenderer(
         words: list[str] = state.game_info.words
 
         yield (
-            "Selected Words",
+            self.prompt_config.guess,
             join_or_na(
                 f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
@@ -50,32 +92,31 @@ class ConnectionsLogGameRenderer(
         self, *, state: ConnectionsGameStateInterface
     ) -> Iterator[tuple[str, str]]:
         feedback: ConnectionsFeedback = state.turns[-1].feedback
-        message: str | None = feedback.message
+        prompt: ConnectionsFeedbackPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
-            yield "Validation Result", "Accept"
-
-            if message is None:
-                yield "Is Same Group", "No"
-            else:
-                yield "Is Same Group", "Yes"
-                yield "Theme", message
+            yield prompt.result, prompt.accept
+            yield prompt.theme, "N/A" if feedback.message is None else feedback.message
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", "N/A" if message is None else message
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.invalid_guess
 
     @override
     def format_final_result(
         self, *, state: ConnectionsGameStateInterface
     ) -> Iterator[tuple[str, str]]:
         final_result: ConnectionsFinalResult = state.final_result
-        yield "Game Result", "Victory" if len(final_result.remaining_groups) == 0 else "Failed"
-        yield "Found Groups", self._format_groups(groups=final_result.found_groups)
+        victory: bool = len(final_result.remaining_groups) == 0
+        prompt: ConnectionsFinalResultPromptConfig = self.prompt_config.final_result
+        yield prompt.result, prompt.verdicts[victory]
+        yield prompt.found_groups, self._format_groups(groups=final_result.found_groups)
 
-        if len(final_result.remaining_groups) > 0:
-            yield "Groups Not Found", self._format_groups(groups=final_result.remaining_groups)
+        if not victory:
+            yield (
+                prompt.remaining_groups,
+                self._format_groups(groups=final_result.remaining_groups),
+            )
 
     @classmethod
     def _format_groups(cls, *, groups: Iterable[ConnectionsWordGroup]) -> str:
-        result: str = "; ".join(f"{join_or_na(group.words)} ({group.theme})" for group in groups)
-        return "N/A" if result == "" else result
+        return join_or_na(f"{'/'.join(group.words)} ({group.theme})" for group in groups)

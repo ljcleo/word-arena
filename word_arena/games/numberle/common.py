@@ -24,11 +24,7 @@ class NumberleResponse(BaseModel):
     patterns: list[str]
 
 
-class NumberleError(BaseModel):
-    error: str
-
-
-type NumberleFeedback = NumberleResponse | NumberleError
+type NumberleFeedback = NumberleResponse | None
 
 
 class NumberleFinalResult(BaseModel):

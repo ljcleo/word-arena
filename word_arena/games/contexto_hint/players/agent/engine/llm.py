@@ -122,14 +122,14 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         self,
         *,
         trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ContextoHintGuess,
         final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
         choices: list[str] | None = (
             trajectory.game_info
-            if turn_index == 0
-            else trajectory.turns[turn_index - 1].feedback.next_choices
+            if turn_id == 0
+            else trajectory.turns[turn_id - 1].feedback.next_choices
         )
 
         assert choices is not None
@@ -141,7 +141,7 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         self,
         *,
         trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: ContextoHintGuess,
         feedback: ContextoHintFeedback,
         final_result: list[str] | None,

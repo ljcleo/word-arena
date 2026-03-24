@@ -1,0 +1,49 @@
+{
+    "log_prompt": {
+        "game_info": {
+            "verifier": "Verifier {verifier_id}",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "final_guess": "Final Guess",
+            "verifying_guess": "Verifying Guess",
+            "verifiers": "Verifiers"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "verification_result": "Verification Result",
+            "verification_verdicts": [
+                "no",
+                "yes"
+            ],
+            "final_guess_result": "Final Guess Result",
+            "final_guess_verdicts": [
+                "wrong",
+                "right"
+            ],
+            "reject": "Reject",
+            "reject_reason": "Reason",
+            "reject_messages": {
+                "invalid_code": "invalid code guess",
+                "too_many_verifiers": "too many verifiers",
+                "invalid_verifier": "Invalid verifier index"
+            }
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "num_questions": "Asked Questions",
+            "has_final_guess": "Made Final Guess",
+            "final_guess_status": [
+                "no",
+                "yes"
+            ],
+            "answer": "Secret Code"
+        }
+    }
+}

@@ -26,11 +26,7 @@ class RedactleResponse(BaseModel):
     positions: list[tuple[int, int]]
 
 
-class RedactleError(BaseModel):
-    error: str
-
-
-type RedactleFeedback = RedactleResponse | RedactleError
+type RedactleFeedback = RedactleResponse | bool
 
 
 class RedactleFinalResult(BaseModel):

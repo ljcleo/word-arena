@@ -1,9 +1,8 @@
-from build_gym import GAME_CONFIG_PATH
-from build_llm import LLM_CONFIG_PATH
+from common import GAME_CONFIG_PATH, LLM_CONFIG_PATH
 
 
 def input_game_key() -> str:
-    games: list[str] = sorted(p.stem for p in GAME_CONFIG_PATH.glob("*.json"))
+    games: list[str] = sorted(p.stem for p in GAME_CONFIG_PATH.iterdir())
     for index, game in enumerate(games):
         print(f"{index}. {game}")
 
@@ -11,7 +10,7 @@ def input_game_key() -> str:
 
 
 def input_llm_key() -> str:
-    llms: list[str] = sorted(p.stem for p in LLM_CONFIG_PATH.glob("*.json"))
+    llms: list[str] = sorted(p.stem for p in LLM_CONFIG_PATH.iterdir())
     for index, llm in enumerate(llms):
         print(f"{index}. {llm}")
 

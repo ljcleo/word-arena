@@ -4,12 +4,10 @@ from typing import override
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
     LetrosoConfig,
-    LetrosoError,
     LetrosoFeedback,
     LetrosoFinalResult,
     LetrosoGuess,
     LetrosoInfo,
-    LetrosoResponse,
 )
 from .state import LetrosoGameStateInterface
 
@@ -44,9 +42,9 @@ class LetrosoGameEngine(
         word: str = guess.word
 
         if not (1 <= len(word) <= self._max_letters and word.isalpha() and word.islower()):
-            return LetrosoError(error="Invalid guess")
+            return False
         elif word not in self._word_bank:
-            return LetrosoError(error="Unknown word")
+            return True
 
         patterns: list[str] = []
 
@@ -55,7 +53,7 @@ class LetrosoGameEngine(
             if word == answer:
                 self._found_indices.add(index)
 
-        return LetrosoResponse(patterns=patterns)
+        return patterns
 
     @override
     def get_final_result(self) -> LetrosoFinalResult:

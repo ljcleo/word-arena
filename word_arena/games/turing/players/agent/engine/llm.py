@@ -113,7 +113,7 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         self,
         *,
         trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: TuringGuess,
         final_result: TuringFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -128,7 +128,7 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         self,
         *,
         trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: TuringGuess,
         feedback: TuringFeedback,
         final_result: TuringFinalResult | None,

@@ -1,0 +1,8 @@
+{
+    "input_prompt": {
+        "code": "Input code for guess {turn_id}: ",
+        "verify": "Is guess {turn_id} a verifying guess? (y/n): ",
+        "verifier": "Input verifier {verifier_id} ID for guess {turn_id}: ",
+        "add": "Append new verifier for guess {turn_id}? (y/n): "
+    }
+}

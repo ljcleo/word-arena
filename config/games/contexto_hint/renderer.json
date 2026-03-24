@@ -1,0 +1,18 @@
+{
+    "log_prompt": {
+        "choices": "Choices for Guess {turn_id}",
+        "guess": "Selected Word",
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "position": "Position",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "invalid_guess": "invalid guess"
+        },
+        "final_result": {
+            "secret_word": "Secret Word",
+            "top_words": "Top 30 Words"
+        }
+    }
+}

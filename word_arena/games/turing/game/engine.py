@@ -3,7 +3,14 @@ from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
 from ....utils import get_db_cursor
-from ..common import TuringConfig, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
+from ..common import (
+    TuringConfig,
+    TuringError,
+    TuringFeedback,
+    TuringFinalResult,
+    TuringGuess,
+    TuringInfo,
+)
 from .state import TuringGameStateInterface
 
 
@@ -59,18 +66,18 @@ class TuringGameEngine(
         verifiers: list[int] = guess.verifiers
 
         if code < 111 or code > 555:
-            return "Invalid code guess"
+            return TuringError.INVALID_CODE
 
         x: int = code // 100
         y: int = code // 10 % 10
         z: int = code % 10
 
         if x < 1 or x > 5 or y < 1 or y > 5 or z < 1 or z > 5:
-            return "Invalid code guess"
+            return TuringError.INVALID_CODE
         if len(verifiers) > 3:
-            return "Too many verifiers"
+            return TuringError.TOO_MANY_VERIFIERS
         if any(i < 0 or i >= len(self._verifiers) for i in verifiers):
-            return "Invalid verifier index"
+            return TuringError.INVALID_VERIFIER
 
         if len(verifiers) == 0:
             self._final_verdict = code == self._answer

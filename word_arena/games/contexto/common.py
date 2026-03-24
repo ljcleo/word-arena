@@ -18,7 +18,7 @@ class ContextoResponse(BaseModel):
 
 
 class ContextoError(BaseModel):
-    error: str
+    error: str | None
 
 
 type ContextoFeedback = ContextoResponse | ContextoError

@@ -1,32 +1,49 @@
 from collections.abc import Callable
 from typing import override
 
+from pydantic import BaseModel
+
 from ......players.manual.reader.input import BaseInputManualReader
-from ....common import TuringGuess
+from ......players.manual.state import ManualGameStateInterface
+from ....common import TuringFeedback, TuringGuess, TuringInfo
+
+type TuringGameStateInterface = ManualGameStateInterface[TuringInfo, TuringGuess, TuringFeedback]
 
 
-class TuringInputManualReader(BaseInputManualReader[TuringGuess]):
+class TuringInputPromptConfig(BaseModel):
+    code: str
+    verify: str
+    verifier: str
+    add: str
+
+
+class TuringInputManualReader(
+    BaseInputManualReader[TuringInputPromptConfig, TuringInfo, TuringGuess, TuringFeedback]
+):
     @override
-    def input_guess(self, *, turn_id: int, input_func: Callable[[str], str]) -> TuringGuess:
-        code_str: str
-        verifiers_str: str
+    def input_guess(
+        self, *, game_state: TuringGameStateInterface, input_func: Callable[[str], str]
+    ) -> TuringGuess:
+        turn_id: int = len(game_state.turns) + 1
+        code_str: str = input_func(self.prompt_config.code.format(turn_id=turn_id))
+        code: int = int(code_str) if code_str.isdigit() else -1
+        verifiers: list[int] = []
 
-        code_str, _, verifiers_str = tuple(
-            s.strip()
-            for s in input_func(
-                f"Input code for guess {turn_id + 1}; "
-                "to verify, further input `;` and the verifier indices (separated by commas): "
-            )
-            .strip()
-            .partition(";")
-        )
+        if input_func(self.prompt_config.verify.format(turn_id=turn_id)).strip().lower()[0] == "y":
+            for i in range(3):
+                guess: str = input_func(
+                    self.prompt_config.verifier.format(turn_id=turn_id, verifier_id=i + 1)
+                )
 
-        return TuringGuess(
-            code=int(code_str) if code_str.isdigit() else -1,
-            verifiers=[]
-            if verifiers_str == ""
-            else [
-                int(verifier_str) if verifier_str.isdigit() else -1
-                for verifier_str in verifiers_str.split(",")
-            ],
-        )
+                verifiers.append(int(guess) if guess.isdigit() else -1)
+
+                if (
+                    i < 2
+                    and input_func(self.prompt_config.add.format(turn_id=turn_id))
+                    .strip()
+                    .lower()[0]
+                    != "y"
+                ):
+                    break
+
+        return TuringGuess(code=code, verifiers=verifiers)

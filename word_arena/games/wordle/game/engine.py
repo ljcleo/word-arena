@@ -4,7 +4,6 @@ from typing import override
 from ....common.game.engine.base import BaseGameEngine
 from ..common import (
     WordleConfig,
-    WordleError,
     WordleFeedback,
     WordleFinalResult,
     WordleGuess,
@@ -42,9 +41,9 @@ class WordleGameEngine(
         word: str = guess.word
 
         if not (len(word) == self._num_letters and word.isalpha() and word.islower()):
-            return WordleError(error="Invalid guess")
+            return False
         elif word not in self._word_bank:
-            return WordleError(error="Unknown word")
+            return True
 
         patterns: list[str] = []
 

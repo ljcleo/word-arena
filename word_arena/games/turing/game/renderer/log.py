@@ -1,54 +1,108 @@
 from collections.abc import Iterator
 from typing import override
 
+from pydantic import BaseModel
+
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
-from ...common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
+from ...common import TuringError, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
 from ..state import TuringGameStateInterface
 
 
+class TuringInfoPromptConfig(BaseModel):
+    verifier: str
+    max_turns: str
+    unlimited: str
+
+
+class TuringGuessPromptConfig(BaseModel):
+    final_guess: str
+    verifying_guess: str
+    verifiers: str
+
+
+class TuringFeedbackPromptConfig(BaseModel):
+    result: str
+    accept: str
+    verification_result: str
+    verification_verdicts: tuple[str, str]
+    final_guess_result: str
+    final_guess_verdicts: tuple[str, str]
+    reject: str
+    reject_reason: str
+    reject_messages: dict[TuringError, str]
+
+
+class TuringFinalResultPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    num_questions: str
+    has_final_guess: str
+    final_guess_status: tuple[str, str]
+    answer: str
+
+
+class TuringLogPromptConfig(BaseModel):
+    game_info: TuringInfoPromptConfig
+    guess: TuringGuessPromptConfig
+    feedback: TuringFeedbackPromptConfig
+    final_result: TuringFinalResultPromptConfig
+
+
 class TuringLogGameRenderer(
-    BaseLogGameRenderer[TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult]
+    BaseLogGameRenderer[
+        TuringLogPromptConfig, TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult
+    ]
 ):
     @override
     def format_game_info(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
         game_info: TuringInfo = state.game_info
+        prompt: TuringInfoPromptConfig = self.prompt_config.game_info
+
         for index, card in enumerate(game_info.verifiers):
-            yield f"Verifier {index}", join_or_na(card)
+            yield prompt.verifier.format(verifier_id=index), join_or_na(card)
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
     def format_guess(
         self, *, state: TuringGameStateInterface, guess: TuringGuess
     ) -> Iterator[tuple[str, str]]:
+        prompt: TuringGuessPromptConfig = self.prompt_config.guess
+
         if len(guess.verifiers) == 0:
-            yield "Final Guess", str(guess.code)
+            yield prompt.final_guess, str(guess.code)
         else:
-            yield "Verifying Guess", str(guess.code)
-            yield "Verifiers", join_or_na(map(str, guess.verifiers))
+            yield prompt.verifying_guess, str(guess.code)
+            yield prompt.verifiers, join_or_na(map(str, guess.verifiers))
 
     @override
     def format_last_feedback(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
         feedback: TuringFeedback = state.turns[-1].feedback
+        prompt: TuringFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, list):
-            yield "Validation Result", "Accept"
-            yield "Verification Result", join_or_na("Y" if result else "N" for result in feedback)
+            yield prompt.result, prompt.accept
+
+            yield (
+                prompt.verification_result,
+                join_or_na(map(prompt.verification_verdicts.__getitem__, feedback)),
+            )
         elif isinstance(feedback, bool):
-            yield "Validation Result", "Accept"
-            yield "Final Guess Result", "Correct" if feedback else "Incorrect"
+            yield prompt.result, prompt.accept
+            yield prompt.final_guess_result, prompt.final_guess_verdicts[feedback]
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def format_final_result(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
         final_result: TuringFinalResult = state.final_result
-        yield "Game Result", "Victory" if final_result.verdict is True else "Failed"
-        yield "Asked Questions", str(final_result.num_questions)
-        yield "Made Final Guess", "Yes" if final_result.verdict is not None else "No"
-        yield "Secret Code", str(final_result.answer)
+        prompt: TuringFinalResultPromptConfig = self.prompt_config.final_result
+        yield prompt.result, prompt.verdicts[final_result.verdict is True]
+        yield prompt.num_questions, str(final_result.num_questions)
+        yield prompt.has_final_guess, prompt.final_guess_status[final_result.verdict is not None]
+        yield prompt.answer, str(final_result.answer)

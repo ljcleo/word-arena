@@ -18,15 +18,7 @@ class LetrosoGuess(BaseModel):
     word: str
 
 
-class LetrosoResponse(BaseModel):
-    patterns: list[str]
-
-
-class LetrosoError(BaseModel):
-    error: str
-
-
-type LetrosoFeedback = LetrosoResponse | LetrosoError
+type LetrosoFeedback = list[str] | bool
 
 
 class LetrosoFinalResult(BaseModel):

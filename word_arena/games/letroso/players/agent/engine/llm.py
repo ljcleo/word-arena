@@ -8,13 +8,7 @@ from ......players.agent.common import GameRecord
 from ......players.agent.engine.llm import BaseLLMAgentEngine
 from ......players.agent.state import AgentGameStateInterface, AgentNoteStateInterface
 from ......utils import join_or_na
-from ....common import (
-    LetrosoFeedback,
-    LetrosoFinalResult,
-    LetrosoGuess,
-    LetrosoInfo,
-    LetrosoResponse,
-)
+from ....common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo
 
 
 class LetrosoNote(BaseModel):
@@ -125,7 +119,7 @@ Your guess should be a **single word with only lowercase letters within the leng
         self,
         *,
         trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: LetrosoGuess,
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -136,17 +130,17 @@ Your guess should be a **single word with only lowercase letters within the leng
         self,
         *,
         trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: LetrosoGuess,
         feedback: LetrosoFeedback,
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        if isinstance(feedback, LetrosoResponse):
+        if isinstance(feedback, list):
             yield "Validation Result", "Accept"
-            yield "Match Pattern", join_or_na(feedback.patterns)
+            yield "Match Pattern", join_or_na(feedback)
         else:
             yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+            yield "Reason", "unknown word" if feedback else "invalid guess"
 
     @override
     def prompt_final_result(self, *, game_record: LetrosoGameRecord) -> Iterator[tuple[str, str]]:

@@ -114,7 +114,7 @@ Your guess should be a \
         self,
         *,
         trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: NumberleGuess,
         final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
@@ -125,7 +125,7 @@ Your guess should be a \
         self,
         *,
         trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
-        turn_index: int,
+        turn_id: int,
         guess: NumberleGuess,
         feedback: NumberleFeedback,
         final_result: NumberleFinalResult | None,
@@ -135,7 +135,7 @@ Your guess should be a \
             yield "Match Pattern", join_or_na(feedback.patterns)
         else:
             yield "Validation Result", "Reject"
-            yield "Reason", feedback.error
+            yield "Reason", "invalid guess"
 
     @override
     def prompt_final_result(self, *, game_record: NumberleGameRecord) -> Iterator[tuple[str, str]]:

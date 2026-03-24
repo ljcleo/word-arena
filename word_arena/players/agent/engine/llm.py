@@ -193,7 +193,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
         self,
         *,
         trajectory: Trajectory[IT, GT, FT],
-        turn_index: int,
+        turn_id: int,
         guess: GT,
         final_result: RT | None,
     ) -> Iterator[tuple[str, str]]: ...
@@ -203,7 +203,7 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
         self,
         *,
         trajectory: Trajectory[IT, GT, FT],
-        turn_index: int,
+        turn_id: int,
         guess: GT,
         feedback: FT,
         final_result: RT | None,
@@ -346,13 +346,13 @@ class BaseLLMAgentEngine[IT, GT: BaseModel, FT, RT, NT: BaseModel](
                     items=chain(
                         self.prompt_guess(
                             trajectory=trajectory,
-                            turn_index=index,
+                            turn_id=index,
                             guess=turn.guess,
                             final_result=final_result,
                         ),
                         self.prompt_feedback(
                             trajectory=trajectory,
-                            turn_index=index,
+                            turn_id=index,
                             guess=turn.guess,
                             feedback=turn.feedback,
                             final_result=final_result,

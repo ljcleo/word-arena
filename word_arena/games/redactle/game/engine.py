@@ -7,7 +7,6 @@ from ....common.game.engine.base import BaseGameEngine
 from ....utils import get_db_cursor
 from ..common import (
     RedactleConfig,
-    RedactleError,
     RedactleFeedback,
     RedactleFinalResult,
     RedactleGuess,
@@ -71,12 +70,12 @@ class RedactleGameEngine(
     def process_guess(self, *, guess: RedactleGuess) -> RedactleFeedback:
         word: str = guess.word.lower()
         if any(c.isspace() for c in word):
-            return RedactleError(error="Invalid guess")
+            return False
 
         lemma: str = self._lemma_map.get(word, word)
 
         if lemma in self._stop_words:
-            return RedactleError(error="Guessed word too common")
+            return True
         elif lemma in self._title_words:
             self._found_words.add(lemma)
 

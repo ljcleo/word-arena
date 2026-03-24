@@ -1,0 +1,7 @@
+{
+    "input_prompt": {
+        "row": "Input row coord (0--7) of letter {coord_id} for guess {turn_id}: ",
+        "column": "Input column coord (0--5) of letter {coord_id} for guess {turn_id}: ",
+        "add": "Append new letter for guess {turn_id}? (y/n): "
+    }
+}
