@@ -28,11 +28,8 @@ A game arena where humans and LLMs compete at word-based puzzles. Play manually,
 # Install dependencies (use `--group crawl` for crawl scripts)
 uv sync --group game --group llm
 
-# Play any game manually
-python scripts/play_manual.py
-
-# Let an LLM agent play
-python scripts/play_agent.py
+# Play any game (manual or agent, with optional training)
+python scripts/main.py
 ```
 
 ## LLM Providers
@@ -63,7 +60,7 @@ Gym → Game (Engine + Renderer) → Player (Manual | Agent)
 
 Each game is parameterized over `IT` (info), `GT` (guess), `FT` (feedback), and `RT` (result) types. Adding a new game means implementing these types plus an engine, renderer, and player adapter — the orchestration layer stays unchanged.
 
-LLM agents follow a structured turn cycle: `prepare → [analyze_and_guess → digest] → reflect`, with an optional `evolve()` hook for multi-game training runs.
+Both player types share a unified `Player` class. `setup()` initializes the note, each `play()` call loops through `analyze_and_guess` then `evolve()` updates the note after training loops.
 
 ## Project Structure
 
@@ -71,14 +68,14 @@ LLM agents follow a structured turn cycle: `prepare → [analyze_and_guess → d
 word_arena/
   common/       # Generic framework: config, game, player, gym, llm
   games/        # 10 game implementations
-  players/      # ManualPlayer and AgentPlayer
+  players/      # ManualPlayerEngine, AgentPlayerEngine, shared Player class
   llms/         # Provider adapters
 scripts/
-  play_manual.py
-  play_agent.py
+  main.py       # CLI entry point
+  build_gym.py / build_manual_player.py / build_agent_player.py / build_llm.py
 config/
   llms/         # LLM configs (API keys gitignored)
-  games/        # Per-game preset configs (meta + mutable config pools)
+  games/        # Per-game dirs: meta_config.json, renderer.json, players/manual.json
 data/           # SQLite game databases + crawl scripts
 ```
 
