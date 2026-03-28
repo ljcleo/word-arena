@@ -1,13 +1,9 @@
 from collections.abc import Callable
 from typing import override
 
+from ......common.game.common import Trajectory
 from ......players.manual.reader.input import BaseInputManualReader
-from ......players.manual.state import ManualGameStateInterface
 from ....common import ConnectionsFeedback, ConnectionsGuess, ConnectionsInfo
-
-type ConnectionsGameStateInterface = ManualGameStateInterface[
-    ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback
-]
 
 
 class ConnectionsInputManualReader(
@@ -15,9 +11,12 @@ class ConnectionsInputManualReader(
 ):
     @override
     def input_guess(
-        self, *, game_state: ConnectionsGameStateInterface, input_func: Callable[[str], str]
+        self,
+        *,
+        trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
+        input_func: Callable[[str], str],
     ) -> ConnectionsGuess:
-        turn_id: int = len(game_state.turns) + 1
+        turn_id: int = len(trajectory.turns) + 1
         indices: list[int] = []
 
         for i in range(4):

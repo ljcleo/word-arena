@@ -3,13 +3,9 @@ from typing import override
 
 from pydantic import BaseModel
 
+from ......common.game.common import Trajectory
 from ......players.manual.reader.input import BaseInputManualReader
-from ......players.manual.state import ManualGameStateInterface
 from ....common import StrandsFeedback, StrandsGuess, StrandsInfo
-
-type StrandsGameStateInterface = ManualGameStateInterface[
-    StrandsInfo, StrandsGuess, StrandsFeedback
-]
 
 
 class StrandsInputPromptConfig(BaseModel):
@@ -23,9 +19,12 @@ class StrandsInputManualReader(
 ):
     @override
     def input_guess(
-        self, *, game_state: StrandsGameStateInterface, input_func: Callable[[str], str]
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        input_func: Callable[[str], str],
     ) -> StrandsGuess:
-        turn_id: int = len(game_state.turns) + 1
+        turn_id: int = len(trajectory.turns) + 1
         coords: list[tuple[int, int]] = []
 
         while True:

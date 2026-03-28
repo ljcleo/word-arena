@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo
-from ..state import LetrosoGameStateInterface
 
 
 class LetrosoInfoPromptConfig(BaseModel):
@@ -45,8 +45,7 @@ class LetrosoLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: LetrosoGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: LetrosoInfo = state.game_info
+    def format_game_info(self, *, game_info: LetrosoInfo) -> Iterator[tuple[str, str]]:
         prompt: LetrosoInfoPromptConfig = self.prompt_config.game_info
         yield prompt.num_targets, str(game_info.num_targets)
         yield prompt.max_letters, str(game_info.max_letters)
@@ -58,15 +57,18 @@ class LetrosoLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: LetrosoGameStateInterface, guess: LetrosoGuess
+        self,
+        *,
+        trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
+        guess: LetrosoGuess,
     ) -> Iterator[tuple[str, str]]:
         yield self.prompt_config.guess, guess.word
 
     @override
     def format_last_feedback(
-        self, *, state: LetrosoGameStateInterface
+        self, *, trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: LetrosoFeedback = state.turns[-1].feedback
+        feedback: LetrosoFeedback = trajectory.turns[-1].feedback
         prompt: LetrosoFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, list):
@@ -77,8 +79,12 @@ class LetrosoLogGameRenderer(
             yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
-    def format_final_result(self, *, state: LetrosoGameStateInterface) -> Iterator[tuple[str, str]]:
-        final_result: LetrosoFinalResult = state.final_result
+    def format_final_result(
+        self,
+        *,
+        trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
+        final_result: LetrosoFinalResult,
+    ) -> Iterator[tuple[str, str]]:
         prompt: LetrosoFinalResultPromptConfig = self.prompt_config.final_result
 
         yield (

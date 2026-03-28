@@ -4,6 +4,7 @@ from typing import override
 from pydantic import TypeAdapter
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import create_seed, get_db_cursor
 from ..common import (
     ConnectionsConfig,
@@ -13,7 +14,6 @@ from ..common import (
     ConnectionsInfo,
     ConnectionsWordGroup,
 )
-from .state import ConnectionsGameStateInterface
 
 
 class ConnectionsGameEngine(
@@ -58,7 +58,13 @@ class ConnectionsGameEngine(
         )
 
     @override
-    def is_over(self, *, state: ConnectionsGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[
+            ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback, ConnectionsFinalResult
+        ],
+    ) -> bool:
         num_remains: int = self._num_groups - len(self._found_themes)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

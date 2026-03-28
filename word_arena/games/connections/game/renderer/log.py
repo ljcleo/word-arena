@@ -3,6 +3,7 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import (
@@ -12,7 +13,6 @@ from ...common import (
     ConnectionsInfo,
     ConnectionsWordGroup,
 )
-from ..state import ConnectionsGameStateInterface
 
 
 class ConnectionsInfoPromptConfig(BaseModel):
@@ -55,10 +55,7 @@ class ConnectionsLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(
-        self, *, state: ConnectionsGameStateInterface
-    ) -> Iterator[tuple[str, str]]:
-        game_info: ConnectionsInfo = state.game_info
+    def format_game_info(self, *, game_info: ConnectionsInfo) -> Iterator[tuple[str, str]]:
         prompt: ConnectionsInfoPromptConfig = self.prompt_config.game_info
 
         yield (
@@ -75,9 +72,12 @@ class ConnectionsLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: ConnectionsGameStateInterface, guess: ConnectionsGuess
+        self,
+        *,
+        trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
+        guess: ConnectionsGuess,
     ) -> Iterator[tuple[str, str]]:
-        words: list[str] = state.game_info.words
+        words: list[str] = trajectory.game_info.words
 
         yield (
             self.prompt_config.guess,
@@ -89,9 +89,9 @@ class ConnectionsLogGameRenderer(
 
     @override
     def format_last_feedback(
-        self, *, state: ConnectionsGameStateInterface
+        self, *, trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: ConnectionsFeedback = state.turns[-1].feedback
+        feedback: ConnectionsFeedback = trajectory.turns[-1].feedback
         prompt: ConnectionsFeedbackPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
@@ -103,9 +103,11 @@ class ConnectionsLogGameRenderer(
 
     @override
     def format_final_result(
-        self, *, state: ConnectionsGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
+        final_result: ConnectionsFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        final_result: ConnectionsFinalResult = state.final_result
         victory: bool = len(final_result.remaining_groups) == 0
         prompt: ConnectionsFinalResultPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]

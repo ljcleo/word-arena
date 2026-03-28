@@ -3,6 +3,7 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import (
@@ -12,7 +13,6 @@ from ...common import (
     NumberleInfo,
     NumberleResponse,
 )
-from ..state import NumberleGameStateInterface
 
 
 class NumberleInfoPromptConfig(BaseModel):
@@ -51,8 +51,7 @@ class NumberleLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: NumberleGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: NumberleInfo = state.game_info
+    def format_game_info(self, *, game_info: NumberleInfo) -> Iterator[tuple[str, str]]:
         prompt: NumberleInfoPromptConfig = self.prompt_config.game_info
         yield prompt.num_targets, str(game_info.num_targets)
         yield prompt.eq_length, str(game_info.eq_length)
@@ -64,15 +63,18 @@ class NumberleLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: NumberleGameStateInterface, guess: NumberleGuess
+        self,
+        *,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
+        guess: NumberleGuess,
     ) -> Iterator[tuple[str, str]]:
         yield self.prompt_config.guess, guess.equation
 
     @override
     def format_last_feedback(
-        self, *, state: NumberleGameStateInterface
+        self, *, trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: NumberleFeedback = state.turns[-1].feedback
+        feedback: NumberleFeedback = trajectory.turns[-1].feedback
         prompt: NumberleFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, NumberleResponse):
@@ -84,9 +86,11 @@ class NumberleLogGameRenderer(
 
     @override
     def format_final_result(
-        self, *, state: NumberleGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
+        final_result: NumberleFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        final_result: NumberleFinalResult = state.final_result
         prompt: NumberleFinalResultPromptConfig = self.prompt_config.final_result
 
         yield (

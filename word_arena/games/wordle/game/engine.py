@@ -2,6 +2,7 @@ from collections import Counter
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ..common import (
     WordleConfig,
     WordleFeedback,
@@ -10,7 +11,6 @@ from ..common import (
     WordleInfo,
     WordleResponse,
 )
-from .state import WordleGameStateInterface
 
 
 class WordleGameEngine(
@@ -32,7 +32,11 @@ class WordleGameEngine(
         return WordleInfo(num_targets=self._num_targets, max_turns=self._max_turns)
 
     @override
-    def is_over(self, *, state: WordleGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[WordleInfo, WordleGuess, WordleFeedback, WordleFinalResult],
+    ) -> bool:
         num_remains: int = self._num_targets - len(self._found_indices)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

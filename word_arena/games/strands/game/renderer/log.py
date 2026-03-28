@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import StrandsError, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
-from ..state import StrandsGameStateInterface
 
 
 class StrandsInfoPromptConfig(BaseModel):
@@ -48,8 +48,7 @@ class StrandsLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: StrandsGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: StrandsInfo = state.game_info
+    def format_game_info(self, *, game_info: StrandsInfo) -> Iterator[tuple[str, str]]:
         prompt: StrandsInfoPromptConfig = self.prompt_config.game_info
         yield prompt.board, "\n".join(game_info.board)
         yield prompt.clue, game_info.clue
@@ -61,7 +60,10 @@ class StrandsLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: StrandsGameStateInterface, guess: StrandsGuess
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        guess: StrandsGuess,
     ) -> Iterator[tuple[str, str]]:
         word: str = "(N/A)"
         buffer: list[str] = []
@@ -75,7 +77,7 @@ class StrandsLogGameRenderer(
             if not (0 <= cx < 8 and 0 <= cy < 6 and (cx, cy) not in visited):
                 break
 
-            buffer.append(state.game_info.board[cx][cy])
+            buffer.append(trajectory.game_info.board[cx][cy])
             visited.add((cx, cy))
 
             if i < len(guess.coords) - 1:
@@ -91,9 +93,9 @@ class StrandsLogGameRenderer(
 
     @override
     def format_last_feedback(
-        self, *, state: StrandsGameStateInterface
+        self, *, trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: StrandsFeedback = state.turns[-1].feedback
+        feedback: StrandsFeedback = trajectory.turns[-1].feedback
         prompt: StrandsFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, int):
@@ -104,8 +106,12 @@ class StrandsLogGameRenderer(
             yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
-    def format_final_result(self, *, state: StrandsGameStateInterface) -> Iterator[tuple[str, str]]:
-        final_result: StrandsFinalResult = state.final_result
+    def format_final_result(
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        final_result: StrandsFinalResult,
+    ) -> Iterator[tuple[str, str]]:
         prompt: StrandsFinalResultPromptConfig = self.prompt_config.final_result
 
         yield (

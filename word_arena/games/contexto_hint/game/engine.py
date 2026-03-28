@@ -4,9 +4,9 @@ from typing import override
 from pydantic import TypeAdapter
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import get_db_cursor
 from ..common import ContextoHintConfig, ContextoHintFeedback, ContextoHintGuess
-from .state import ContextoHintGameStateInterface
 
 
 class ContextoHintGameEngine(
@@ -32,7 +32,11 @@ class ContextoHintGameEngine(
         return self._get_next_choices()
 
     @override
-    def is_over(self, *, state: ContextoHintGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[list[str], ContextoHintGuess, ContextoHintFeedback, list[str]],
+    ) -> bool:
         return self._best_pos == 0
 
     @override

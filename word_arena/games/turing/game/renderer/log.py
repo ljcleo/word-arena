@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import TuringError, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
-from ..state import TuringGameStateInterface
 
 
 class TuringInfoPromptConfig(BaseModel):
@@ -55,8 +55,7 @@ class TuringLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: TuringInfo = state.game_info
+    def format_game_info(self, *, game_info: TuringInfo) -> Iterator[tuple[str, str]]:
         prompt: TuringInfoPromptConfig = self.prompt_config.game_info
 
         for index, card in enumerate(game_info.verifiers):
@@ -69,7 +68,7 @@ class TuringLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: TuringGameStateInterface, guess: TuringGuess
+        self, *, trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback], guess: TuringGuess
     ) -> Iterator[tuple[str, str]]:
         prompt: TuringGuessPromptConfig = self.prompt_config.guess
 
@@ -80,8 +79,10 @@ class TuringLogGameRenderer(
             yield prompt.verifiers, join_or_na(map(str, guess.verifiers))
 
     @override
-    def format_last_feedback(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
-        feedback: TuringFeedback = state.turns[-1].feedback
+    def format_last_feedback(
+        self, *, trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback]
+    ) -> Iterator[tuple[str, str]]:
+        feedback: TuringFeedback = trajectory.turns[-1].feedback
         prompt: TuringFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, list):
@@ -99,8 +100,12 @@ class TuringLogGameRenderer(
             yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
-    def format_final_result(self, *, state: TuringGameStateInterface) -> Iterator[tuple[str, str]]:
-        final_result: TuringFinalResult = state.final_result
+    def format_final_result(
+        self,
+        *,
+        trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
+        final_result: TuringFinalResult,
+    ) -> Iterator[tuple[str, str]]:
         prompt: TuringFinalResultPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[final_result.verdict is True]
         yield prompt.num_questions, str(final_result.num_questions)

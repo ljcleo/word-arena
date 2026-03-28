@@ -3,6 +3,7 @@ from fractions import Fraction
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ..common import (
     NumberleConfig,
     NumberleFeedback,
@@ -11,7 +12,6 @@ from ..common import (
     NumberleInfo,
     NumberleResponse,
 )
-from .state import NumberleGameStateInterface
 
 
 class NumberleGameEngine(
@@ -37,7 +37,13 @@ class NumberleGameEngine(
         )
 
     @override
-    def is_over(self, *, state: NumberleGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[
+            NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
+        ],
+    ) -> bool:
         num_remains: int = self._num_targets - len(self._found_indices)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

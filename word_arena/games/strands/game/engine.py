@@ -3,16 +3,16 @@ from typing import override
 from pydantic import BaseModel
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import get_db_cursor
 from ..common import (
     StrandsConfig,
+    StrandsError,
     StrandsFeedback,
     StrandsFinalResult,
     StrandsGuess,
     StrandsInfo,
-    StrandsError,
 )
-from .state import StrandsGameStateInterface
 
 
 class StrandsGameEngine(
@@ -67,7 +67,11 @@ class StrandsGameEngine(
         return StrandsInfo(board=self._2d_board, clue=self._clue, max_turns=self._max_turns)
 
     @override
-    def is_over(self, *, state: StrandsGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult],
+    ) -> bool:
         num_remains: int = self._num_targets - len(self._found_indices)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

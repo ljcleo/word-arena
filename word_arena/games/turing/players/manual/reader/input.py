@@ -3,11 +3,9 @@ from typing import override
 
 from pydantic import BaseModel
 
+from ......common.game.common import Trajectory
 from ......players.manual.reader.input import BaseInputManualReader
-from ......players.manual.state import ManualGameStateInterface
 from ....common import TuringFeedback, TuringGuess, TuringInfo
-
-type TuringGameStateInterface = ManualGameStateInterface[TuringInfo, TuringGuess, TuringFeedback]
 
 
 class TuringInputPromptConfig(BaseModel):
@@ -22,9 +20,12 @@ class TuringInputManualReader(
 ):
     @override
     def input_guess(
-        self, *, game_state: TuringGameStateInterface, input_func: Callable[[str], str]
+        self,
+        *,
+        trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
+        input_func: Callable[[str], str],
     ) -> TuringGuess:
-        turn_id: int = len(game_state.turns) + 1
+        turn_id: int = len(trajectory.turns) + 1
         code_str: str = input_func(self.prompt_config.code.format(turn_id=turn_id))
         code: int = int(code_str) if code_str.isdigit() else -1
         verifiers: list[int] = []

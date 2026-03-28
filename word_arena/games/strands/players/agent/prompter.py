@@ -1,0 +1,200 @@
+from collections.abc import Iterable, Iterator
+from typing import override
+
+from pydantic import BaseModel, Field
+
+from .....common.game.common import Trajectory
+from .....players.agent.prompter.base import BaseAgentPrompter
+from .....utils import join_or_na
+from ...common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
+
+
+class StrandsNote(BaseModel):
+    strategy: str = Field(title="Possible Strategies")
+
+
+class StrandsAgentPrompter(
+    BaseAgentPrompter[StrandsNote, StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
+):
+    ROLE_DEFINITION = """\
+You are an intelligent AI with a good English vocabulary.
+
+You are playing a game where you need to find secret words arranged in a grid.
+"""
+
+    GAME_RULE = """\
+The game holds a spangram and several theme words, and gives a clue about them; \
+a spangram can have one or more words, while each theme word is strictly one word.
+
+The secret spangram and theme words are arranged into a 8x6 grid, \
+where each cell is a letter that only belongs to one theme word or the spangram; \
+the coordinates are in the form of `(row, column)`, \
+where rows are from 0 to 7 and columns are from 0 to 5.
+
+Each theme word and the spangram can be found continuous and non-overlapping in the grid: \
+you can draw a path on the grid that reads exactly the theme word or spangram, \
+where adjacent vertices are 8-connected and no cells are visited twice; \
+furthermore, paths of all theme words and the spangram do not use common cells, \
+and pass all cells in the grid exactly once.
+
+The spangram describes the game's theme; it always touches two opposite sides of the board, \
+either from row 0 to row 7 or from column 0 to column 5, or both.
+
+Every time, you draw a path on the grid to form a guess; \
+the path must be continuous and non-overlapping, \
+and must not use cells that belong to the theme words or spangram that you have found.
+
+If the path is valid, you will see whether it hits a theme word or the spangram or misses; \
+a miss can either mean selecting the wrong word or selecting the right word at the wrong location.
+
+If the path is invalid, it will be rejected and you will see the reason.
+
+There may be a guessing limit on the total number of guesses (including rejected ones), and \
+the game halts if the remaining guesses are not enough to find all theme words and the spangram; \
+therefore, you should try your best to minimize the number of guesses.
+
+Your guess should be the **list of coordinates of the guessed path**, NOT the word itself.\
+"""
+
+    NOTE_CLS = StrandsNote
+    NOTE_DETAIL = "Your notes should cover possible strategies."
+    NOTE_EXAMPLE = StrandsNote(strategy="Follow these strategies when guessing: ...")
+    GUESS_CLS = StrandsGuess
+
+    REFLECT_DETAIL = (
+        "Pay attention to the rounds where you successfully found a theme word or spangram."
+    )
+
+    @override
+    def get_guess_detail(
+        self, *, trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback]
+    ) -> str:
+        return "Pay attention to the number of remaining guesses."
+
+    @override
+    def get_guess_example(
+        self, *, trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback]
+    ) -> StrandsGuess:
+        return StrandsGuess(coords=[(0, 0), (0, 1), (1, 2), (1, 1), (0, 2)])
+
+    @override
+    def prompt_game_info(
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        final_result: StrandsFinalResult | None,
+    ) -> Iterator[tuple[str, str]]:
+        game_info: StrandsInfo = trajectory.game_info
+        yield "Board", "\n".join(game_info.board)
+        yield "Clue", game_info.clue
+
+        yield (
+            "Maximum Number of Guesses",
+            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+        )
+
+    @override
+    def prompt_guess(
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        turn_id: int,
+        guess: StrandsGuess,
+        final_result: StrandsFinalResult | None,
+    ) -> Iterator[tuple[str, str]]:
+        word: str = "(N/A)"
+        buffer: list[str] = []
+        visited: set[tuple[int, int]] = set()
+
+        for i in range(len(guess.coords)):
+            cx: int
+            cy: int
+            cx, cy = guess.coords[i]
+
+            if not (0 <= cx < 8 and 0 <= cy < 6 and (cx, cy) not in visited):
+                break
+
+            buffer.append(trajectory.game_info.board[cx][cy])
+            visited.add((cx, cy))
+
+            if i < len(guess.coords) - 1:
+                dx: int = guess.coords[i + 1][0] - cx
+                dy: int = guess.coords[i + 1][1] - cy
+
+                if not ((dx != 0 or dy != 0) and -1 <= dx <= 1 and -1 <= dy <= 1):
+                    break
+        else:
+            word = "".join(buffer)
+
+        yield "Guessed Word", self._format_word(word=word, coords=guess.coords)
+
+    @override
+    def prompt_feedback(
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        turn_id: int,
+        guess: StrandsGuess,
+        feedback: StrandsFeedback,
+        final_result: StrandsFinalResult | None,
+    ) -> Iterator[tuple[str, str]]:
+        if isinstance(feedback, int):
+            yield "Validation Result", "Accept"
+            yield "Guess Result", ("Missed", "Theme Word", "Spangram")[feedback]
+        else:
+            yield "Validation Result", "Reject"
+            yield "Reason", feedback
+
+    @override
+    def prompt_final_result(
+        self,
+        *,
+        trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
+        final_result: StrandsFinalResult,
+    ) -> Iterator[tuple[str, str]]:
+        yield (
+            "Game Result",
+            "Victory" if len(final_result.found_indices) == len(final_result.answers) else "Failed",
+        )
+
+        spangram_str: str = self._format_words(infos=final_result.answers[:1])
+        spangram_found: bool = 0 in final_result.found_indices
+
+        found_theme_indices: list[int] = [
+            index for index in final_result.found_indices if index != 0
+        ]
+
+        missed_theme_indices: list[int] = [
+            index
+            for index in range(1, len(final_result.answers))
+            if index not in found_theme_indices
+        ]
+
+        if spangram_found:
+            yield "Found Spangram", spangram_str
+
+        if len(found_theme_indices) > 0:
+            yield (
+                "Found Theme Words",
+                self._format_words(
+                    infos=map(final_result.answers.__getitem__, found_theme_indices)
+                ),
+            )
+
+        if not spangram_found:
+            yield "Spangram Not Found", spangram_str
+
+        if len(missed_theme_indices) > 0:
+            yield (
+                "Theme Words Not Found",
+                self._format_words(
+                    infos=map(final_result.answers.__getitem__, missed_theme_indices)
+                ),
+            )
+
+    def _format_words(self, *, infos: Iterable[tuple[str, list[tuple[int, int]]]]) -> str:
+        return join_or_na((self._format_word(word=word, coords=coords) for word, coords in infos))
+
+    def _format_word(self, *, word: str, coords: list[tuple[int, int]]) -> str:
+        coords_str: str = " -> ".join(f"({x}, {y})" for x, y in coords)
+        return f"{word} [{coords_str}]"

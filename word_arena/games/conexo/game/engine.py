@@ -4,6 +4,7 @@ from typing import override
 from pydantic import TypeAdapter
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import create_seed, get_db_cursor
 from ..common import (
     ConexoConfig,
@@ -13,7 +14,6 @@ from ..common import (
     ConexoInfo,
     ConexoWordGroup,
 )
-from .state import ConexoGameStateInterface
 
 
 class ConexoGameEngine(
@@ -49,7 +49,11 @@ class ConexoGameEngine(
         return ConexoInfo(words=self._words, group_size=self._group_size, max_turns=self._max_turns)
 
     @override
-    def is_over(self, *, state: ConexoGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[ConexoInfo, ConexoGuess, ConexoFeedback, ConexoFinalResult],
+    ) -> bool:
         num_remains: int = self._num_groups - len(self._found_themes)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

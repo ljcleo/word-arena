@@ -3,6 +3,7 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import (
@@ -12,7 +13,6 @@ from ...common import (
     RedactleInfo,
     RedactleResponse,
 )
-from ..state import RedactleGameStateInterface
 
 
 class RedactleInfoPromptConfig(BaseModel):
@@ -54,10 +54,15 @@ class RedactleLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: RedactleGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: RedactleInfo = state.game_info
+    def format_game_info(self, *, game_info: RedactleInfo) -> Iterator[tuple[str, str]]:
         prompt: RedactleInfoPromptConfig = self.prompt_config.game_info
-        yield prompt.article, self._format_article(state=state, is_final=False)
+
+        yield (
+            prompt.article,
+            self._format_article(
+                trajectory=Trajectory(game_info=game_info, turns=[]), is_final=False
+            ),
+        )
 
         yield (
             prompt.max_turns,
@@ -66,15 +71,18 @@ class RedactleLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: RedactleGameStateInterface, guess: RedactleGuess
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        guess: RedactleGuess,
     ) -> Iterator[tuple[str, str]]:
         yield self.prompt_config.guess, guess.word
 
     @override
     def format_last_feedback(
-        self, *, state: RedactleGameStateInterface
+        self, *, trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: RedactleFeedback = state.turns[-1].feedback
+        feedback: RedactleFeedback = trajectory.turns[-1].feedback
         prompt: RedactleFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, RedactleResponse):
@@ -88,16 +96,18 @@ class RedactleLogGameRenderer(
                 ),
             )
 
-            yield prompt.article, self._format_article(state=state, is_final=False)
+            yield prompt.article, self._format_article(trajectory=trajectory, is_final=False)
         else:
             yield prompt.result, prompt.reject
             yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def format_final_result(
-        self, *, state: RedactleGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        final_result: RedactleFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        final_result: RedactleFinalResult = state.final_result
         prompt: RedactleFinalResultPromptConfig = self.prompt_config.final_result
 
         yield (
@@ -108,16 +118,21 @@ class RedactleLogGameRenderer(
         yield prompt.found_words, join_or_na(final_result.found_words)
         yield prompt.title, final_result.title
         yield prompt.title_words, join_or_na(final_result.title_words)
-        yield prompt.article, self._format_article(state=state, is_final=True)
+        yield prompt.article, self._format_article(trajectory=trajectory, is_final=True)
 
-    def _format_article(self, *, state: RedactleGameStateInterface, is_final: bool) -> str:
+    def _format_article(
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        is_final: bool,
+    ) -> str:
         visible_words: set[str] | None = (
             None
             if is_final
-            else state.game_info.stop_words
+            else trajectory.game_info.stop_words
             | {
                 turn.feedback.lemma
-                for turn in state.turns
+                for turn in trajectory.turns
                 if isinstance(turn.feedback, RedactleResponse)
             }
         )
@@ -130,5 +145,5 @@ class RedactleLogGameRenderer(
                 else "█" * len(word)
                 for word, lemma in line
             )
-            for line_index, line in enumerate(state.game_info.article[:10])
+            for line_index, line in enumerate(trajectory.game_info.article[:10])
         )

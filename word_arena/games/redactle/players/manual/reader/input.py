@@ -1,13 +1,9 @@
 from collections.abc import Callable
 from typing import override
 
+from ......common.game.common import Trajectory
 from ......players.manual.reader.input import BaseInputManualReader
-from ......players.manual.state import ManualGameStateInterface
 from ....common import RedactleFeedback, RedactleGuess, RedactleInfo
-
-type RedactleGameStateInterface = ManualGameStateInterface[
-    RedactleInfo, RedactleGuess, RedactleFeedback
-]
 
 
 class RedactleInputManualReader(
@@ -15,8 +11,11 @@ class RedactleInputManualReader(
 ):
     @override
     def input_guess(
-        self, *, game_state: RedactleGameStateInterface, input_func: Callable[[str], str]
+        self,
+        *,
+        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
+        input_func: Callable[[str], str],
     ) -> RedactleGuess:
         return RedactleGuess(
-            word=input_func(self.prompt_config.format(turn_id=len(game_state.turns) + 1))
+            word=input_func(self.prompt_config.format(turn_id=len(trajectory.turns) + 1))
         )

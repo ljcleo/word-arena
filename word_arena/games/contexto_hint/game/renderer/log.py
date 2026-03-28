@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import ContextoHintFeedback, ContextoHintGuess
-from ..state import ContextoHintGameStateInterface
 
 
 class ContextoHintFeedbackPromptConfig(BaseModel):
@@ -36,17 +36,20 @@ class ContextoHintLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(
-        self, *, state: ContextoHintGameStateInterface
-    ) -> Iterator[tuple[str, str]]:
-        yield self._format_choices(turn_id=1, choices=state.game_info)
+    def format_game_info(self, *, game_info: list[str]) -> Iterator[tuple[str, str]]:
+        yield self._format_choices(turn_id=1, choices=game_info)
 
     @override
     def format_guess(
-        self, *, state: ContextoHintGameStateInterface, guess: ContextoHintGuess
+        self,
+        *,
+        trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
+        guess: ContextoHintGuess,
     ) -> Iterator[tuple[str, str]]:
         choices: list[str] | None = (
-            state.game_info if len(state.turns) == 0 else state.turns[-1].feedback.next_choices
+            trajectory.game_info
+            if len(trajectory.turns) == 0
+            else trajectory.turns[-1].feedback.next_choices
         )
 
         assert choices is not None
@@ -59,9 +62,9 @@ class ContextoHintLogGameRenderer(
 
     @override
     def format_last_feedback(
-        self, *, state: ContextoHintGameStateInterface
+        self, *, trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: ContextoHintFeedback = state.turns[-1].feedback
+        feedback: ContextoHintFeedback = trajectory.turns[-1].feedback
         prompt: ContextoHintFeedbackPromptConfig = self.prompt_config.feedback
 
         if feedback.distance >= 0:
@@ -72,13 +75,17 @@ class ContextoHintLogGameRenderer(
             yield prompt.reject_reason, prompt.invalid_guess
 
         if feedback.next_choices is not None:
-            yield self._format_choices(turn_id=len(state.turns) + 1, choices=feedback.next_choices)
+            yield self._format_choices(
+                turn_id=len(trajectory.turns) + 1, choices=feedback.next_choices
+            )
 
     @override
     def format_final_result(
-        self, *, state: ContextoHintGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
+        final_result: list[str],
     ) -> Iterator[tuple[str, str]]:
-        final_result: list[str] = state.final_result
         prompt: ContextoHintFinalResultPromptConfig = self.prompt_config.final_result
         yield prompt.secret_word, final_result[0]
         yield prompt.top_words, join_or_na(final_result[:30])

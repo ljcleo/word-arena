@@ -1,13 +1,9 @@
 from collections.abc import Callable
 from typing import override
 
+from ......common.game.common import Trajectory
 from ......players.manual.reader.input import BaseInputManualReader
-from ......players.manual.state import ManualGameStateInterface
 from ....common import NumberleFeedback, NumberleGuess, NumberleInfo
-
-type NumberleGameStateInterface = ManualGameStateInterface[
-    NumberleInfo, NumberleGuess, NumberleFeedback
-]
 
 
 class NumberleInputManualReader(
@@ -15,8 +11,11 @@ class NumberleInputManualReader(
 ):
     @override
     def input_guess(
-        self, *, game_state: NumberleGameStateInterface, input_func: Callable[[str], str]
+        self,
+        *,
+        trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
+        input_func: Callable[[str], str],
     ) -> NumberleGuess:
         return NumberleGuess(
-            equation=input_func(self.prompt_config.format(turn_id=len(game_state.turns) + 1))
+            equation=input_func(self.prompt_config.format(turn_id=len(trajectory.turns) + 1))
         )

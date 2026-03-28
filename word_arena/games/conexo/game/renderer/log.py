@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
-from ..state import ConexoGameStateInterface
 
 
 class ConexoInfoPromptConfig(BaseModel):
@@ -45,8 +45,7 @@ class ConexoLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: ConexoGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: ConexoInfo = state.game_info
+    def format_game_info(self, *, game_info: ConexoInfo) -> Iterator[tuple[str, str]]:
         prompt: ConexoInfoPromptConfig = self.prompt_config.game_info
 
         yield (
@@ -63,9 +62,9 @@ class ConexoLogGameRenderer(
 
     @override
     def format_guess(
-        self, *, state: ConexoGameStateInterface, guess: ConexoGuess
+        self, *, trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback], guess: ConexoGuess
     ) -> Iterator[tuple[str, str]]:
-        words: list[str] = state.game_info.words
+        words: list[str] = trajectory.game_info.words
 
         yield (
             self.prompt_config.guess,
@@ -76,8 +75,10 @@ class ConexoLogGameRenderer(
         )
 
     @override
-    def format_last_feedback(self, *, state: ConexoGameStateInterface) -> Iterator[tuple[str, str]]:
-        feedback: ConexoFeedback = state.turns[-1].feedback
+    def format_last_feedback(
+        self, *, trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback]
+    ) -> Iterator[tuple[str, str]]:
+        feedback: ConexoFeedback = trajectory.turns[-1].feedback
         prompt: ConexoFeedbackPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
@@ -88,8 +89,12 @@ class ConexoLogGameRenderer(
             yield prompt.reject_reason, prompt.invalid_guess
 
     @override
-    def format_final_result(self, *, state: ConexoGameStateInterface) -> Iterator[tuple[str, str]]:
-        final_result: ConexoFinalResult = state.final_result
+    def format_final_result(
+        self,
+        *,
+        trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback],
+        final_result: ConexoFinalResult,
+    ) -> Iterator[tuple[str, str]]:
         victory: bool = len(final_result.remaining_groups) == 0
         prompt: ConexoFinalResultPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]

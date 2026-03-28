@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import get_db_cursor
 from ..common import (
     TuringConfig,
@@ -11,7 +12,6 @@ from ..common import (
     TuringGuess,
     TuringInfo,
 )
-from .state import TuringGameStateInterface
 
 
 class TuringGameEngine(
@@ -57,7 +57,11 @@ class TuringGameEngine(
         return TuringInfo(verifiers=self._verifiers, max_turns=self._max_turns)
 
     @override
-    def is_over(self, *, state: TuringGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult],
+    ) -> bool:
         return self._final_verdict is not None or len(state.turns) >= self._max_turns > 0
 
     @override

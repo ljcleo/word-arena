@@ -1,12 +1,13 @@
 from collections.abc import Sequence
 from random import Random
+from typing import Any
 
 from ..config.generator.base import BaseConfigGenerator
 from ..config.reader.base import BaseConfigReader
 from ..game.engine.base import BaseGameEngine
 from ..game.game import Game
 from ..game.renderer.base import BaseGameRenderer
-from ..player.base import BasePlayer
+from ..player.player import Player
 from .common import TrainingConfig
 
 
@@ -28,10 +29,12 @@ class Gym[MT, UT, CT, IT, GT, FT, RT]:
         self._game_engine_cls: type[BaseGameEngine[CT, IT, GT, FT, RT]] = game_engine_cls
         self._game_renderer: BaseGameRenderer[IT, GT, FT, RT] = game_renderer
 
-    def play(self, *, player: BasePlayer[IT, GT, FT, RT]) -> None:
+    def play(self, *, player: Player[Any, IT, Any, GT, FT, RT, Any]) -> None:
         player.play(game=self._load_game(config=self._read_config()))
 
-    def train(self, *, player: BasePlayer[IT, GT, FT, RT], training_config: TrainingConfig) -> None:
+    def train(
+        self, *, player: Player[Any, IT, Any, GT, FT, RT, Any], training_config: TrainingConfig
+    ) -> None:
         rng: Random = Random(x=training_config.seed)
 
         for _ in range(training_config.num_train_loops):

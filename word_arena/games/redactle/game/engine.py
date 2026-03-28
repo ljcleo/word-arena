@@ -4,6 +4,7 @@ from typing import override
 from pydantic import BaseModel
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ....utils import get_db_cursor
 from ..common import (
     RedactleConfig,
@@ -13,7 +14,6 @@ from ..common import (
     RedactleInfo,
     RedactleResponse,
 )
-from .state import RedactleGameStateInterface
 
 
 class RedactleGameEngine(
@@ -62,7 +62,13 @@ class RedactleGameEngine(
         )
 
     @override
-    def is_over(self, *, state: RedactleGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[
+            RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult
+        ],
+    ) -> bool:
         num_remains: int = self._num_targets - len(self._found_words)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

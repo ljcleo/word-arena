@@ -2,6 +2,7 @@ from collections import Counter
 from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ..common import (
     LetrosoConfig,
     LetrosoFeedback,
@@ -9,7 +10,6 @@ from ..common import (
     LetrosoGuess,
     LetrosoInfo,
 )
-from .state import LetrosoGameStateInterface
 
 
 class LetrosoGameEngine(
@@ -33,7 +33,11 @@ class LetrosoGameEngine(
         )
 
     @override
-    def is_over(self, *, state: LetrosoGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult],
+    ) -> bool:
         num_remains: int = self._num_targets - len(self._found_indices)
         return num_remains == 0 or len(state.turns) + num_remains > self._max_turns > 0
 

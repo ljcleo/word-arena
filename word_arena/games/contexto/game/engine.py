@@ -5,6 +5,7 @@ from httpx import Response, get
 from tenacity import before_sleep_log, retry, wait_random
 
 from ....common.game.engine.base import BaseGameEngine
+from ....common.game.state import GameStateInterface
 from ..common import (
     ContextoConfig,
     ContextoError,
@@ -13,7 +14,6 @@ from ..common import (
     ContextoGuess,
     ContextoResponse,
 )
-from .state import ContextoGameStateInterface
 
 
 class ContextoGameEngine(
@@ -31,7 +31,11 @@ class ContextoGameEngine(
         return self._max_turns
 
     @override
-    def is_over(self, *, state: ContextoGameStateInterface) -> bool:
+    def is_over(
+        self,
+        *,
+        state: GameStateInterface[int, ContextoGuess, ContextoFeedback, ContextoFinalResult],
+    ) -> bool:
         return self._best_pos == 0 or len(state.turns) >= self._max_turns > 0
 
     @override

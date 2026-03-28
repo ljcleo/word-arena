@@ -3,10 +3,10 @@ from typing import override
 
 from pydantic import BaseModel
 
+from .....common.game.common import Trajectory
 from .....common.game.renderer.log import BaseLogGameRenderer
 from .....utils import join_or_na
 from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
-from ..state import ContextoGameStateInterface
 
 
 class ContextoInfoPromptConfig(BaseModel):
@@ -45,22 +45,21 @@ class ContextoLogGameRenderer(
     ]
 ):
     @override
-    def format_game_info(self, *, state: ContextoGameStateInterface) -> Iterator[tuple[str, str]]:
-        game_info: int = state.game_info
+    def format_game_info(self, *, game_info: int) -> Iterator[tuple[str, str]]:
         prompt: ContextoInfoPromptConfig = self.prompt_config.game_info
         yield prompt.max_turns, prompt.unlimited if game_info <= 0 else str(game_info)
 
     @override
     def format_guess(
-        self, *, state: ContextoGameStateInterface, guess: ContextoGuess
+        self, *, trajectory: Trajectory[int, ContextoGuess, ContextoFeedback], guess: ContextoGuess
     ) -> Iterator[tuple[str, str]]:
         yield self.prompt_config.guess, guess.word
 
     @override
     def format_last_feedback(
-        self, *, state: ContextoGameStateInterface
+        self, *, trajectory: Trajectory[int, ContextoGuess, ContextoFeedback]
     ) -> Iterator[tuple[str, str]]:
-        feedback: ContextoFeedback = state.turns[-1].feedback
+        feedback: ContextoFeedback = trajectory.turns[-1].feedback
         prompt: ContextoFeedbackPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, ContextoResponse):
@@ -77,9 +76,11 @@ class ContextoLogGameRenderer(
 
     @override
     def format_final_result(
-        self, *, state: ContextoGameStateInterface
+        self,
+        *,
+        trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
+        final_result: ContextoFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        final_result: ContextoFinalResult = state.final_result
         victory: bool = final_result.best_pos == 0
         prompt: ContextoFinalResultPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]
