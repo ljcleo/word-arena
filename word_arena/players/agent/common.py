@@ -1,11 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+
+class Note(BaseModel):
+    law: str
+    strategy: str
 
 
 class Analysis(BaseModel):
-    analysis: str = Field(title="Analysis")
-    plan: str = Field(title="Plan")
+    analysis: str
+    plan: str
 
 
 class Reflection(BaseModel):
-    summary: str = Field(title="Game Summary")
-    reflection: str = Field(title="Reflection")
+    summary: str
+    reflection: str

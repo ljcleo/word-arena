@@ -1,10 +1,10 @@
 from collections.abc import Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import (
     NumberleFeedback,
@@ -15,60 +15,57 @@ from ...common import (
 )
 
 
-class NumberleNote(BaseModel):
-    strategy: str = Field(title="Possible Strategies")
+class NumberleInfoPrompterPromptConfig(BaseModel):
+    num_targets: str
+    eq_length: str
+    max_turns: str
+    unlimited: str
+
+
+class NumberleGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class NumberleFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    patterns: str
+    reject: str
+    reject_reason: str
+    invalid_guess: str
+
+
+class NumberleFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_equations: str
+    answers: str
+
+
+class NumberleAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: NumberleInfoPrompterPromptConfig
+    guess: NumberleGuessPrompterPromptConfig
+    feedback: NumberleFeedbackPrompterPromptConfig
+    final_result: NumberleFinalResultPrompterPromptConfig
 
 
 class NumberleAgentPrompter(
     BaseAgentPrompter[
-        NumberleNote, NumberleInfo, NumberleGuess, NumberleFeedback, NumberleFinalResult
+        NumberleAgentPrompterPromptConfig,
+        NumberleInfo,
+        NumberleGuess,
+        NumberleFeedback,
+        NumberleFinalResult,
     ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI good at basic arithmetics.
-
-You are playing a game where you need to find one or more secret equations.\
-"""
-
-    GAME_RULE = """\
-All secret equations have the same number of characters, with both hand sides \
-basic arithmetic expressions containing digits and `+-*/` only, connected by a single `=`; \
-brackets, negative numbers, decimals, leading zeros, and zero divisions are NOT allowed.
-
-Every time, you choose an equation as your next guess; the guess should be a valid equation \
-following the same length and format constraints described above, **without any whitespaces**.
-
-If the equation is accepted, you will see how \
-it matches each secret equation through a labeling string:
-
-A `G` label means that the character at that position is correct; \
-a `Y` label means that the character at that position should be at somewhere else; \
-a `.` means that the character is not in the secret equation, or has appeared too many times.
-
-If the equation is rejected, you will see the reason, which shall be invalid format.
-
-A secret equation is considered found if and only if the equation is actually guessed in a turn, \
-so you will need at least as many guesses as there are secret equations to find all of them.
-
-There may be a guessing limit on the total number of guesses (including rejected ones), \
-and the game halts if the remaining guesses are not enough to find all secret equations; \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess should be a \
-**single equation obeying the length and format constraints without any whitespaces**.\
-"""
-
-    NOTE_CLS = NumberleNote
-    NOTE_DETAIL = "Your notes should cover possible strategies."
-    NOTE_EXAMPLE = NumberleNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = NumberleGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you had little information gain."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -84,12 +81,13 @@ Your guess should be a \
         final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: NumberleInfo = trajectory.game_info
-        yield "Number of Secret Equations", str(game_info.num_targets)
-        yield "Equation Length in Characters", str(game_info.eq_length)
+        prompt: NumberleInfoPrompterPromptConfig = self.prompt_config.game_info
+        yield prompt.num_targets, str(game_info.num_targets)
+        yield prompt.eq_length, str(game_info.eq_length)
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -101,7 +99,7 @@ Your guess should be a \
         guess: NumberleGuess,
         final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield "Guessed Equation", guess.equation
+        yield self.prompt_config.guess.guess, guess.equation
 
     @override
     def prompt_feedback(
@@ -113,12 +111,14 @@ Your guess should be a \
         feedback: NumberleFeedback,
         final_result: NumberleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: NumberleFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, NumberleResponse):
-            yield "Validation Result", "Accept"
-            yield "Match Pattern", join_or_na(feedback.patterns)
+            yield prompt.result, prompt.accept
+            yield prompt.patterns, join_or_na(feedback.patterns)
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", "invalid guess"
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.invalid_guess
 
     @override
     def prompt_final_result(
@@ -127,14 +127,16 @@ Your guess should be a \
         trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
         final_result: NumberleFinalResult,
     ) -> Iterator[tuple[str, str]]:
+        prompt: NumberleFinalResultPrompterPromptConfig = self.prompt_config.final_result
+
         yield (
-            "Game Result",
-            "Victory" if len(final_result.found_indices) == len(final_result.answers) else "Failed",
+            prompt.result,
+            prompt.verdicts[len(final_result.found_indices) == len(final_result.answers)],
         )
 
         yield (
-            "Found Equations",
+            prompt.found_equations,
             join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Equations", join_or_na(final_result.answers)
+        yield prompt.answers, join_or_na(final_result.answers)

@@ -1,0 +1,54 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI good at logic deduction.\n\nYou are playing a game where you need to find a secret code with digits.",
+        "game_rule": "The game holds a 3-digit secret code `xyz`, where each digit `x`, `y` and `z` ranges from 1 to 5.\n\nMultiple verifiers (indexed from 0) are available to help you find out the secret code, each of which holds a boolean criterion concerning `x`, `y` and `z` (e.g. `x < y` or `x + y + z > 6`), and tells whether an input code satisfies that criterion.\n\nEach verifier will show at least two candidate criteria at the beginning of the game, but will only use one of them for verification throughout the game, so you will need to figure out which criterion the verifier actually verifies.\n\nIt is satisfied that ONLY the secret code passes all verifiers, and all other codes will fail on some verifier(s);\nfurthermore, it is guaranteed that no verifier is superfluous.\n\nYour guesses will consist of multiple verifying guesses and one last final guess.\n\nIn a verifying guess, you propose a 3-digit code, each digit ranging from 1 to 5, along with 1 to 3 verifier indices to which you want to input the code; the chosen verifiers will return yes or no according to your code and their hidden criterion.\n\nWhen you believe you have figured out the secret code, you can make your final guess, where you propose the secret code along with an empty verifier list; the game then ends immediately, returning whether you have successfully find the secret code or not.\n\nIf your guess (both verifying and final) does not follow the above format, then the guess will be rejected, and you will see why. \nThere may be a guessing limit on the total number of guesses (including verifying, final and rejected ones); therefore, you should try your best to minimize the number of guesses.\n\nYour guess should be a **3-digit code plus a list of verifier indices (empty for the final guess)**.",
+        "note_detail": "Your notes should cover logical deduction laws and possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you had little information gain.",
+        "game_info": {
+            "verifier": "Verifier {verifier_id}",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "guess_detail": "Pay attention to the number of remaining guesses.",
+            "final_guess": "Final Guess",
+            "verifying_guess": "Verifying Guess",
+            "verifiers": "Verifiers"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "verification_result": "Verification Result",
+            "verification_verdicts": [
+                "no",
+                "yes"
+            ],
+            "final_guess_result": "Final Guess Result",
+            "final_guess_verdicts": [
+                "wrong",
+                "right"
+            ],
+            "reject": "Reject",
+            "reject_reason": "Reason",
+            "reject_messages": {
+                "invalid_code": "invalid code guess",
+                "too_many_verifiers": "too many verifiers",
+                "invalid_verifier": "Invalid verifier index"
+            }
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "num_questions": "Asked Questions",
+            "has_final_guess": "Made Final Guess",
+            "final_guess_status": [
+                "no",
+                "yes"
+            ],
+            "answer": "Secret Code"
+        }
+    }
+}

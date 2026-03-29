@@ -1,65 +1,50 @@
 from collections.abc import Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import ContextoHintFeedback, ContextoHintGuess
 
 
-class ContextoHintNote(BaseModel):
-    law: str = Field(title="Word Similarity Laws")
-    strategy: str = Field(title="Possible Strategies")
+class ContextoHintFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    position: str
+    reject: str
+    reject_reason: str
+    invalid_guess: str
+
+
+class ContextoHintFinalResultPrompterPromptConfig(BaseModel):
+    secret_word: str
+    top_words: str
+
+
+class ContextoHintGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class ContextoHintAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    choices: str
+    guess: ContextoHintGuessPrompterPromptConfig
+    feedback: ContextoHintFeedbackPrompterPromptConfig
+    final_result: ContextoHintFinalResultPrompterPromptConfig
 
 
 class ContextoHintAgentPrompter(
     BaseAgentPrompter[
-        ContextoHintNote, list[str], ContextoHintGuess, ContextoHintFeedback, list[str]
+        ContextoHintAgentPrompterPromptConfig,
+        list[str],
+        ContextoHintGuess,
+        ContextoHintFeedback,
+        list[str],
     ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI good at understanding word relations.
-
-You are playing a game where you need to find a secret word.\
-"""
-
-    GAME_RULE = """\
-The game holds a word list with 500 words, including the secret word, \
-sorted by the similarity to the secret word.
-
-The position of the secret word is 1; the position of the word closest to the secret word \
-(but not the secret word itself) is 2; the position of the furthest word is 500.
-
-Word similarity is based on the context in which words are used on the internet, \
-related to both meaning and proximity.
-
-Every time, the game provides several candidate words (indexed from 0) from the list that \
-you have not guessed before, but without their positions; \
-the first round candidates are given in the game information, \
-and subsequence round candidates in the feedback of the previous round.
-
-You need to choose one of them as your next guess, then you will see its position in the list.
-
-It is guaranteed that there is a candidate word closer than the current best guess.
-
-Your guess should be the **index of the guessed word**, NOT the word itself.\
-"""
-
-    NOTE_CLS = ContextoHintNote
-    NOTE_DETAIL = "Your notes should cover empirical word similarity laws and possible strategies."
-
-    NOTE_EXAMPLE = ContextoHintNote(
-        law="...", strategy="Follow these rules and strategies when guessing: ..."
-    )
-
     GUESS_CLS = ContextoHintGuess
-
-    REFLECT_DETAIL = (
-        "Pay attention to the rounds where you failed to choose the word "
-        "with the closest position among the candidates."
-    )
 
     @override
     def get_guess_detail(
@@ -73,7 +58,10 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
 
         assert choices is not None
         example: int = len(choices) - 1
-        return f"For example, reply {example} if you choose {choices[example]}."
+
+        return self.prompt_config.guess.guess_detail.format(
+            example=example, choice=choices[example]
+        )
 
     @override
     def get_guess_example(
@@ -95,9 +83,7 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
         final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
-        yield self._format_choices(
-            choices=trajectory.game_info, top_words=final_result, is_first=True
-        )
+        yield self._format_choices(turn_id=1, choices=trajectory.game_info, top_words=final_result)
 
     @override
     def prompt_guess(
@@ -116,7 +102,11 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
 
         assert choices is not None
         index: int = guess.index
-        yield "Selected Word", f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})"
+
+        yield (
+            self.prompt_config.guess.guess,
+            f"{index} ({choices[index] if 0 <= index < len(choices) else 'N/A'})",
+        )
 
     @override
     def prompt_feedback(
@@ -128,16 +118,18 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         feedback: ContextoHintFeedback,
         final_result: list[str] | None,
     ) -> Iterator[tuple[str, str]]:
-        if feedback.distance < 0:
-            yield "Validation Result", "Reject"
-            yield "Reason", "Invalid guess"
+        prompt: ContextoHintFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
+        if feedback.distance >= 0:
+            yield prompt.result, prompt.accept
+            yield prompt.position, str(feedback.distance + 1)
         else:
-            yield "Validation Result", "Accept"
-            yield "Position", str(feedback.distance + 1)
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.invalid_guess
 
         if feedback.next_choices is not None:
             yield self._format_choices(
-                choices=feedback.next_choices, top_words=final_result, is_first=False
+                turn_id=turn_id + 2, choices=feedback.next_choices, top_words=final_result
             )
 
     @override
@@ -147,17 +139,18 @@ Your guess should be the **index of the guessed word**, NOT the word itself.\
         trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
         final_result: list[str],
     ) -> Iterator[tuple[str, str]]:
-        yield "Secret Word", final_result[0]
-        yield "Top 30 Words", join_or_na(final_result[:30])
+        prompt: ContextoHintFinalResultPrompterPromptConfig = self.prompt_config.final_result
+        yield prompt.secret_word, final_result[0]
+        yield prompt.top_words, join_or_na(final_result[:30])
 
     def _format_choices(
-        self, *, choices: list[str], top_words: list[str] | None, is_first: bool
+        self, *, turn_id: int, choices: list[str], top_words: list[str] | None
     ) -> tuple[str, str]:
         word_pos: dict[str, int] | None = (
             None if top_words is None else {word: pos + 1 for pos, word in enumerate(top_words)}
         )
 
-        return f"Candidates for {'the First' if is_first else 'Next'} Round", join_or_na(
-            f"{index}. {word}" if word_pos is None else f"{index}. {word} ({word_pos[word]})"
+        return self.prompt_config.choices.format(turn_id=turn_id), join_or_na(
+            f"{index}. {word}" + ("" if word_pos is None else f" ({word_pos[word]})")
             for index, word in enumerate(choices)
         )

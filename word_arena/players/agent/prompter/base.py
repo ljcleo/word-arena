@@ -1,17 +1,27 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 
+from pydantic import BaseModel
+
 from ....common.game.common import Trajectory
 
 
-class BaseAgentPrompter[NT, IT, GT, FT, RT](ABC):
-    ROLE_DEFINITION: str
-    GAME_RULE: str
-    NOTE_DETAIL: str
-    NOTE_CLS: type[NT]
-    NOTE_EXAMPLE: NT
+class BaseAgentPrompterPromptConfig(BaseModel):
+    role_definition: str
+    game_rule: str
+    note_detail: str
+    reflection_detail: str
+
+
+class BaseAgentPrompter[PT: BaseAgentPrompterPromptConfig, IT, GT, FT, RT](ABC):
     GUESS_CLS: type[GT]
-    REFLECT_DETAIL: str
+
+    def __init__(self, *, prompt_config: PT) -> None:
+        self._prompt_config: PT = prompt_config
+
+    @property
+    def prompt_config(self) -> PT:
+        return self._prompt_config
 
     @abstractmethod
     def get_guess_detail(self, *, trajectory: Trajectory[IT, GT, FT]) -> str: ...

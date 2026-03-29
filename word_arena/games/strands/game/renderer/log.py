@@ -9,14 +9,14 @@ from .....utils import join_or_na
 from ...common import StrandsError, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 
 
-class StrandsInfoPromptConfig(BaseModel):
+class StrandsInfoLogPromptConfig(BaseModel):
     board: str
     clue: str
     max_turns: str
     unlimited: str
 
 
-class StrandsFeedbackPromptConfig(BaseModel):
+class StrandsFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     guess_result: str
@@ -26,7 +26,7 @@ class StrandsFeedbackPromptConfig(BaseModel):
     reject_messages: dict[StrandsError, str]
 
 
-class StrandsFinalResultPromptConfig(BaseModel):
+class StrandsFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_spangram: str
@@ -36,10 +36,10 @@ class StrandsFinalResultPromptConfig(BaseModel):
 
 
 class StrandsLogPromptConfig(BaseModel):
-    game_info: StrandsInfoPromptConfig
+    game_info: StrandsInfoLogPromptConfig
     guess: str
-    feedback: StrandsFeedbackPromptConfig
-    final_result: StrandsFinalResultPromptConfig
+    feedback: StrandsFeedbackLogPromptConfig
+    final_result: StrandsFinalResultLogPromptConfig
 
 
 class StrandsLogGameRenderer(
@@ -49,7 +49,7 @@ class StrandsLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: StrandsInfo) -> Iterator[tuple[str, str]]:
-        prompt: StrandsInfoPromptConfig = self.prompt_config.game_info
+        prompt: StrandsInfoLogPromptConfig = self.prompt_config.game_info
         yield prompt.board, "\n".join(game_info.board)
         yield prompt.clue, game_info.clue
 
@@ -96,7 +96,7 @@ class StrandsLogGameRenderer(
         self, *, trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: StrandsFeedback = trajectory.turns[-1].feedback
-        prompt: StrandsFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: StrandsFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, int):
             yield prompt.result, prompt.accept
@@ -112,7 +112,7 @@ class StrandsLogGameRenderer(
         trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
         final_result: StrandsFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: StrandsFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: StrandsFinalResultLogPromptConfig = self.prompt_config.final_result
 
         yield (
             prompt.result,

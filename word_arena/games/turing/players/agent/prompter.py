@@ -1,74 +1,67 @@
 from collections.abc import Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
-from ...common import TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
+from ...common import TuringError, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
 
 
-class TuringNote(BaseModel):
-    strategy: str = Field(title="Possible Strategies")
+class TuringInfoPrompterPromptConfig(BaseModel):
+    verifier: str
+    max_turns: str
+    unlimited: str
+
+
+class TuringGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    final_guess: str
+    verifying_guess: str
+    verifiers: str
+
+
+class TuringFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    verification_result: str
+    verification_verdicts: tuple[str, str]
+    final_guess_result: str
+    final_guess_verdicts: tuple[str, str]
+    reject: str
+    reject_reason: str
+    reject_messages: dict[TuringError, str]
+
+
+class TuringFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    num_questions: str
+    has_final_guess: str
+    final_guess_status: tuple[str, str]
+    answer: str
+
+
+class TuringAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: TuringInfoPrompterPromptConfig
+    guess: TuringGuessPrompterPromptConfig
+    feedback: TuringFeedbackPrompterPromptConfig
+    final_result: TuringFinalResultPrompterPromptConfig
 
 
 class TuringAgentPrompter(
-    BaseAgentPrompter[TuringNote, TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult]
+    BaseAgentPrompter[
+        TuringAgentPrompterPromptConfig, TuringInfo, TuringGuess, TuringFeedback, TuringFinalResult
+    ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI good at logic deduction.
-
-You are playing a game where you need to find a secret code with digits.\
-"""
-
-    GAME_RULE = """\
-The game holds a 3-digit secret code `xyz`, where each digit `x`, `y` and `z` ranges from 1 to 5.
-
-Multiple verifiers (indexed from 0) are available to help you find out the secret code, \
-each of which holds a boolean criterion concerning `x`, `y` and `z` \
-(e.g. `x < y` or `x + y + z > 6`), and tells whether an input code satisfies that criterion.
-
-Each verifier will show at least two candidate criteria at the beginning of the game, \
-but will only use one of them for verification throughout the game, \
-so you will need to figure out which criterion the verifier actually verifies.
-
-It is satisfied that ONLY the secret code passes all verifiers, \
-and all other codes will fail on some verifier(s);
-furthermore, it is guaranteed that no verifier is superfluous.
-
-Your guesses will consist of multiple verifying guesses and one last final guess.
-
-In a verifying guess, you propose a 3-digit code, each digit ranging from 1 to 5, \
-along with 1 to 3 verifier indices to which you want to input the code; \
-the chosen verifiers will return yes or no according to your code and their hidden criterion.
-
-When you believe you have figured out the secret code, you can make your final guess, \
-where you propose the secret code along with an empty verifier list; \
-the game then ends immediately, returning whether you have successfully find the secret code or not.
-
-If your guess (both verifying and final) does not follow the above format, \
-then the guess will be rejected, and you will see why. \
-
-There may be a guessing limit on the total number of guesses \
-(including verifying, final and rejected ones); \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess should be a **3-digit code plus a list of verifier indices \
-(empty for the final guess)**.\
-"""
-
-    NOTE_CLS = TuringNote
-    NOTE_DETAIL = "Your notes should cover possible strategies."
-    NOTE_EXAMPLE = TuringNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = TuringGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you had little information gain."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -84,13 +77,14 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         final_result: TuringFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: TuringInfo = trajectory.game_info
+        prompt: TuringInfoPrompterPromptConfig = self.prompt_config.game_info
 
         for index, card in enumerate(game_info.verifiers):
-            yield f"Verifier {index}", join_or_na(card)
+            yield prompt.verifier.format(verifier_id=index), join_or_na(card)
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -102,11 +96,13 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         guess: TuringGuess,
         final_result: TuringFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: TuringGuessPrompterPromptConfig = self.prompt_config.guess
+
         if len(guess.verifiers) == 0:
-            yield "Final Guess", str(guess.code)
+            yield prompt.final_guess, str(guess.code)
         else:
-            yield "Verifying Guess", str(guess.code)
-            yield "Verifiers", join_or_na(map(str, guess.verifiers))
+            yield prompt.verifying_guess, str(guess.code)
+            yield prompt.verifiers, join_or_na(map(str, guess.verifiers))
 
     @override
     def prompt_feedback(
@@ -118,15 +114,21 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         feedback: TuringFeedback,
         final_result: TuringFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: TuringFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, list):
-            yield "Validation Result", "Accept"
-            yield "Verification Result", join_or_na("Y" if result else "N" for result in feedback)
+            yield prompt.result, prompt.accept
+
+            yield (
+                prompt.verification_result,
+                join_or_na(map(prompt.verification_verdicts.__getitem__, feedback)),
+            )
         elif isinstance(feedback, bool):
-            yield "Validation Result", "Accept"
-            yield "Final Guess Result", "Correct" if feedback else "Incorrect"
+            yield prompt.result, prompt.accept
+            yield prompt.final_guess_result, prompt.final_guess_verdicts[feedback]
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def prompt_final_result(
@@ -135,7 +137,8 @@ Your guess should be a **3-digit code plus a list of verifier indices \
         trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
         final_result: TuringFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        yield "Game Result", "Victory" if final_result.verdict is True else "Failed"
-        yield "Asked Questions", str(final_result.num_questions)
-        yield "Made Final Guess", "Yes" if final_result.verdict is not None else "No"
-        yield "Secret Code", str(final_result.answer)
+        prompt: TuringFinalResultPrompterPromptConfig = self.prompt_config.final_result
+        yield prompt.result, prompt.verdicts[final_result.verdict is True]
+        yield prompt.num_questions, str(final_result.num_questions)
+        yield prompt.has_final_guess, prompt.final_guess_status[final_result.verdict is not None]
+        yield prompt.answer, str(final_result.answer)

@@ -15,14 +15,14 @@ from ...common import (
 )
 
 
-class NumberleInfoPromptConfig(BaseModel):
+class NumberleInfoLogPromptConfig(BaseModel):
     num_targets: str
     eq_length: str
     max_turns: str
     unlimited: str
 
 
-class NumberleFeedbackPromptConfig(BaseModel):
+class NumberleFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     patterns: str
@@ -31,7 +31,7 @@ class NumberleFeedbackPromptConfig(BaseModel):
     invalid_guess: str
 
 
-class NumberleFinalResultPromptConfig(BaseModel):
+class NumberleFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_equations: str
@@ -39,10 +39,10 @@ class NumberleFinalResultPromptConfig(BaseModel):
 
 
 class NumberleLogPromptConfig(BaseModel):
-    game_info: NumberleInfoPromptConfig
+    game_info: NumberleInfoLogPromptConfig
     guess: str
-    feedback: NumberleFeedbackPromptConfig
-    final_result: NumberleFinalResultPromptConfig
+    feedback: NumberleFeedbackLogPromptConfig
+    final_result: NumberleFinalResultLogPromptConfig
 
 
 class NumberleLogGameRenderer(
@@ -52,7 +52,7 @@ class NumberleLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: NumberleInfo) -> Iterator[tuple[str, str]]:
-        prompt: NumberleInfoPromptConfig = self.prompt_config.game_info
+        prompt: NumberleInfoLogPromptConfig = self.prompt_config.game_info
         yield prompt.num_targets, str(game_info.num_targets)
         yield prompt.eq_length, str(game_info.eq_length)
 
@@ -75,7 +75,7 @@ class NumberleLogGameRenderer(
         self, *, trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: NumberleFeedback = trajectory.turns[-1].feedback
-        prompt: NumberleFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: NumberleFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, NumberleResponse):
             yield prompt.result, prompt.accept
@@ -91,7 +91,7 @@ class NumberleLogGameRenderer(
         trajectory: Trajectory[NumberleInfo, NumberleGuess, NumberleFeedback],
         final_result: NumberleFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: NumberleFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: NumberleFinalResultLogPromptConfig = self.prompt_config.final_result
 
         yield (
             prompt.result,

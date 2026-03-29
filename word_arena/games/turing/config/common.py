@@ -15,7 +15,7 @@ class TuringMetaConfig(BaseModel):
     def model_post_init(self, context: Any) -> None:
         with get_db_cursor(data_file=self.data_file) as cur:
             self._card_pool: dict[int, list[str]] = {
-                card_id: TypeAdapter(list[str]).validate_json(card)
+                card_id: TypeAdapter(list[str]).validate_json(card, strict=True)
                 for card_id, card in cur.execute("SELECT card_id, card FROM card")
             }
 

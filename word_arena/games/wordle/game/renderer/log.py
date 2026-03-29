@@ -9,13 +9,13 @@ from .....utils import join_or_na
 from ...common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleResponse
 
 
-class WordleInfoPromptConfig(BaseModel):
+class WordleInfoLogPromptConfig(BaseModel):
     num_targets: str
     max_turns: str
     unlimited: str
 
 
-class WordleFeedbackPromptConfig(BaseModel):
+class WordleFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     patterns: str
@@ -24,7 +24,7 @@ class WordleFeedbackPromptConfig(BaseModel):
     reject_messages: tuple[str, str]
 
 
-class WordleFinalResultPromptConfig(BaseModel):
+class WordleFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_words: str
@@ -32,10 +32,10 @@ class WordleFinalResultPromptConfig(BaseModel):
 
 
 class WordleLogPromptConfig(BaseModel):
-    game_info: WordleInfoPromptConfig
+    game_info: WordleInfoLogPromptConfig
     guess: str
-    feedback: WordleFeedbackPromptConfig
-    final_result: WordleFinalResultPromptConfig
+    feedback: WordleFeedbackLogPromptConfig
+    final_result: WordleFinalResultLogPromptConfig
 
 
 class WordleLogGameRenderer(
@@ -45,7 +45,7 @@ class WordleLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: WordleInfo) -> Iterator[tuple[str, str]]:
-        prompt: WordleInfoPromptConfig = self.prompt_config.game_info
+        prompt: WordleInfoLogPromptConfig = self.prompt_config.game_info
         yield prompt.num_targets, str(game_info.num_targets)
 
         yield (
@@ -64,7 +64,7 @@ class WordleLogGameRenderer(
         self, *, trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: WordleFeedback = trajectory.turns[-1].feedback
-        prompt: WordleFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: WordleFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, WordleResponse):
             yield prompt.result, prompt.accept
@@ -80,7 +80,7 @@ class WordleLogGameRenderer(
         trajectory: Trajectory[WordleInfo, WordleGuess, WordleFeedback],
         final_result: WordleFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: WordleFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: WordleFinalResultLogPromptConfig = self.prompt_config.final_result
 
         yield (
             prompt.result,

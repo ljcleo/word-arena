@@ -1,63 +1,61 @@
 from collections.abc import Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
 
 
-class ContextoNote(BaseModel):
-    law: str = Field(title="Word Similarity Laws")
-    strategy: str = Field(title="Possible Strategies")
+class ContextoInfoPrompterPromptConfig(BaseModel):
+    max_turns: str
+    unlimited: str
+
+
+class ContextoGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class ContextoFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    lemma: str
+    position: str
+    reject: str
+    reject_reason: str
+    invalid_guess: str
+
+
+class ContextoFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    best_guess: str
+    secret_word: str
+    top_words: str
+
+
+class ContextoAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: ContextoInfoPrompterPromptConfig
+    guess: ContextoGuessPrompterPromptConfig
+    feedback: ContextoFeedbackPrompterPromptConfig
+    final_result: ContextoFinalResultPrompterPromptConfig
 
 
 class ContextoAgentPrompter(
-    BaseAgentPrompter[ContextoNote, int, ContextoGuess, ContextoFeedback, ContextoFinalResult]
+    BaseAgentPrompter[
+        ContextoAgentPrompterPromptConfig, int, ContextoGuess, ContextoFeedback, ContextoFinalResult
+    ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI good at understanding word relations.
-
-You are playing a game where you need to find a secret word.\
-"""
-
-    GAME_RULE = """\
-The game holds a word list with tens of thousands words, including the secret word, \
-sorted by the similarity to the secret word.
-
-The position of the secret word is 1; the position of the word closest to the secret word \
-(but not the secret word itself) is 2; the position of the furthest word is 500.
-
-Word similarity is based on the context in which words are used on the internet, \
-related to both meaning and proximity.
-
-Every time, you choose a word as your next guess; the word will be lemmatized to its stem form.
-
-If the word is accepted, you will see its lemma and the lemma's position in the list, \
-otherwise you will see the reject reason, such as invalid format, word not in list, or taboo words.
-
-You should try your best to minimize the number of guesses; there may be a guessing limit.
-
-Your guess should be a **single word with only lowercase letters and no hyphens**.\
-"""
-
-    NOTE_CLS = ContextoNote
-    NOTE_DETAIL = "Your notes should cover empirical word similarity laws and possible strategies."
-
-    NOTE_EXAMPLE = ContextoNote(
-        law="...", strategy="Follow these rules and strategies when guessing: ..."
-    )
-
     GUESS_CLS = ContextoGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you guessed very close or very far words."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[int, ContextoGuess, ContextoFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -73,7 +71,8 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: int = trajectory.game_info
-        yield "Maximum Number of Guesses", "Unlimited" if game_info <= 0 else str(game_info)
+        prompt: ContextoInfoPrompterPromptConfig = self.prompt_config.game_info
+        yield prompt.max_turns, prompt.unlimited if game_info <= 0 else str(game_info)
 
     @override
     def prompt_guess(
@@ -84,7 +83,7 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         guess: ContextoGuess,
         final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
+        yield self.prompt_config.guess.guess, guess.word
 
     @override
     def prompt_feedback(
@@ -96,18 +95,18 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         feedback: ContextoFeedback,
         final_result: ContextoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: ContextoFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, ContextoResponse):
-            yield "Validation Result", "Accept"
-            yield "Lemma Form", feedback.lemma
-            yield "Position", str(feedback.distance + 1)
+            yield prompt.result, prompt.accept
+            yield prompt.lemma, feedback.lemma
+            yield prompt.position, str(feedback.distance + 1)
         else:
-            yield "Validation Result", "Reject"
+            yield prompt.result, prompt.reject
 
             yield (
-                "Reason",
-                "guess should only contain lowercase letters"
-                if feedback.error is None
-                else feedback.error,
+                prompt.reject_reason,
+                prompt.invalid_guess if feedback.error is None else feedback.error,
             )
 
     @override
@@ -117,11 +116,12 @@ Your guess should be a **single word with only lowercase letters and no hyphens*
         trajectory: Trajectory[int, ContextoGuess, ContextoFeedback],
         final_result: ContextoFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        if final_result.best_pos == 0:
-            yield "Game Result", "Victory"
-        else:
-            yield "Game Result", "Failed"
-            yield "Best Guess", f"{final_result.best_word} ({final_result.best_pos + 1})"
+        victory: bool = final_result.best_pos == 0
+        prompt: ContextoFinalResultPrompterPromptConfig = self.prompt_config.final_result
+        yield prompt.result, prompt.verdicts[victory]
 
-        yield "Secret Word", final_result.top_words[0]
-        yield "Top 30 Words", join_or_na(final_result.top_words[:30])
+        if not victory:
+            yield prompt.best_guess, f"{final_result.best_word} ({final_result.best_pos + 1})"
+
+        yield prompt.secret_word, final_result.top_words[0]
+        yield prompt.top_words, join_or_na(final_result.top_words[:30])

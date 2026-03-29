@@ -9,19 +9,19 @@ from .....utils import join_or_na
 from ...common import TuringError, TuringFeedback, TuringFinalResult, TuringGuess, TuringInfo
 
 
-class TuringInfoPromptConfig(BaseModel):
+class TuringInfoLogPromptConfig(BaseModel):
     verifier: str
     max_turns: str
     unlimited: str
 
 
-class TuringGuessPromptConfig(BaseModel):
+class TuringGuessLogPromptConfig(BaseModel):
     final_guess: str
     verifying_guess: str
     verifiers: str
 
 
-class TuringFeedbackPromptConfig(BaseModel):
+class TuringFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     verification_result: str
@@ -33,7 +33,7 @@ class TuringFeedbackPromptConfig(BaseModel):
     reject_messages: dict[TuringError, str]
 
 
-class TuringFinalResultPromptConfig(BaseModel):
+class TuringFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     num_questions: str
@@ -43,10 +43,10 @@ class TuringFinalResultPromptConfig(BaseModel):
 
 
 class TuringLogPromptConfig(BaseModel):
-    game_info: TuringInfoPromptConfig
-    guess: TuringGuessPromptConfig
-    feedback: TuringFeedbackPromptConfig
-    final_result: TuringFinalResultPromptConfig
+    game_info: TuringInfoLogPromptConfig
+    guess: TuringGuessLogPromptConfig
+    feedback: TuringFeedbackLogPromptConfig
+    final_result: TuringFinalResultLogPromptConfig
 
 
 class TuringLogGameRenderer(
@@ -56,8 +56,7 @@ class TuringLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: TuringInfo) -> Iterator[tuple[str, str]]:
-        prompt: TuringInfoPromptConfig = self.prompt_config.game_info
-
+        prompt: TuringInfoLogPromptConfig = self.prompt_config.game_info
         for index, card in enumerate(game_info.verifiers):
             yield prompt.verifier.format(verifier_id=index), join_or_na(card)
 
@@ -70,7 +69,7 @@ class TuringLogGameRenderer(
     def format_guess(
         self, *, trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback], guess: TuringGuess
     ) -> Iterator[tuple[str, str]]:
-        prompt: TuringGuessPromptConfig = self.prompt_config.guess
+        prompt: TuringGuessLogPromptConfig = self.prompt_config.guess
 
         if len(guess.verifiers) == 0:
             yield prompt.final_guess, str(guess.code)
@@ -83,7 +82,7 @@ class TuringLogGameRenderer(
         self, *, trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: TuringFeedback = trajectory.turns[-1].feedback
-        prompt: TuringFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: TuringFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, list):
             yield prompt.result, prompt.accept
@@ -106,7 +105,7 @@ class TuringLogGameRenderer(
         trajectory: Trajectory[TuringInfo, TuringGuess, TuringFeedback],
         final_result: TuringFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: TuringFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: TuringFinalResultLogPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[final_result.verdict is True]
         yield prompt.num_questions, str(final_result.num_questions)
         yield prompt.has_final_guess, prompt.final_guess_status[final_result.verdict is not None]

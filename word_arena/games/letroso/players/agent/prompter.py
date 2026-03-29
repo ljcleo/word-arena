@@ -1,81 +1,65 @@
 from collections.abc import Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo
 
 
-class LetrosoNote(BaseModel):
-    strategy: str = Field(title="Possible Strategies")
+class LetrosoInfoPrompterPromptConfig(BaseModel):
+    num_targets: str
+    max_letters: str
+    max_turns: str
+    unlimited: str
+
+
+class LetrosoGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class LetrosoFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    patterns: str
+    reject: str
+    reject_reason: str
+    reject_messages: tuple[str, str]
+
+
+class LetrosoFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_words: str
+    answers: str
+
+
+class LetrosoAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: LetrosoInfoPrompterPromptConfig
+    guess: LetrosoGuessPrompterPromptConfig
+    feedback: LetrosoFeedbackPrompterPromptConfig
+    final_result: LetrosoFinalResultPrompterPromptConfig
 
 
 class LetrosoAgentPrompter(
-    BaseAgentPrompter[LetrosoNote, LetrosoInfo, LetrosoGuess, LetrosoFeedback, LetrosoFinalResult]
+    BaseAgentPrompter[
+        LetrosoAgentPrompterPromptConfig,
+        LetrosoInfo,
+        LetrosoGuess,
+        LetrosoFeedback,
+        LetrosoFinalResult,
+    ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI with a good English vocabulary.
-
-You are playing a game where you need to find one or more secret words.\
-"""
-
-    GAME_RULE = """\
-All secret words are selected from a large vocabulary that covers most of the English words, \
-yet their lengths may vary.
-
-Every time, you choose a word as your next guess; \
-the guess should be a valid English word with no more than a specific number of letters.
-
-If the word is accepted, you will see how it matches each secret word \
-through a bracketed labeling string the same length as the guessed word:
-
-A `G` label or `>` label means that the relative order of the letter at that position, \
-compared to other `G`-labeled or `>`-labeled letters, is the same in the secret word; \
-however, its absolute position in the secret word can be different.
-
-A `Y` label means that the letter at that position appears in the secret word, \
-but its relative order, compared to `G`-labeled or `>`-labeled letters, is incorrect; \
-a `.` label means that the letter is not in the secret word, or appears too many times.
-
-Furthermore, `>` always appears right after `G` or `>`, forming a `G`-sequence like `G>>>`, \
-meaning that the corresponding letters appear together in the secret word, adjacent to each other.
-
-Directly adjacent `G`-sequences are NOT adjacent to each other in the secret word: \
-for example, `GG` (NOT `G>`) means that the two adjacent letters in the guessed word \
-are NOT adjacent in the secret word, though the relative order is correct; \
-however, this does not apply to non-directly adjacent `G`-sequences like in `GYG`.
-
-The default brackets are `[` and `]`, \
-and `(` at the beginning means that the secret word starts with the first `G`-sequence, \
-while `)` at the end means that the secret word ends with the last `G`-sequence; \
-therefore, the secret word itself will be labeled like `(G>>>>)`.
-
-If the word is rejected, you will see the reason, such as invalid format or word not in vocabulary.
-
-A secret word is considered found if and only if the word is actually guessed in a turn, \
-so you will need at least as many guesses as there are secret words to find all of them.
-
-There may be a guessing limit on the total number of guesses (including rejected ones), \
-and the game halts if the remaining guesses are not enough to find all secret words; \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess should be a **single word with only lowercase letters within the length constraint**.\
-"""
-
-    NOTE_CLS = LetrosoNote
-    NOTE_DETAIL = "Your notes should cover possible strategies."
-    NOTE_EXAMPLE = LetrosoNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = LetrosoGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you had little information gain."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -91,12 +75,13 @@ Your guess should be a **single word with only lowercase letters within the leng
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: LetrosoInfo = trajectory.game_info
-        yield "Number of Secret Words", str(game_info.num_targets)
-        yield "Maximum Number of Letters in One Guess", str(game_info.max_letters)
+        prompt: LetrosoInfoPrompterPromptConfig = self.prompt_config.game_info
+        yield prompt.num_targets, str(game_info.num_targets)
+        yield prompt.max_letters, str(game_info.max_letters)
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -108,7 +93,7 @@ Your guess should be a **single word with only lowercase letters within the leng
         guess: LetrosoGuess,
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
+        yield self.prompt_config.guess.guess, guess.word
 
     @override
     def prompt_feedback(
@@ -120,12 +105,14 @@ Your guess should be a **single word with only lowercase letters within the leng
         feedback: LetrosoFeedback,
         final_result: LetrosoFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: LetrosoFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, list):
-            yield "Validation Result", "Accept"
-            yield "Match Pattern", join_or_na(feedback)
+            yield prompt.result, prompt.accept
+            yield prompt.patterns, join_or_na(feedback)
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", "unknown word" if feedback else "invalid guess"
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def prompt_final_result(
@@ -134,14 +121,16 @@ Your guess should be a **single word with only lowercase letters within the leng
         trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
         final_result: LetrosoFinalResult,
     ) -> Iterator[tuple[str, str]]:
+        prompt: LetrosoFinalResultPrompterPromptConfig = self.prompt_config.final_result
+
         yield (
-            "Game Result",
-            "Victory" if len(final_result.found_indices) == len(final_result.answers) else "Failed",
+            prompt.result,
+            prompt.verdicts[len(final_result.found_indices) == len(final_result.answers)],
         )
 
         yield (
-            "Found Words",
+            prompt.found_words,
             join_or_na(map(final_result.answers.__getitem__, final_result.found_indices)),
         )
 
-        yield "Secret Words", join_or_na(final_result.answers)
+        yield prompt.answers, join_or_na(final_result.answers)

@@ -19,7 +19,8 @@ class ContextoHintGameEngine(
             self._top_words: list[str] = TypeAdapter(list[str]).validate_json(
                 cur.execute(
                     "SELECT top_words FROM game WHERE game_id = ?", (config.game_id,)
-                ).fetchone()[0]
+                ).fetchone()[0],
+                strict=True,
             )
 
         self._num_candidates: int = config.num_candidates

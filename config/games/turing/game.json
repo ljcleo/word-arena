@@ -1,4 +1,21 @@
 {
+    "meta_config": {
+        "data_file": "./data/turing/games.db"
+    },
+    "mutable_meta_config_pool": [
+        {
+            "num_verifiers": 4,
+            "max_turns": 6
+        },
+        {
+            "num_verifiers": 5,
+            "max_turns": 7
+        },
+        {
+            "num_verifiers": 6,
+            "max_turns": 8
+        }
+    ],
     "log_prompt": {
         "game_info": {
             "verifier": "Verifier {verifier_id}",

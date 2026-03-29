@@ -1,75 +1,68 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
-from ...common import StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
+from ...common import StrandsError, StrandsFeedback, StrandsFinalResult, StrandsGuess, StrandsInfo
 
 
-class StrandsNote(BaseModel):
-    strategy: str = Field(title="Possible Strategies")
+class StrandsInfoPrompterPromptConfig(BaseModel):
+    board: str
+    clue: str
+    max_turns: str
+    unlimited: str
+
+
+class StrandsGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class StrandsFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    guess_result: str
+    guess_verdicts: tuple[str, str, str]
+    reject: str
+    reject_reason: str
+    reject_messages: dict[StrandsError, str]
+
+
+class StrandsFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_spangram: str
+    found_theme_words: str
+    missed_spangram: str
+    missed_theme_words: str
+
+
+class StrandsAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: StrandsInfoPrompterPromptConfig
+    guess: StrandsGuessPrompterPromptConfig
+    feedback: StrandsFeedbackPrompterPromptConfig
+    final_result: StrandsFinalResultPrompterPromptConfig
 
 
 class StrandsAgentPrompter(
-    BaseAgentPrompter[StrandsNote, StrandsInfo, StrandsGuess, StrandsFeedback, StrandsFinalResult]
+    BaseAgentPrompter[
+        StrandsAgentPrompterPromptConfig,
+        StrandsInfo,
+        StrandsGuess,
+        StrandsFeedback,
+        StrandsFinalResult,
+    ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI with a good English vocabulary.
-
-You are playing a game where you need to find secret words arranged in a grid.
-"""
-
-    GAME_RULE = """\
-The game holds a spangram and several theme words, and gives a clue about them; \
-a spangram can have one or more words, while each theme word is strictly one word.
-
-The secret spangram and theme words are arranged into a 8x6 grid, \
-where each cell is a letter that only belongs to one theme word or the spangram; \
-the coordinates are in the form of `(row, column)`, \
-where rows are from 0 to 7 and columns are from 0 to 5.
-
-Each theme word and the spangram can be found continuous and non-overlapping in the grid: \
-you can draw a path on the grid that reads exactly the theme word or spangram, \
-where adjacent vertices are 8-connected and no cells are visited twice; \
-furthermore, paths of all theme words and the spangram do not use common cells, \
-and pass all cells in the grid exactly once.
-
-The spangram describes the game's theme; it always touches two opposite sides of the board, \
-either from row 0 to row 7 or from column 0 to column 5, or both.
-
-Every time, you draw a path on the grid to form a guess; \
-the path must be continuous and non-overlapping, \
-and must not use cells that belong to the theme words or spangram that you have found.
-
-If the path is valid, you will see whether it hits a theme word or the spangram or misses; \
-a miss can either mean selecting the wrong word or selecting the right word at the wrong location.
-
-If the path is invalid, it will be rejected and you will see the reason.
-
-There may be a guessing limit on the total number of guesses (including rejected ones), and \
-the game halts if the remaining guesses are not enough to find all theme words and the spangram; \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess should be the **list of coordinates of the guessed path**, NOT the word itself.\
-"""
-
-    NOTE_CLS = StrandsNote
-    NOTE_DETAIL = "Your notes should cover possible strategies."
-    NOTE_EXAMPLE = StrandsNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = StrandsGuess
-
-    REFLECT_DETAIL = (
-        "Pay attention to the rounds where you successfully found a theme word or spangram."
-    )
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -85,12 +78,13 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: StrandsInfo = trajectory.game_info
-        yield "Board", "\n".join(game_info.board)
-        yield "Clue", game_info.clue
+        prompt: StrandsInfoPrompterPromptConfig = self.prompt_config.game_info
+        yield prompt.board, "\n".join(game_info.board)
+        yield prompt.clue, game_info.clue
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -126,7 +120,7 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         else:
             word = "".join(buffer)
 
-        yield "Guessed Word", self._format_word(word=word, coords=guess.coords)
+        yield self.prompt_config.guess.guess, self._format_word(word=word, coords=guess.coords)
 
     @override
     def prompt_feedback(
@@ -138,12 +132,14 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         feedback: StrandsFeedback,
         final_result: StrandsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: StrandsFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, int):
-            yield "Validation Result", "Accept"
-            yield "Guess Result", ("Missed", "Theme Word", "Spangram")[feedback]
+            yield prompt.result, prompt.accept
+            yield prompt.guess_result, prompt.guess_verdicts[feedback]
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", feedback
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def prompt_final_result(
@@ -152,9 +148,11 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         trajectory: Trajectory[StrandsInfo, StrandsGuess, StrandsFeedback],
         final_result: StrandsFinalResult,
     ) -> Iterator[tuple[str, str]]:
+        prompt: StrandsFinalResultPrompterPromptConfig = self.prompt_config.final_result
+
         yield (
-            "Game Result",
-            "Victory" if len(final_result.found_indices) == len(final_result.answers) else "Failed",
+            prompt.result,
+            prompt.verdicts[len(final_result.found_indices) == len(final_result.answers)],
         )
 
         spangram_str: str = self._format_words(infos=final_result.answers[:1])
@@ -171,22 +169,22 @@ Your guess should be the **list of coordinates of the guessed path**, NOT the wo
         ]
 
         if spangram_found:
-            yield "Found Spangram", spangram_str
+            yield prompt.found_spangram, spangram_str
 
         if len(found_theme_indices) > 0:
             yield (
-                "Found Theme Words",
+                prompt.found_theme_words,
                 self._format_words(
                     infos=map(final_result.answers.__getitem__, found_theme_indices)
                 ),
             )
 
         if not spangram_found:
-            yield "Spangram Not Found", spangram_str
+            yield prompt.missed_spangram, spangram_str
 
         if len(missed_theme_indices) > 0:
             yield (
-                "Theme Words Not Found",
+                prompt.missed_theme_words,
                 self._format_words(
                     infos=map(final_result.answers.__getitem__, missed_theme_indices)
                 ),

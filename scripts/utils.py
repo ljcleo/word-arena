@@ -1,4 +1,7 @@
+from json import dumps
+
 from common import GAME_CONFIG_PATH, LLM_CONFIG_PATH
+from pydantic import BaseModel
 
 
 def input_game_key() -> str:
@@ -15,3 +18,11 @@ def input_llm_key() -> str:
         print(f"{index}. {llm}")
 
     return llms[int(input("LLM Index: "))]
+
+
+def make_cls_prefix(*, key: str) -> str:
+    return "".join(part.capitalize() for part in key.split("_"))
+
+
+def try_validate[T: BaseModel, U](*, cls: type[T] | None, data: U) -> T | U:
+    return data if cls is None else cls.model_validate_json(dumps(data), strict=True)

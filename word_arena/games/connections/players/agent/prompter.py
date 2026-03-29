@@ -1,10 +1,10 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import (
     ConnectionsFeedback,
@@ -15,70 +15,61 @@ from ...common import (
 )
 
 
-class ConnectionsNote(BaseModel):
-    law: str = Field(title="Word Group Laws")
-    strategy: str = Field(title="Possible Strategies")
+class ConnectionsInfoPrompterPromptConfig(BaseModel):
+    words: str
+    group_size: str
+    max_turns: str
+    unlimited: str
+
+
+class ConnectionsGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class ConnectionsFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    theme: str
+    reject: str
+    reject_reason: str
+    invalid_guess: str
+
+
+class ConnectionsFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_groups: str
+    remaining_groups: str
+
+
+class ConnectionsAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: ConnectionsInfoPrompterPromptConfig
+    guess: ConnectionsGuessPrompterPromptConfig
+    feedback: ConnectionsFeedbackPrompterPromptConfig
+    final_result: ConnectionsFinalResultPrompterPromptConfig
 
 
 class ConnectionsAgentPrompter(
     BaseAgentPrompter[
-        ConnectionsNote,
+        ConnectionsAgentPrompterPromptConfig,
         ConnectionsInfo,
         ConnectionsGuess,
         ConnectionsFeedback,
         ConnectionsFinalResult,
     ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI good at understanding word relations.
-
-You are playing a game where you need to find the groups behind words.\
-"""
-
-    GAME_RULE = """\
-The game holds several word groups of the same size; \
-each group has a common theme that shall cover all words in the group, \
-which can be lexical, semantic, conceptual, phrasal (can form phrases with the same word), \
-or any general co-membership (e.g., work titles by the same artist).
-
-At the beginning, the game provides the group size and words from all groups (indexed from 0), \
-but not the groups themselves; it is guaranteed that each word belongs to exactly one group.
-
-Every time, you choose as many words as the group size to form a guess, \
-then you will see whether the guessed words belong to the same group or not; \
-if yes, then the group is considered found.
-
-If you guess an incorrect number of words, or guess words that already belong to a found group, \
-then the guess will be rejected.
-
-There may be a limit on the total number of guesses (including rejected ones), \
-and the game halts if the remaining guesses are not enough to find all word groups; \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess should be the **indices of the guessed words**, NOT the words themselves.\
-"""
-
-    NOTE_CLS = ConnectionsNote
-    NOTE_DETAIL = "Your notes should cover empirical word group laws and possible strategies."
-
-    NOTE_EXAMPLE = ConnectionsNote(
-        law="...", strategy="Follow these rules and strategies when guessing: ..."
-    )
-
     GUESS_CLS = ConnectionsGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you successfully found a group."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback]
     ) -> str:
         example: range = range(trajectory.game_info.group_size)
-        choices: str = join_or_na(trajectory.game_info.words[index] for index in example)
-        response: str = join_or_na(map(str, example))
 
-        return (
-            "Pay attention to the number of remaining guesses.\n\n"
-            f"For example, reply {response} if you choose {choices}."
+        return self.prompt_config.guess.guess_detail.format(
+            response=join_or_na(map(str, example)),
+            choices=join_or_na(trajectory.game_info.words[index] for index in example),
         )
 
     @override
@@ -95,17 +86,18 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         final_result: ConnectionsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: ConnectionsInfo = trajectory.game_info
+        prompt: ConnectionsInfoPrompterPromptConfig = self.prompt_config.game_info
 
         yield (
-            "Words",
+            prompt.words,
             join_or_na(f"{index}. {word}" for index, word in enumerate(game_info.words)),
         )
 
-        yield "Group Size", str(game_info.group_size)
+        yield prompt.group_size, str(game_info.group_size)
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -120,7 +112,7 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         words: list[str] = trajectory.game_info.words
 
         yield (
-            "Selected Words",
+            self.prompt_config.guess.guess,
             join_or_na(
                 f"{index} ({words[index] if 0 <= index < len(words) else 'N/A'})"
                 for index in guess.indices
@@ -137,19 +129,14 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         feedback: ConnectionsFeedback,
         final_result: ConnectionsFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        message: str | None = feedback.message
+        prompt: ConnectionsFeedbackPrompterPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
-            yield "Validation Result", "Accept"
-
-            if message is None:
-                yield "Is Same Group", "No"
-            else:
-                yield "Is Same Group", "Yes"
-                yield "Theme", message
+            yield prompt.result, prompt.accept
+            yield prompt.theme, "N/A" if feedback.message is None else feedback.message
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", "N/A" if message is None else message
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.invalid_guess
 
     @override
     def prompt_final_result(
@@ -158,11 +145,16 @@ Your guess should be the **indices of the guessed words**, NOT the words themsel
         trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback],
         final_result: ConnectionsFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        yield "Game Result", "Victory" if len(final_result.remaining_groups) == 0 else "Failed"
-        yield "Found Groups", self._format_groups(groups=final_result.found_groups)
+        victory: bool = len(final_result.remaining_groups) == 0
+        prompt: ConnectionsFinalResultPrompterPromptConfig = self.prompt_config.final_result
+        yield prompt.result, prompt.verdicts[victory]
+        yield prompt.found_groups, self._format_groups(groups=final_result.found_groups)
 
-        if len(final_result.remaining_groups) > 0:
-            yield "Groups Not Found", self._format_groups(groups=final_result.remaining_groups)
+        if not victory:
+            yield (
+                prompt.remaining_groups,
+                self._format_groups(groups=final_result.remaining_groups),
+            )
 
     def _format_groups(self, *, groups: Iterable[ConnectionsWordGroup]) -> str:
         return join_or_na(f"{'/'.join(group.words)} ({group.theme})" for group in groups)

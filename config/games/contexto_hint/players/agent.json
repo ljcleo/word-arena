@@ -1,0 +1,25 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI good at understanding word relations.\n\nYou are playing a game where you need to find a secret word.",
+        "game_rule": "The game holds a word list with 500 words, including the secret word, sorted by the similarity to the secret word.\n\nThe position of the secret word is 1; the position of the word closest to the secret word (but not the secret word itself) is 2; the position of the furthest word is 500.\n\nWord similarity is based on the context in which words are used on the internet, related to both meaning and proximity.\n\nEvery time, the game provides several candidate words (indexed from 0) from the list that you have not guessed before, but without their positions; the first round candidates are given in the game information, and subsequence round candidates in the feedback of the previous round.\n\nYou need to choose one of them as your next guess, then you will see its position in the list.\n\nIt is guaranteed that there is a candidate word closer than the current best guess.\n\nYour guess should be the **index of the guessed word**, NOT the word itself.",
+        "note_detail": "Your notes should cover empirical word similarity laws and possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you failed to choose the word with the closest position among the candidates.",
+        "choices": "Choices for Guess {turn_id}",
+        "guess": {
+            "guess_detail": "For example, reply {example} if you choose {choice}.",
+            "guess": "Selected Word"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "position": "Position",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "invalid_guess": "invalid guess"
+        },
+        "final_result": {
+            "secret_word": "Secret Word",
+            "top_words": "Top 30 Words"
+        }
+    }
+}

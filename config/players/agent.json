@@ -1,0 +1,30 @@
+{
+    "hint_prompt": {
+        "note": {
+            "law": "Game Law",
+            "strategy": "Player Strategy"
+        },
+        "analysis": {
+            "analysis": "Stage Analysis",
+            "plan": "Next Step Plan"
+        },
+        "reflection": {
+            "summary": "Game Summary",
+            "reflection": "Self Reflection"
+        }
+    },
+    "log_prompt": {
+        "note": {
+            "law": "Game Law",
+            "strategy": "Player Strategy"
+        },
+        "analysis": {
+            "analysis": "Stage Analysis",
+            "plan": "Next Step Plan"
+        },
+        "reflection": {
+            "summary": "Game Summary",
+            "reflection": "Self Reflection"
+        }
+    }
+}

@@ -1,4 +1,10 @@
 {
+    "meta_config": {
+        "data_file": "./data/strands/games.db"
+    },
+    "mutable_meta_config_pool": [
+        20
+    ],
     "log_prompt": {
         "game_info": {
             "board": "Board",

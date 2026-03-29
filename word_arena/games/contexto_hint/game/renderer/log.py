@@ -9,7 +9,7 @@ from .....utils import join_or_na
 from ...common import ContextoHintFeedback, ContextoHintGuess
 
 
-class ContextoHintFeedbackPromptConfig(BaseModel):
+class ContextoHintFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     position: str
@@ -18,7 +18,7 @@ class ContextoHintFeedbackPromptConfig(BaseModel):
     invalid_guess: str
 
 
-class ContextoHintFinalResultPromptConfig(BaseModel):
+class ContextoHintFinalResultLogPromptConfig(BaseModel):
     secret_word: str
     top_words: str
 
@@ -26,8 +26,8 @@ class ContextoHintFinalResultPromptConfig(BaseModel):
 class ContextoHintLogPromptConfig(BaseModel):
     choices: str
     guess: str
-    feedback: ContextoHintFeedbackPromptConfig
-    final_result: ContextoHintFinalResultPromptConfig
+    feedback: ContextoHintFeedbackLogPromptConfig
+    final_result: ContextoHintFinalResultLogPromptConfig
 
 
 class ContextoHintLogGameRenderer(
@@ -65,7 +65,7 @@ class ContextoHintLogGameRenderer(
         self, *, trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: ContextoHintFeedback = trajectory.turns[-1].feedback
-        prompt: ContextoHintFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: ContextoHintFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if feedback.distance >= 0:
             yield prompt.result, prompt.accept
@@ -86,7 +86,7 @@ class ContextoHintLogGameRenderer(
         trajectory: Trajectory[list[str], ContextoHintGuess, ContextoHintFeedback],
         final_result: list[str],
     ) -> Iterator[tuple[str, str]]:
-        prompt: ContextoHintFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: ContextoHintFinalResultLogPromptConfig = self.prompt_config.final_result
         yield prompt.secret_word, final_result[0]
         yield prompt.top_words, join_or_na(final_result[:30])
 

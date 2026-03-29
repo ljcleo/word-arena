@@ -24,7 +24,8 @@ class ConexoGameEngine(
             groups: dict[str, list[str]] = TypeAdapter(dict[str, list[str]]).validate_json(
                 cur.execute(
                     "SELECT groups FROM game WHERE game_id = ?", (config.game_id,)
-                ).fetchone()[0]
+                ).fetchone()[0],
+                strict=True,
             )
 
         self._num_groups: int = len(groups)

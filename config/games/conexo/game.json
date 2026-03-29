@@ -1,18 +1,25 @@
 {
+    "meta_config": {
+        "data_file": "./data/conexo/games.db"
+    },
+    "mutable_meta_config_pool": [
+        20
+    ],
     "log_prompt": {
         "game_info": {
+            "words": "Words",
+            "group_size": "Group Size",
             "max_turns": "Maximum Number of Guesses",
             "unlimited": "unlimited"
         },
-        "guess": "Guessed Word",
+        "guess": "Selected Words",
         "feedback": {
             "result": "Validation Result",
             "accept": "accept",
-            "lemma": "Lemma Form",
-            "position": "Position",
+            "theme": "Theme",
             "reject": "reject",
             "reject_reason": "Reason",
-            "invalid_guess": "guess should only contain lowercase letters"
+            "invalid_guess": "invalid guess"
         },
         "final_result": {
             "result": "Game Result",
@@ -20,9 +27,8 @@
                 "failed",
                 "victory"
             ],
-            "best_guess": "Best Guess",
-            "secret_word": "Secret Word",
-            "top_words": "Top 30 Words"
+            "found_groups": "Found Groups",
+            "remaining_groups": "Groups Not Found"
         }
     }
 }

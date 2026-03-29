@@ -15,14 +15,14 @@ from ...common import (
 )
 
 
-class ConnectionsInfoPromptConfig(BaseModel):
+class ConnectionsInfoLogPromptConfig(BaseModel):
     words: str
     group_size: str
     max_turns: str
     unlimited: str
 
 
-class ConnectionsFeedbackPromptConfig(BaseModel):
+class ConnectionsFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     theme: str
@@ -31,7 +31,7 @@ class ConnectionsFeedbackPromptConfig(BaseModel):
     invalid_guess: str
 
 
-class ConnectionsFinalResultPromptConfig(BaseModel):
+class ConnectionsFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_groups: str
@@ -39,10 +39,10 @@ class ConnectionsFinalResultPromptConfig(BaseModel):
 
 
 class ConnectionsLogPromptConfig(BaseModel):
-    game_info: ConnectionsInfoPromptConfig
+    game_info: ConnectionsInfoLogPromptConfig
     guess: str
-    feedback: ConnectionsFeedbackPromptConfig
-    final_result: ConnectionsFinalResultPromptConfig
+    feedback: ConnectionsFeedbackLogPromptConfig
+    final_result: ConnectionsFinalResultLogPromptConfig
 
 
 class ConnectionsLogGameRenderer(
@@ -56,7 +56,7 @@ class ConnectionsLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: ConnectionsInfo) -> Iterator[tuple[str, str]]:
-        prompt: ConnectionsInfoPromptConfig = self.prompt_config.game_info
+        prompt: ConnectionsInfoLogPromptConfig = self.prompt_config.game_info
 
         yield (
             prompt.words,
@@ -92,7 +92,7 @@ class ConnectionsLogGameRenderer(
         self, *, trajectory: Trajectory[ConnectionsInfo, ConnectionsGuess, ConnectionsFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: ConnectionsFeedback = trajectory.turns[-1].feedback
-        prompt: ConnectionsFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: ConnectionsFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
             yield prompt.result, prompt.accept
@@ -109,7 +109,7 @@ class ConnectionsLogGameRenderer(
         final_result: ConnectionsFinalResult,
     ) -> Iterator[tuple[str, str]]:
         victory: bool = len(final_result.remaining_groups) == 0
-        prompt: ConnectionsFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: ConnectionsFinalResultLogPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]
         yield prompt.found_groups, self._format_groups(groups=final_result.found_groups)
 

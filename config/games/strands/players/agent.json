@@ -1,0 +1,48 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI with a good English vocabulary.\n\nYou are playing a game where you need to find secret words arranged in a grid.",
+        "game_rule": "The game holds a spangram and several theme words, and gives a clue about them; a spangram can have one or more words, while each theme word is strictly one word.\n\nThe secret spangram and theme words are arranged into a 8x6 grid, where each cell is a letter that only belongs to one theme word or the spangram; the coordinates are in the form of `(row, column)`, where rows are from 0 to 7 and columns are from 0 to 5.\n\nEach theme word and the spangram can be found continuous and non-overlapping in the grid: you can draw a path on the grid that reads exactly the theme word or spangram, where adjacent vertices are 8-connected and no cells are visited twice; furthermore, paths of all theme words and the spangram do not use common cells, and pass all cells in the grid exactly once.\n\nThe spangram describes the game's theme; it always touches two opposite sides of the board, either from row 0 to row 7 or from column 0 to column 5, or both.\n\nEvery time, you draw a path on the grid to form a guess; the path must be continuous and non-overlapping, and must not use cells that belong to the theme words or spangram that you have found.\n\nIf the path is valid, you will see whether it hits a theme word or the spangram or misses; a miss can either mean selecting the wrong word or selecting the right word at the wrong location.\n\nIf the path is invalid, it will be rejected and you will see the reason.\n\nThere may be a guessing limit on the total number of guesses (including rejected ones), and the game halts if the remaining guesses are not enough to find all theme words and the spangram; therefore, you should try your best to minimize the number of guesses.\n\nYour guess should be the **list of coordinates of the guessed path**, NOT the word itself.",
+        "note_detail": "Your notes should cover letter distribution laws and possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you successfully found a theme word or spangram.",
+        "game_info": {
+            "board": "Board",
+            "clue": "Clue",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "guess_detail": "Pay attention to the number of remaining guesses.",
+            "guess": "Guessed Word"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "guess_result": "Guess Result",
+            "guess_verdicts": [
+                "missed",
+                "theme word",
+                "spangram"
+            ],
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "reject_messages": {
+                "empty": "empty guess",
+                "out_of_bounds": "path out of bounds",
+                "not_continuous": "path not continuous",
+                "overlap": "path overlapping with itself",
+                "used": "path contains used cells"
+            }
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "found_spangram": "Found Spangram",
+            "found_theme_words": "Found Theme Words",
+            "missed_spangram": "Spangram Not Found",
+            "missed_theme_words": "Theme Words Not Found"
+        }
+    }
+}

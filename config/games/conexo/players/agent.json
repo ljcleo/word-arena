@@ -1,0 +1,35 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI good at understanding word relations.\n\nYou are playing a game where you need to find the groups behind words.",
+        "game_rule": "The game holds several word groups of the same size; each group has a common theme that shall cover all words in the group, which can be lexical, semantic, conceptual, phrasal (can form phrases with the same word), or any general co-membership (e.g., work titles by the same artist).\n\nAt the beginning, the game provides the group size and words from all groups (indexed from 0), but not the groups themselves; it is guaranteed that each word belongs to exactly one group.\n\nEvery time, you choose as many words as the group size to form a guess, then you will see whether the guessed words belong to the same group or not; if yes, then the group is considered found.\n\nIf you guess an incorrect number of words, or guess words that already belong to a found group, then the guess will be rejected.\n\nThere may be a limit on the total number of guesses (including rejected ones), and the game halts if the remaining guesses are not enough to find all word groups; therefore, you should try your best to minimize the number of guesses.\n\nYour guess should be the **indices of the guessed words**, NOT the words themselves.",
+        "note_detail": "Your notes should cover empirical word group laws and possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you successfully found a group.",
+        "game_info": {
+            "words": "Words",
+            "group_size": "Group Size",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "guess_detail": "Pay attention to the number of remaining guesses.\n\nFor example, reply {response} if you choose {choices}.",
+            "guess": "Selected Words"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "theme": "Theme",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "invalid_guess": "invalid guess"
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "found_groups": "Found Groups",
+            "remaining_groups": "Groups Not Found"
+        }
+    }
+}

@@ -203,5 +203,31 @@
             "max_turns": 21,
             "num_targets": 16
         }
-    ]
+    ],
+    "log_prompt": {
+        "game_info": {
+            "num_targets": "Number of Secret Equations",
+            "eq_length": "Equation Length in Characters",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": "Guessed Equation",
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "patterns": "Match Pattern",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "invalid_guess": "invalid guess"
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "found_equations": "Found Equations",
+            "answers": "Secret Equations"
+        }
+    }
 }

@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import override
 
 from pydantic import BaseModel
@@ -15,13 +15,13 @@ from ...common import (
 )
 
 
-class RedactleInfoPromptConfig(BaseModel):
+class RedactleInfoLogPromptConfig(BaseModel):
     article: str
     max_turns: str
     unlimited: str
 
 
-class RedactleFeedbackPromptConfig(BaseModel):
+class RedactleFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     lemma: str
@@ -32,7 +32,7 @@ class RedactleFeedbackPromptConfig(BaseModel):
     reject_messages: tuple[str, str]
 
 
-class RedactleFinalResultPromptConfig(BaseModel):
+class RedactleFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_words: str
@@ -42,10 +42,10 @@ class RedactleFinalResultPromptConfig(BaseModel):
 
 
 class RedactleLogPromptConfig(BaseModel):
-    game_info: RedactleInfoPromptConfig
+    game_info: RedactleInfoLogPromptConfig
     guess: str
-    feedback: RedactleFeedbackPromptConfig
-    final_result: RedactleFinalResultPromptConfig
+    feedback: RedactleFeedbackLogPromptConfig
+    final_result: RedactleFinalResultLogPromptConfig
 
 
 class RedactleLogGameRenderer(
@@ -55,14 +55,8 @@ class RedactleLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: RedactleInfo) -> Iterator[tuple[str, str]]:
-        prompt: RedactleInfoPromptConfig = self.prompt_config.game_info
-
-        yield (
-            prompt.article,
-            self._format_article(
-                trajectory=Trajectory(game_info=game_info, turns=[]), is_final=False
-            ),
-        )
+        prompt: RedactleInfoLogPromptConfig = self.prompt_config.game_info
+        yield prompt.article, self._format_article(game_info=game_info, feedback_history=[])
 
         yield (
             prompt.max_turns,
@@ -83,7 +77,7 @@ class RedactleLogGameRenderer(
         self, *, trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: RedactleFeedback = trajectory.turns[-1].feedback
-        prompt: RedactleFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: RedactleFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, RedactleResponse):
             yield prompt.result, prompt.accept
@@ -96,7 +90,13 @@ class RedactleLogGameRenderer(
                 ),
             )
 
-            yield prompt.article, self._format_article(trajectory=trajectory, is_final=False)
+            yield (
+                prompt.article,
+                self._format_article(
+                    game_info=trajectory.game_info,
+                    feedback_history=[turn.feedback for turn in trajectory.turns],
+                ),
+            )
         else:
             yield prompt.result, prompt.reject
             yield prompt.reject_reason, prompt.reject_messages[feedback]
@@ -108,7 +108,7 @@ class RedactleLogGameRenderer(
         trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
         final_result: RedactleFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: RedactleFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: RedactleFinalResultLogPromptConfig = self.prompt_config.final_result
 
         yield (
             prompt.result,
@@ -118,26 +118,29 @@ class RedactleLogGameRenderer(
         yield prompt.found_words, join_or_na(final_result.found_words)
         yield prompt.title, final_result.title
         yield prompt.title_words, join_or_na(final_result.title_words)
-        yield prompt.article, self._format_article(trajectory=trajectory, is_final=True)
+
+        yield (
+            prompt.article,
+            self._format_article(game_info=trajectory.game_info, feedback_history=None),
+        )
 
     def _format_article(
-        self,
-        *,
-        trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
-        is_final: bool,
+        self, *, game_info: RedactleInfo, feedback_history: Iterable[RedactleFeedback] | None
     ) -> str:
         visible_words: set[str] | None = (
             None
-            if is_final
-            else trajectory.game_info.stop_words
+            if feedback_history is None
+            else game_info.stop_words
             | {
-                turn.feedback.lemma
-                for turn in trajectory.turns
-                if isinstance(turn.feedback, RedactleResponse)
+                feedback.lemma
+                for feedback in feedback_history
+                if isinstance(feedback, RedactleResponse)
             }
         )
 
-        return "\n".join(
+        max_lines: int = 30
+
+        lines: list[str] = [
             f"{line_index}: "
             + "".join(
                 word
@@ -145,5 +148,10 @@ class RedactleLogGameRenderer(
                 else "█" * len(word)
                 for word, lemma in line
             )
-            for line_index, line in enumerate(trajectory.game_info.article[:10])
-        )
+            for line_index, line in enumerate(game_info.article[:max_lines])
+        ]
+
+        if (trunc_lines := len(game_info.article) - max_lines) > 0:
+            lines.append(f"({trunc_lines} lines truncated ...)")
+
+        return "\n".join(lines)

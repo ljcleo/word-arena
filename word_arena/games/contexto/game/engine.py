@@ -57,7 +57,9 @@ class ContextoGameEngine(
         response: Response = get(f"{self._base_url}/game/{self._game_id}/{word}")
 
         if response.status_code == 200:
-            feedback: ContextoResponse = ContextoResponse.model_validate_json(response.content)
+            feedback: ContextoResponse = ContextoResponse.model_validate_json(
+                response.content, strict=True
+            )
 
             if feedback.distance < self._best_pos:
                 self._best_pos = feedback.distance
@@ -65,7 +67,7 @@ class ContextoGameEngine(
 
             return feedback
         elif response.status_code == 404:
-            return ContextoError.model_validate_json(response.content)
+            return ContextoError.model_validate_json(response.content, strict=True)
         else:
             raise RuntimeError(f"Status code {response.status_code}")
 

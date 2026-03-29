@@ -9,12 +9,12 @@ from .....utils import join_or_na
 from ...common import ContextoFeedback, ContextoFinalResult, ContextoGuess, ContextoResponse
 
 
-class ContextoInfoPromptConfig(BaseModel):
+class ContextoInfoLogPromptConfig(BaseModel):
     max_turns: str
     unlimited: str
 
 
-class ContextoFeedbackPromptConfig(BaseModel):
+class ContextoFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     lemma: str
@@ -24,7 +24,7 @@ class ContextoFeedbackPromptConfig(BaseModel):
     invalid_guess: str
 
 
-class ContextoFinalResultPromptConfig(BaseModel):
+class ContextoFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     best_guess: str
@@ -33,10 +33,10 @@ class ContextoFinalResultPromptConfig(BaseModel):
 
 
 class ContextoLogPromptConfig(BaseModel):
-    game_info: ContextoInfoPromptConfig
+    game_info: ContextoInfoLogPromptConfig
     guess: str
-    feedback: ContextoFeedbackPromptConfig
-    final_result: ContextoFinalResultPromptConfig
+    feedback: ContextoFeedbackLogPromptConfig
+    final_result: ContextoFinalResultLogPromptConfig
 
 
 class ContextoLogGameRenderer(
@@ -46,7 +46,7 @@ class ContextoLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: int) -> Iterator[tuple[str, str]]:
-        prompt: ContextoInfoPromptConfig = self.prompt_config.game_info
+        prompt: ContextoInfoLogPromptConfig = self.prompt_config.game_info
         yield prompt.max_turns, prompt.unlimited if game_info <= 0 else str(game_info)
 
     @override
@@ -60,7 +60,7 @@ class ContextoLogGameRenderer(
         self, *, trajectory: Trajectory[int, ContextoGuess, ContextoFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: ContextoFeedback = trajectory.turns[-1].feedback
-        prompt: ContextoFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: ContextoFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, ContextoResponse):
             yield prompt.result, prompt.accept
@@ -82,7 +82,7 @@ class ContextoLogGameRenderer(
         final_result: ContextoFinalResult,
     ) -> Iterator[tuple[str, str]]:
         victory: bool = final_result.best_pos == 0
-        prompt: ContextoFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: ContextoFinalResultLogPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]
 
         if not victory:

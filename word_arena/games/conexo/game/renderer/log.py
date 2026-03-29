@@ -9,14 +9,14 @@ from .....utils import join_or_na
 from ...common import ConexoFeedback, ConexoFinalResult, ConexoGuess, ConexoInfo, ConexoWordGroup
 
 
-class ConexoInfoPromptConfig(BaseModel):
+class ConexoInfoLogPromptConfig(BaseModel):
     words: str
     group_size: str
     max_turns: str
     unlimited: str
 
 
-class ConexoFeedbackPromptConfig(BaseModel):
+class ConexoFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     theme: str
@@ -25,7 +25,7 @@ class ConexoFeedbackPromptConfig(BaseModel):
     invalid_guess: str
 
 
-class ConexoFinalResultPromptConfig(BaseModel):
+class ConexoFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_groups: str
@@ -33,10 +33,10 @@ class ConexoFinalResultPromptConfig(BaseModel):
 
 
 class ConexoLogPromptConfig(BaseModel):
-    game_info: ConexoInfoPromptConfig
+    game_info: ConexoInfoLogPromptConfig
     guess: str
-    feedback: ConexoFeedbackPromptConfig
-    final_result: ConexoFinalResultPromptConfig
+    feedback: ConexoFeedbackLogPromptConfig
+    final_result: ConexoFinalResultLogPromptConfig
 
 
 class ConexoLogGameRenderer(
@@ -46,7 +46,7 @@ class ConexoLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: ConexoInfo) -> Iterator[tuple[str, str]]:
-        prompt: ConexoInfoPromptConfig = self.prompt_config.game_info
+        prompt: ConexoInfoLogPromptConfig = self.prompt_config.game_info
 
         yield (
             prompt.words,
@@ -79,7 +79,7 @@ class ConexoLogGameRenderer(
         self, *, trajectory: Trajectory[ConexoInfo, ConexoGuess, ConexoFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: ConexoFeedback = trajectory.turns[-1].feedback
-        prompt: ConexoFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: ConexoFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if feedback.accepted:
             yield prompt.result, prompt.accept
@@ -96,7 +96,7 @@ class ConexoLogGameRenderer(
         final_result: ConexoFinalResult,
     ) -> Iterator[tuple[str, str]]:
         victory: bool = len(final_result.remaining_groups) == 0
-        prompt: ConexoFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: ConexoFinalResultLogPromptConfig = self.prompt_config.final_result
         yield prompt.result, prompt.verdicts[victory]
         yield prompt.found_groups, self._format_groups(groups=final_result.found_groups)
 

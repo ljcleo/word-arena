@@ -10,9 +10,29 @@ from ...common.llm.llm import LLM
 from ...common.player.common import AnalyzedGuess, GameRecord
 from ...common.player.engine.base import BasePlayerEngine
 from ...common.player.state import PlayerGameStateInterface, PlayerNoteStateInterface
-from .common import Analysis, Reflection
-from .prompter.base import BaseAgentPrompter
-from .utils import format_model
+from .common import Analysis, Note, Reflection
+from .prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
+
+
+class NoteHintPromptConfig(BaseModel):
+    law: str
+    strategy: str
+
+
+class AnalysisHintPromptConfig(BaseModel):
+    analysis: str
+    plan: str
+
+
+class ReflectionHintPromptConfig(BaseModel):
+    summary: str
+    reflection: str
+
+
+class AgentHintPromptConfig(BaseModel):
+    note: NoteHintPromptConfig
+    analysis: AnalysisHintPromptConfig
+    reflection: ReflectionHintPromptConfig
 
 
 def maybe_to_xml(*, key: str, values: str | Iterable[str]) -> Iterator[str]:
@@ -62,25 +82,31 @@ def maybe_iter_with_title(*, title: str, sections: Iterable[str]) -> Iterator[st
         yield section
 
 
-class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
-    BasePlayerEngine[NT, IT, Analysis, GT, FT, RT, Reflection]
+class AgentPlayerEngine[IT, GT: BaseModel, FT, RT](
+    BasePlayerEngine[Note, IT, Analysis, GT, FT, RT, Reflection]
 ):
     def __init__(
-        self, *, prompter: BaseAgentPrompter[NT, IT, GT, FT, RT], model: LLM, do_analyze: bool
+        self,
+        *,
+        model: LLM,
+        do_analyze: bool,
+        prompter: BaseAgentPrompter[BaseAgentPrompterPromptConfig, IT, GT, FT, RT],
+        prompt_config: AgentHintPromptConfig,
     ):
-        self._prompter: BaseAgentPrompter[NT, IT, GT, FT, RT] = prompter
         self._model: LLM = model
         self._do_analyze: bool = do_analyze
+        self._prompter: BaseAgentPrompter[BaseAgentPrompterPromptConfig, IT, GT, FT, RT] = prompter
+        self._prompt_config: AgentHintPromptConfig = prompt_config
 
     @override
-    def create_note(self) -> NT:
+    def create_note(self) -> Note:
         return self._model.query(
             Message.human(
                 "# Instruction",
                 "Initialize some notes that help you make a good guess in a turn.",
                 *self._make_note_format_prompt(),
             ),
-            format=self._prompter.NOTE_CLS,
+            format=Note,
             system_instruction=self._make_reflect_system_instruction(
                 status="You have not played the game yet."
             ),
@@ -90,7 +116,7 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
     def analyze_and_guess(
         self,
         *,
-        note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection],
+        note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection],
         game_state: PlayerGameStateInterface[IT, Analysis, GT, FT, RT],
     ) -> AnalyzedGuess[Analysis, GT]:
         system_instruction: str = self._make_guess_system_instruction(note_state=note_state)
@@ -123,7 +149,7 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
     def summarize_and_reflect(
         self,
         *,
-        note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection],
+        note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection],
         game_state: PlayerGameStateInterface[IT, Analysis, GT, FT, RT],
     ) -> Reflection:
         return self._model.query(
@@ -148,8 +174,8 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
 
     @override
     def update_note(
-        self, *, note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection]
-    ) -> NT:
+        self, *, note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection]
+    ) -> Note:
         return self._model.query(
             Message.human(
                 *maybe_iter_with_title(
@@ -163,7 +189,7 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
                 "Create some improved notes based on what you have learned from your trials.",
                 *self._make_note_format_prompt(),
             ),
-            format=self._prompter.NOTE_CLS,
+            format=Note,
             system_instruction=self._make_reflect_system_instruction(
                 status="You have played the game a few times."
             ),
@@ -180,12 +206,12 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
         )
 
     def _make_note_format_prompt(self) -> Iterator[str]:
-        yield self._prompter.NOTE_DETAIL
+        yield self._prompter.prompt_config.note_detail
         yield "Make your response clear and concise."
-        yield make_json_prompt(example=self._prompter.NOTE_EXAMPLE)
+        yield make_json_prompt(example=Note(law="...", strategy="..."))
 
     def _make_guess_system_instruction(
-        self, *, note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection]
+        self, *, note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection]
     ) -> str:
         return "\n\n".join(
             (
@@ -274,12 +300,12 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
         )
 
     def _make_reflection_format_prompt(self) -> Iterator[str]:
-        yield self._prompter.REFLECT_DETAIL
+        yield self._prompter.prompt_config.reflection_detail
         yield "Make your response clear and concise."
         yield make_json_prompt(example=Reflection(summary="...", reflection="..."))
 
     def _make_history_prompt(
-        self, *, note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection]
+        self, *, note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection]
     ) -> Iterator[str]:
         for index, summary in enumerate(note_state.history):
             yield from maybe_to_xml(
@@ -294,10 +320,10 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
             )
 
     def _make_role_def_prompt(self) -> Iterator[str]:
-        yield self._prompter.ROLE_DEFINITION
+        yield self._prompter.prompt_config.role_definition
 
     def _make_game_rule_prompt(self) -> Iterator[str]:
-        yield self._prompter.GAME_RULE
+        yield self._prompter.prompt_config.game_rule
 
     def _make_trajectory_prompt(
         self, *, trajectory: Trajectory[IT, GT, FT], final_result: RT | None
@@ -325,13 +351,20 @@ class AgentPlayerEngine[NT: BaseModel, IT, GT: BaseModel, FT, RT](
             )
 
     def _prompt_note(
-        self, *, note_state: PlayerNoteStateInterface[NT, IT, Analysis, GT, FT, RT, Reflection]
+        self, *, note_state: PlayerNoteStateInterface[Note, IT, Analysis, GT, FT, RT, Reflection]
     ) -> Iterator[tuple[str, str]]:
-        yield from format_model(note_state.note)
+        note: Note = note_state.note
+        prompt: NoteHintPromptConfig = self._prompt_config.note
+        yield prompt.law, note.law
+        yield prompt.strategy, note.strategy
 
     def _prompt_analysis(self, *, analysis: Analysis | None) -> Iterator[tuple[str, str]]:
         if analysis is not None:
-            yield from format_model(analysis)
+            prompt: AnalysisHintPromptConfig = self._prompt_config.analysis
+            yield prompt.analysis, analysis.analysis
+            yield prompt.plan, analysis.plan
 
     def _prompt_reflection(self, *, reflection: Reflection) -> Iterator[tuple[str, str]]:
-        yield from format_model(reflection)
+        prompt: ReflectionHintPromptConfig = self._prompt_config.reflection
+        yield prompt.summary, reflection.summary
+        yield prompt.reflection, reflection.reflection

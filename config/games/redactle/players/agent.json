@@ -1,0 +1,41 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI with broad general knowledge spanning multiple domains.\n\nYou are playing a game where you must identify the title of a hidden Wikipedia article.",
+        "game_rule": "You are shown a Wikipedia article in English where all meaningful words are redacted, that is, replaced with \u2588-characters of the same length; common function words (stop words) and punctuation are always visible as-is.\n\nEvery time, you receive the current article with words not found redacted, and you guess one word; the word can be non-English or even digits, but must be a single word.\n\nIf the word does not contain whitespaces and is not a common word in the stop word list, you will see the lemmatized form of the word and all related occurrences in the article, reported in L{line_no}:{word_pos} format; otherwise, the word will be rejected, and you will see the reason.\n\nThe title is considered revealed if and only if all redacted words in line 0 (L0) is guessed, so you will need at least as many guesses as there are unique lemmas in line 0 to win the game.\n\nThere may be a guessing limit on the total number of guesses (including rejected ones), and the game halts if the remaining guesses are not enough to find all redacted words in line 0; therefore, you should try your best to minimize the number of guesses.\n\nYour guess must be a **single word (in any language) without any whitespace**.",
+        "note_detail": "Your notes should cover word distribution laws possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you had little information gain.",
+        "game_info": {
+            "article": "Redacted Article",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "guess_detail": "Pay attention to the number of remaining guesses.",
+            "guess": "Guessed Word"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "lemma": "Lemma",
+            "positions": "Positions",
+            "article": "Current Article",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "reject_messages": [
+                "invalid guess",
+                "word too common"
+            ]
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "found_words": "Found Words",
+            "title": "Article Title",
+            "title_words": "Title Words",
+            "article": "Full Article"
+        }
+    }
+}

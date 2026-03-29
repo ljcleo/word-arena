@@ -6,11 +6,16 @@ from ..state import PlayerGameStateInterface, PlayerNoteStateInterface
 from .base import BasePlayerRenderer
 
 
-class BaseLogPlayerRenderer[NT, IT, AT, GT, FT, RT, ST](
+class BaseLogPlayerRenderer[PT, NT, IT, AT, GT, FT, RT, ST](
     BasePlayerRenderer[NT, IT, AT, GT, FT, RT, ST], ABC
 ):
-    def __init__(self, *, player_log_func: Callable[[str, str], None]):
+    def __init__(self, *, player_log_func: Callable[[str, str], None], prompt_config: PT):
         self._player_log_func: Callable[[str, str], None] = player_log_func
+        self._prompt_config: PT = prompt_config
+
+    @property
+    def prompt_config(self) -> PT:
+        return self._prompt_config
 
     @override
     def render_note(

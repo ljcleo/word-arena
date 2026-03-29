@@ -1,8 +1,13 @@
 {
+    "meta_config": {
+        "data_file": "./data/redactle/games.db"
+    },
+    "mutable_meta_config_pool": [
+        50
+    ],
     "log_prompt": {
         "game_info": {
-            "num_targets": "Number of Secret Words",
-            "max_letters": "Maximum Number of Letters in One Guess",
+            "article": "Redacted Article",
             "max_turns": "Maximum Number of Guesses",
             "unlimited": "unlimited"
         },
@@ -10,12 +15,14 @@
         "feedback": {
             "result": "Validation Result",
             "accept": "accept",
-            "patterns": "Match Pattern",
+            "lemma": "Lemma",
+            "positions": "Positions",
+            "article": "Current Article",
             "reject": "reject",
             "reject_reason": "Reason",
             "reject_messages": [
                 "invalid guess",
-                "unknown word"
+                "word too common"
             ]
         },
         "final_result": {
@@ -25,7 +32,9 @@
                 "victory"
             ],
             "found_words": "Found Words",
-            "answers": "Secret Words"
+            "title": "Article Title",
+            "title_words": "Title Words",
+            "article": "Full Article"
         }
     }
 }

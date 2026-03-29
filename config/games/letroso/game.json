@@ -1,7 +1,18 @@
 {
+    "meta_config": {
+        "data_file": "./data/letroso/games.db"
+    },
+    "mutable_meta_config_pool": [
+        {
+            "max_letters": 10,
+            "max_turns": 20,
+            "num_targets": 1
+        }
+    ],
     "log_prompt": {
         "game_info": {
-            "article": "Redacted Article",
+            "num_targets": "Number of Secret Words",
+            "max_letters": "Maximum Number of Letters in One Guess",
             "max_turns": "Maximum Number of Guesses",
             "unlimited": "unlimited"
         },
@@ -9,14 +20,12 @@
         "feedback": {
             "result": "Validation Result",
             "accept": "accept",
-            "lemma": "Lemma",
-            "positions": "Positions",
-            "article": "Current Article",
+            "patterns": "Match Pattern",
             "reject": "reject",
             "reject_reason": "Reason",
             "reject_messages": [
                 "invalid guess",
-                "word too common"
+                "unknown word"
             ]
         },
         "final_result": {
@@ -26,9 +35,7 @@
                 "victory"
             ],
             "found_words": "Found Words",
-            "title": "Article Title",
-            "title_words": "Title Words",
-            "article": "Full Article"
+            "answers": "Secret Words"
         }
     }
 }

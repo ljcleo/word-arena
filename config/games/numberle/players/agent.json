@@ -1,0 +1,35 @@
+{
+    "prompter_prompt": {
+        "role_definition": "You are an intelligent AI good at basic arithmetics.\n\nYou are playing a game where you need to find one or more secret equations.",
+        "game_rule": "All secret equations have the same number of characters, with both hand sides basic arithmetic expressions containing digits and `+-*/` only, connected by a single `=`; brackets, negative numbers, decimals, leading zeros, and zero divisions are NOT allowed.\n\nEvery time, you choose an equation as your next guess; the guess should be a valid equation following the same length and format constraints described above, **without any whitespaces**.\n\nIf the equation is accepted, you will see how it matches each secret equation through a labeling string:\n\nA `G` label means that the character at that position is correct; a `Y` label means that the character at that position should be at somewhere else; a `.` means that the character is not in the secret equation, or has appeared too many times.\n\nIf the equation is rejected, you will see the reason, which shall be invalid format.\n\nA secret equation is considered found if and only if the equation is actually guessed in a turn, so you will need at least as many guesses as there are secret equations to find all of them.\n\nThere may be a guessing limit on the total number of guesses (including rejected ones), and the game halts if the remaining guesses are not enough to find all secret equations; therefore, you should try your best to minimize the number of guesses.\n\nYour guess should be a **single equation obeying the length and format constraints without any whitespaces**.",
+        "note_detail": "Your notes should cover character hinting laws and possible strategies.",
+        "reflection_detail": "Pay attention to the rounds where you had little information gain.",
+        "game_info": {
+            "num_targets": "Number of Secret Equations",
+            "eq_length": "Equation Length in Characters",
+            "max_turns": "Maximum Number of Guesses",
+            "unlimited": "unlimited"
+        },
+        "guess": {
+            "guess_detail": "Pay attention to the number of remaining guesses.",
+            "guess": "Guessed Equation"
+        },
+        "feedback": {
+            "result": "Validation Result",
+            "accept": "accept",
+            "patterns": "Match Pattern",
+            "reject": "reject",
+            "reject_reason": "Reason",
+            "invalid_guess": "invalid guess"
+        },
+        "final_result": {
+            "result": "Game Result",
+            "verdicts": [
+                "failed",
+                "victory"
+            ],
+            "found_equations": "Found Equations",
+            "answers": "Secret Equations"
+        }
+    }
+}

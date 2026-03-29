@@ -1,10 +1,10 @@
 from collections.abc import Iterable, Iterator
 from typing import override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .....common.game.common import Trajectory
-from .....players.agent.prompter.base import BaseAgentPrompter
+from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
 from ...common import (
     RedactleFeedback,
@@ -15,55 +15,60 @@ from ...common import (
 )
 
 
-class RedactleNote(BaseModel):
-    strategy: str = Field(title="Possible Strategies")
+class RedactleInfoPrompterPromptConfig(BaseModel):
+    article: str
+    max_turns: str
+    unlimited: str
+
+
+class RedactleGuessPrompterPromptConfig(BaseModel):
+    guess_detail: str
+    guess: str
+
+
+class RedactleFeedbackPrompterPromptConfig(BaseModel):
+    result: str
+    accept: str
+    lemma: str
+    positions: str
+    article: str
+    reject: str
+    reject_reason: str
+    reject_messages: tuple[str, str]
+
+
+class RedactleFinalResultPrompterPromptConfig(BaseModel):
+    result: str
+    verdicts: tuple[str, str]
+    found_words: str
+    title: str
+    title_words: str
+    article: str
+
+
+class RedactleAgentPrompterPromptConfig(BaseAgentPrompterPromptConfig):
+    game_info: RedactleInfoPrompterPromptConfig
+    guess: RedactleGuessPrompterPromptConfig
+    feedback: RedactleFeedbackPrompterPromptConfig
+    final_result: RedactleFinalResultPrompterPromptConfig
 
 
 class RedactleAgentPrompter(
     BaseAgentPrompter[
-        RedactleNote, RedactleInfo, RedactleGuess, RedactleFeedback, RedactleFinalResult
+        RedactleAgentPrompterPromptConfig,
+        RedactleInfo,
+        RedactleGuess,
+        RedactleFeedback,
+        RedactleFinalResult,
     ]
 ):
-    ROLE_DEFINITION = """\
-You are an intelligent AI with broad general knowledge spanning multiple domains.
-
-You are playing a game where you must identify the title of a hidden Wikipedia article.\
-"""
-
-    GAME_RULE = """\
-You are shown a Wikipedia article in English where all meaningful words are redacted, \
-that is, replaced with █-characters of the same length; \
-common function words (stop words) and punctuation are always visible as-is.
-
-Every time, you receive the current article with words not found redacted, and you guess one word; \
-the word can be non-English or even digits, but must be a single word.
-
-If the word does not contain whitespaces and is not a common word in the stop word list, \
-you will see the lemmatized form of the word and all related occurrences in the article, \
-reported in L{line_no}:{word_pos} format; \
-otherwise, the word will be rejected, and you will see the reason.
-
-The title is considered revealed if and only if all redacted words in line 0 (L0) is guessed, \
-so you will need at least as many guesses as there are unique lemmas in line 0 to win the game.
-
-There may be a guessing limit on the total number of guesses (including rejected ones), \
-and the game halts if the remaining guesses are not enough to find all redacted words in line 0; \
-therefore, you should try your best to minimize the number of guesses.
-
-Your guess must be a **single word (in any language) without any whitespace**.\
-"""
-
-    NOTE_CLS = RedactleNote
-    NOTE_DETAIL = "Your notes should cover possible strategies."
-    NOTE_EXAMPLE = RedactleNote(strategy="Follow these strategies when guessing: ...")
     GUESS_CLS = RedactleGuess
-    REFLECT_DETAIL = "Pay attention to the rounds where you had little information gain."
 
     @override
     def get_guess_detail(
         self, *, trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback]
     ) -> str:
-        return "Pay attention to the number of remaining guesses."
+        return self.prompt_config.guess.guess_detail
 
     @override
     def get_guess_example(
@@ -79,10 +84,11 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
         game_info: RedactleInfo = trajectory.game_info
+        prompt: RedactleInfoPrompterPromptConfig = self.prompt_config.game_info
 
         if final_result is None:
             yield (
-                "Current Article",
+                prompt.article,
                 self._format_article(
                     game_info=game_info,
                     feedback_history=[turn.feedback for turn in trajectory.turns],
@@ -90,8 +96,8 @@ Your guess must be a **single word (in any language) without any whitespace**.\
             )
 
         yield (
-            "Maximum Number of Guesses",
-            "Unlimited" if game_info.max_turns <= 0 else str(game_info.max_turns),
+            prompt.max_turns,
+            prompt.unlimited if game_info.max_turns <= 0 else str(game_info.max_turns),
         )
 
     @override
@@ -103,7 +109,7 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         guess: RedactleGuess,
         final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
-        yield "Guessed Word", guess.word
+        yield self.prompt_config.guess.guess, guess.word
 
     @override
     def prompt_feedback(
@@ -115,19 +121,21 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         feedback: RedactleFeedback,
         final_result: RedactleFinalResult | None,
     ) -> Iterator[tuple[str, str]]:
+        prompt: RedactleFeedbackPrompterPromptConfig = self.prompt_config.feedback
+
         if isinstance(feedback, RedactleResponse):
-            yield "Validation Result", "Accept"
-            yield "Lemma", feedback.lemma
+            yield prompt.result, prompt.accept
+            yield prompt.lemma, feedback.lemma
 
             yield (
-                "Positions",
+                prompt.positions,
                 join_or_na(
                     f"L{line_index}:{word_index}" for line_index, word_index in feedback.positions
                 ),
             )
         else:
-            yield "Validation Result", "Reject"
-            yield "Reason", "word too common" if feedback else "invalid guess"
+            yield prompt.result, prompt.reject
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def prompt_final_result(
@@ -136,47 +144,43 @@ Your guess must be a **single word (in any language) without any whitespace**.\
         trajectory: Trajectory[RedactleInfo, RedactleGuess, RedactleFeedback],
         final_result: RedactleFinalResult,
     ) -> Iterator[tuple[str, str]]:
+        prompt: RedactleFinalResultPrompterPromptConfig = self.prompt_config.final_result
+
         yield (
-            "Game Result",
-            "Victory"
-            if len(final_result.found_words) == len(final_result.title_words)
-            else "Failed",
+            prompt.result,
+            prompt.verdicts[len(final_result.found_words) == len(final_result.title_words)],
         )
 
-        yield "Found Words", join_or_na(final_result.found_words)
-        yield "Article Title", final_result.title
-        yield "Title Words", join_or_na(final_result.title_words)
+        yield prompt.found_words, join_or_na(final_result.found_words)
+        yield prompt.title, final_result.title
+        yield prompt.title_words, join_or_na(final_result.title_words)
 
         yield (
-            "Full Article",
+            prompt.article,
             self._format_article(game_info=trajectory.game_info, feedback_history=None),
         )
 
     def _format_article(
         self, *, game_info: RedactleInfo, feedback_history: Iterable[RedactleFeedback] | None
     ) -> str:
-        return "\n".join(
-            f"{line_index}: "
-            + self._format_line(
-                line=line,
-                visible_words=None
-                if feedback_history is None
-                else game_info.stop_words
-                | {
-                    feedback.lemma
-                    for feedback in feedback_history
-                    if isinstance(feedback, RedactleResponse)
-                },
-            )
-            for line_index, line in enumerate(game_info.article)
+        visible_words: set[str] | None = (
+            None
+            if feedback_history is None
+            else game_info.stop_words
+            | {
+                feedback.lemma
+                for feedback in feedback_history
+                if isinstance(feedback, RedactleResponse)
+            }
         )
 
-    def _format_line(
-        self, *, line: list[tuple[str, str | None]], visible_words: set[str] | None
-    ) -> str:
-        return "".join(
-            word
-            if lemma is None or visible_words is None or lemma in visible_words
-            else "█" * len(word)
-            for word, lemma in line
+        return "\n".join(
+            f"{line_index}: "
+            + "".join(
+                word
+                if lemma is None or visible_words is None or lemma in visible_words
+                else "█" * len(word)
+                for word, lemma in line
+            )
+            for line_index, line in enumerate(game_info.article)
         )

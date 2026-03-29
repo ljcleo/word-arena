@@ -36,7 +36,8 @@ class StrandsGameEngine(
             data: StrandsGameData = StrandsGameData.model_validate_json(
                 cur.execute(
                     "SELECT board FROM game WHERE game_id = ?", (config.game_id,)
-                ).fetchone()[0]
+                ).fetchone()[0],
+                strict=True,
             )
 
         self._board: list[tuple[str, int]] = data.board

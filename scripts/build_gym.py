@@ -1,10 +1,10 @@
 from importlib import import_module
-from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from common import GAME_CONFIG_PATH, log, make_cls_prefix
+from common import GAME_CONFIG_PATH, log
 from pydantic import BaseModel
+from utils import make_cls_prefix, try_validate
 
 from word_arena.common.config.generator.base import BaseConfigGenerator
 from word_arena.common.config.reader.input import BaseInputConfigReader
@@ -16,21 +16,15 @@ from word_arena.common.gym.gym import Gym
 class GameConfig(BaseModel):
     meta_config: dict[str, Any]
     mutable_meta_config_pool: list[Any]
-
-
-class RendererConfig(BaseModel):
     log_prompt: Any
 
 
 def build_gym(*, game_key: str) -> Gym:
-    game_config_path: Path = GAME_CONFIG_PATH / game_key
+    with (GAME_CONFIG_PATH / game_key / "game.json").open("rb") as f:
+        config: GameConfig = GameConfig.model_validate_json(f.read(), strict=True)
+
     cls_prefix: str = make_cls_prefix(key=game_key)
     module_parent: str = f"word_arena.games.{game_key}"
-
-    with (game_config_path / "meta_config.json").open("rb") as f:
-        game_config: GameConfig = GameConfig.model_validate_json(f.read())
-    with (game_config_path / "renderer.json").open("rb") as f:
-        renderer_config: RendererConfig = RendererConfig.model_validate_json(f.read())
 
     config_module: ModuleType = import_module(f"{module_parent}.config.common")
     meta_config_cls: type[BaseModel] = getattr(config_module, f"{cls_prefix}MetaConfig")
@@ -62,22 +56,16 @@ def build_gym(*, game_key: str) -> Gym:
     )
 
     return Gym(
-        meta_config=meta_config_cls.model_validate(game_config.meta_config),
+        meta_config=try_validate(cls=meta_config_cls, data=config.meta_config),
         mutable_meta_config_pool=[
-            config
-            if mutable_meta_config_cls is None
-            else mutable_meta_config_cls.model_validate(config)
-            for config in game_config.mutable_meta_config_pool
+            try_validate(cls=mutable_meta_config_cls, data=config)
+            for config in config.mutable_meta_config_pool
         ],
         config_reader=config_reader_cls(input_func=input),
         config_generator=config_generator_cls(),
         game_engine_cls=game_engine_cls,
         game_renderer=game_renderer_cls(
             game_log_func=log,
-            prompt_config=(
-                renderer_config.log_prompt
-                if prompt_config_cls is None
-                else prompt_config_cls.model_validate(renderer_config.log_prompt)
-            ),
+            prompt_config=try_validate(cls=prompt_config_cls, data=config.log_prompt),
         ),
     )

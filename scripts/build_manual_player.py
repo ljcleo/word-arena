@@ -2,8 +2,9 @@ from importlib import import_module
 from types import ModuleType
 from typing import Any
 
-from common import GAME_CONFIG_PATH, log, make_cls_prefix
+from common import GAME_CONFIG_PATH
 from pydantic import BaseModel
+from utils import make_cls_prefix, try_validate
 
 from word_arena.common.player.player import Player
 from word_arena.players.manual.engine import ManualPlayerEngine
@@ -16,13 +17,12 @@ class ManualPlayerConfig(BaseModel):
 
 
 def build_manual_player(*, game_key: str) -> Player:
-    cls_prefix: str = make_cls_prefix(key=game_key)
     with (GAME_CONFIG_PATH / game_key / "players" / "manual.json").open("rb") as f:
-        config: ManualPlayerConfig = ManualPlayerConfig.model_validate_json(f.read())
+        config: ManualPlayerConfig = ManualPlayerConfig.model_validate_json(f.read(), strict=True)
 
-    reader_module: ModuleType = import_module(
-        f"word_arena.games.{game_key}.players.manual.reader.input"
-    )
+    cls_prefix: str = make_cls_prefix(key=game_key)
+    module_parent: str = f"word_arena.games.{game_key}.players.manual"
+    reader_module: ModuleType = import_module(f"{module_parent}.reader.input")
 
     reader_cls: type[BaseInputManualReader] = getattr(
         reader_module, f"{cls_prefix}InputManualReader"
@@ -36,10 +36,8 @@ def build_manual_player(*, game_key: str) -> Player:
         engine=ManualPlayerEngine(
             reader=reader_cls(
                 input_func=input,
-                prompt_config=config.input_prompt
-                if prompt_config_cls is None
-                else prompt_config_cls.model_validate(config.input_prompt),
+                prompt_config=try_validate(cls=prompt_config_cls, data=config.input_prompt),
             )
         ),
-        renderer=ManualLogPlayerRenderer(player_log_func=log),
+        renderer=ManualLogPlayerRenderer(),
     )

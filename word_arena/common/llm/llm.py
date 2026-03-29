@@ -69,4 +69,4 @@ class LLM[PT]:
             content=result if isinstance(result, str) else result.model_dump_json(),
         )
 
-        return result if format is None else format.model_validate_json(result)
+        return result if format is None else format.model_validate_json(result, strict=True)

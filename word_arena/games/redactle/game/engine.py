@@ -30,7 +30,8 @@ class RedactleGameEngine(
             data: RedactleGameData = RedactleGameData.model_validate_json(
                 cur.execute(
                     "SELECT data FROM game WHERE game_id = ?", (config.game_id,)
-                ).fetchone()[0]
+                ).fetchone()[0],
+                strict=True,
             )
 
         self._article: list[list[tuple[str, str | None]]] = data.article

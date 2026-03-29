@@ -9,14 +9,14 @@ from .....utils import join_or_na
 from ...common import LetrosoFeedback, LetrosoFinalResult, LetrosoGuess, LetrosoInfo
 
 
-class LetrosoInfoPromptConfig(BaseModel):
+class LetrosoInfoLogPromptConfig(BaseModel):
     num_targets: str
     max_letters: str
     max_turns: str
     unlimited: str
 
 
-class LetrosoFeedbackPromptConfig(BaseModel):
+class LetrosoFeedbackLogPromptConfig(BaseModel):
     result: str
     accept: str
     patterns: str
@@ -25,7 +25,7 @@ class LetrosoFeedbackPromptConfig(BaseModel):
     reject_messages: tuple[str, str]
 
 
-class LetrosoFinalResultPromptConfig(BaseModel):
+class LetrosoFinalResultLogPromptConfig(BaseModel):
     result: str
     verdicts: tuple[str, str]
     found_words: str
@@ -33,10 +33,10 @@ class LetrosoFinalResultPromptConfig(BaseModel):
 
 
 class LetrosoLogPromptConfig(BaseModel):
-    game_info: LetrosoInfoPromptConfig
+    game_info: LetrosoInfoLogPromptConfig
     guess: str
-    feedback: LetrosoFeedbackPromptConfig
-    final_result: LetrosoFinalResultPromptConfig
+    feedback: LetrosoFeedbackLogPromptConfig
+    final_result: LetrosoFinalResultLogPromptConfig
 
 
 class LetrosoLogGameRenderer(
@@ -46,7 +46,7 @@ class LetrosoLogGameRenderer(
 ):
     @override
     def format_game_info(self, *, game_info: LetrosoInfo) -> Iterator[tuple[str, str]]:
-        prompt: LetrosoInfoPromptConfig = self.prompt_config.game_info
+        prompt: LetrosoInfoLogPromptConfig = self.prompt_config.game_info
         yield prompt.num_targets, str(game_info.num_targets)
         yield prompt.max_letters, str(game_info.max_letters)
 
@@ -69,7 +69,7 @@ class LetrosoLogGameRenderer(
         self, *, trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback]
     ) -> Iterator[tuple[str, str]]:
         feedback: LetrosoFeedback = trajectory.turns[-1].feedback
-        prompt: LetrosoFeedbackPromptConfig = self.prompt_config.feedback
+        prompt: LetrosoFeedbackLogPromptConfig = self.prompt_config.feedback
 
         if isinstance(feedback, list):
             yield prompt.result, prompt.accept
@@ -85,7 +85,7 @@ class LetrosoLogGameRenderer(
         trajectory: Trajectory[LetrosoInfo, LetrosoGuess, LetrosoFeedback],
         final_result: LetrosoFinalResult,
     ) -> Iterator[tuple[str, str]]:
-        prompt: LetrosoFinalResultPromptConfig = self.prompt_config.final_result
+        prompt: LetrosoFinalResultLogPromptConfig = self.prompt_config.final_result
 
         yield (
             prompt.result,
