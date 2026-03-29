@@ -75,7 +75,8 @@ scripts/
   build_gym.py / build_manual_player.py / build_agent_player.py / build_llm.py
 config/
   llms/         # LLM configs (API keys gitignored)
-  games/        # Per-game dirs: meta_config.json, renderer.json, players/manual.json
+  games/        # Per-game dirs: game.json, players/manual.json, players/agent.json
+  players/      # Global player configs (agent.json)
 data/           # SQLite game databases + crawl scripts
 ```
 

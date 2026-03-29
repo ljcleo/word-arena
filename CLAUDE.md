@@ -81,21 +81,22 @@ Available providers: `anthropic`, `openai_chat`, `openai_responses`, `google`, `
 
 ### Scripts (`scripts/`)
 
-- **`common.py`** — `GAME_CONFIG_PATH`, `LLM_CONFIG_PATH`, `log(key, value)` helper, and `make_cls_prefix(key)` utility (converts `"game_name"` → `"GameName"`)
-- **`utils.py`** — CLI input prompts; enumerates available game/LLM keys by scanning `config/games/` and `config/llms/`
+- **`common.py`** — `GAME_CONFIG_PATH`, `LLM_CONFIG_PATH`, `PLAYER_CONFIG_PATH`, and `log(key, value)` helper
+- **`utils.py`** — CLI input prompts; enumerates available game/LLM keys by scanning `config/games/` and `config/llms/`; `make_cls_prefix(key)` utility (converts `"game_name"` → `"GameName"`); `try_validate()` helper for strict Pydantic validation
 - **`build_llm.py`** — `build_llm()` factory; reads `config/llms/{key}.json`, dynamically imports `{Provider}LLMConfig` and `{Provider}LLMEngine`, constructs an `LLM`
-- **`build_gym.py`** — `build_gym()` factory; reads `config/games/{key}/meta_config.json` and `config/games/{key}/renderer.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig`, `{Game}InputConfigReader`, `{Game}ConfigGenerator`, `{Game}GameEngine`, `{Game}LogGameRenderer` to construct a `Gym`
+- **`build_gym.py`** — `build_gym()` factory; reads `config/games/{key}/game.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig`, `{Game}InputConfigReader`, `{Game}ConfigGenerator`, `{Game}GameEngine`, `{Game}LogGameRenderer` to construct a `Gym`
 - **`build_manual_player.py`** — `build_manual_player()` factory; reads `config/games/{key}/players/manual.json`, imports `{Game}InputManualReader`, constructs a `Player` with `ManualPlayerEngine` and `ManualLogPlayerRenderer`
-- **`build_agent_player.py`** — `build_agent_player()` factory; imports `{Game}AgentPrompter`, constructs a `Player` with `AgentPlayerEngine` and `AgentLogPlayerRenderer`
+- **`build_agent_player.py`** — `build_agent_player()` factory; reads global `config/players/agent.json` (hint/log prompts) and per-game `config/games/{key}/players/agent.json` (prompter prompt); imports `{Game}AgentPrompter`, constructs a `Player` with `AgentPlayerEngine` and `AgentLogPlayerRenderer`
 - **`main.py`** — CLI entry point: prompts for game and player type (manual or agent); optionally runs `gym.train()` before `gym.play(player)` for agent players
 
 ### Configuration
 
 - LLM configs live in `config/llms/*.json`. `manual_input.json` and `pseudo.json` are committed; real API configs are gitignored. Format: `{"type": "<provider>", "config": {...}}`.
 - Game configs live in per-game directories under `config/games/{key}/`:
-  - `meta_config.json` — `{"meta_config": {...}, "mutable_meta_config_pool": [...]}` (fields match `{Game}MetaConfig` / `{Game}MutableMetaConfig`)
-  - `renderer.json` — `{"log_prompt": {...}}` (fields match `{Game}LogPromptConfig` if defined, else passed as-is)
+  - `game.json` — `{"meta_config": {...}, "mutable_meta_config_pool": [...], "log_prompt": {...}}` (combines what were previously separate `meta_config.json` and `renderer.json` files)
   - `players/manual.json` — `{"input_prompt": {...}}` (fields match `{Game}InputPromptConfig` if defined, else passed as-is)
+  - `players/agent.json` — `{"prompter_prompt": {...}}` (fields match `{Game}AgentPrompterPromptConfig` if defined, else passed as-is)
+- Global agent player config lives in `config/players/agent.json`: `{"hint_prompt": {...}, "log_prompt": {...}}` (shared across all games)
 - Game data is stored as SQLite databases in `data/{game_name}/games.db`.
 
 ### Data Flow
@@ -119,7 +120,7 @@ scripts/main.py
 2. Add `config/common.py` with MetaConfig and MutableMetaConfig; `config/generator.py` with ConfigGenerator; `config/reader/input.py` with InputConfigReader
 3. Implement engine and log renderer in `game/`
 4. Implement manual input reader in `players/manual/reader/input.py` and agent prompter in `players/agent/prompter.py`
-5. Add `config/games/{name}/meta_config.json` (with `meta_config` and `mutable_meta_config_pool`), `config/games/{name}/renderer.json` (with `log_prompt`), and `config/games/{name}/players/manual.json` (with `input_prompt`); no script registration needed
+5. Add `config/games/{name}/game.json` (with `meta_config`, `mutable_meta_config_pool`, and `log_prompt`), `config/games/{name}/players/manual.json` (with `input_prompt`), and `config/games/{name}/players/agent.json` (with `prompter_prompt`); no script registration needed
 
 ### Adding a New LLM Provider
 
