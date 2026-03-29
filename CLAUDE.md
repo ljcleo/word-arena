@@ -26,7 +26,7 @@ The codebase has three layers: a generic game framework, player implementations,
 
 - **`config/`** — Config loading system (shared across all games)
   - `BaseConfigLoader[MT, UT, CT]` — loads deterministic or random configs from a pool
-  - `BaseConfigReader[MT, CT]` / `BaseInputConfigReader` — reads configs, with optional user-input hooks
+  - `BaseConfigSelector[MT, CT]` / `BaseInputConfigSelector` — selects configs, with optional user-input hooks
   - Pattern: **MetaConfig** (immutable, from SQLite DB) + **MutableMetaConfig** (variable params) → **Config** (passed to engine)
 
 - **`game/`** — Core game abstractions using 4 type parameters: `Game[IT, GT, FT, RT]`
@@ -61,8 +61,8 @@ Each of the 10 games follows the same internal layout:
   config/
     common.py        # MetaConfig, MutableMetaConfig
     generator.py     # ConfigGenerator (BaseConfigGenerator subclass)
-    reader/
-      input.py       # InputConfigReader (BaseInputConfigReader subclass)
+    selector/
+      input.py       # InputConfigSelector (BaseInputConfigSelector subclass)
   game/
     engine.py        # Game-specific BaseGameEngine subclass
     renderer/        # Game-specific BaseLogGameRenderer subclass
@@ -84,7 +84,7 @@ Available providers: `anthropic`, `openai_chat`, `openai_responses`, `google`, `
 - **`common.py`** — `GAME_CONFIG_PATH`, `LLM_CONFIG_PATH`, `PLAYER_CONFIG_PATH`, and `log(key, value)` helper
 - **`utils.py`** — CLI input prompts; enumerates available game/LLM keys by scanning `config/games/` and `config/llms/`; `make_cls_prefix(key)` utility (converts `"game_name"` → `"GameName"`); `try_validate()` helper for strict Pydantic validation
 - **`build_llm.py`** — `build_llm()` factory; reads `config/llms/{key}.json`, dynamically imports `{Provider}LLMConfig` and `{Provider}LLMEngine`, constructs an `LLM`
-- **`build_gym.py`** — `build_gym()` factory; reads `config/games/{key}/game.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig`, `{Game}InputConfigReader`, `{Game}ConfigGenerator`, `{Game}GameEngine`, `{Game}LogGameRenderer` to construct a `Gym`
+- **`build_gym.py`** — `build_gym()` factory; reads `config/games/{key}/game.json`, dynamically imports `{Game}MetaConfig` / `{Game}MutableMetaConfig`, `{Game}InputConfigSelector`, `{Game}ConfigGenerator`, `{Game}GameEngine`, `{Game}LogGameRenderer` to construct a `Gym`
 - **`build_manual_player.py`** — `build_manual_player()` factory; reads `config/games/{key}/players/manual.json`, imports `{Game}InputManualReader`, constructs a `Player` with `ManualPlayerEngine` and `ManualLogPlayerRenderer`
 - **`build_agent_player.py`** — `build_agent_player()` factory; reads global `config/players/agent.json` (hint/log prompts) and per-game `config/games/{key}/players/agent.json` (prompter prompt); imports `{Game}AgentPrompter`, constructs a `Player` with `AgentPlayerEngine` and `AgentLogPlayerRenderer`
 - **`main.py`** — CLI entry point: prompts for game and player type (manual or agent); optionally runs `gym.train()` before `gym.play(player)` for agent players
@@ -106,7 +106,7 @@ scripts/main.py
   → player.setup()                          # create_note → NT
   → [gym.train(player, training_config)]    # optional: multiple play+evolve loops
   → gym.play(player)
-      → ConfigGenerator/Reader → CT (game config)
+      → ConfigGenerator/Selector → CT (game config)
       → Game.start() → Engine.start_game() → IT (game info)
       → loop: player.analyze_and_guess() → Game.guess(GT) → FT feedback
       → Game.query() → RT (final result)
@@ -117,7 +117,7 @@ scripts/main.py
 ### Adding a New Game
 
 1. Create `word_arena/games/{name}/common.py` with Pydantic types for Config, IT, GT, FT, RT
-2. Add `config/common.py` with MetaConfig and MutableMetaConfig; `config/generator.py` with ConfigGenerator; `config/reader/input.py` with InputConfigReader
+2. Add `config/common.py` with MetaConfig and MutableMetaConfig; `config/generator.py` with ConfigGenerator; `config/selector/input.py` with InputConfigSelector
 3. Implement engine and log renderer in `game/`
 4. Implement manual input reader in `players/manual/reader/input.py` and agent prompter in `players/agent/prompter.py`
 5. Add `config/games/{name}/game.json` (with `meta_config`, `mutable_meta_config_pool`, and `log_prompt`), `config/games/{name}/players/manual.json` (with `input_prompt`), and `config/games/{name}/players/agent.json` (with `prompter_prompt`); no script registration needed
