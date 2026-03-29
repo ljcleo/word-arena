@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import NumberleConfig
 from ..common import NumberleMetaConfig
 
 
-class NumberleInputConfigReader(BaseInputConfigReader[NumberleMetaConfig, NumberleConfig]):
+class NumberleInputConfigSelector(BaseInputConfigSelector[NumberleMetaConfig, NumberleConfig]):
     @override
     def input_config(
         self, *, meta_config: NumberleMetaConfig, input_func: Callable[[str], str]

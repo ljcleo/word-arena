@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from utils import make_cls_prefix, try_validate
 
 from word_arena.common.config.generator.base import BaseConfigGenerator
-from word_arena.common.config.reader.input import BaseInputConfigReader
+from word_arena.common.config.selector.input import BaseInputConfigSelector
 from word_arena.common.game.engine.base import BaseGameEngine
 from word_arena.common.game.renderer.log import BaseLogGameRenderer
 from word_arena.common.gym.gym import Gym
@@ -33,8 +33,8 @@ def build_gym(*, game_key: str) -> Gym:
         config_module, f"{cls_prefix}MutableMetaConfig", None
     )
 
-    config_reader_cls: type[BaseInputConfigReader] = getattr(
-        import_module(f"{module_parent}.config.reader.input"), f"{cls_prefix}InputConfigReader"
+    config_selector_cls: type[BaseInputConfigSelector] = getattr(
+        import_module(f"{module_parent}.config.selector.input"), f"{cls_prefix}InputConfigSelector"
     )
 
     config_generator_cls: type[BaseConfigGenerator] = getattr(
@@ -61,7 +61,7 @@ def build_gym(*, game_key: str) -> Gym:
             try_validate(cls=mutable_meta_config_cls, data=config)
             for config in config.mutable_meta_config_pool
         ],
-        config_reader=config_reader_cls(input_func=input),
+        config_selector=config_selector_cls(input_func=input),
         config_generator=config_generator_cls(),
         game_engine_cls=game_engine_cls,
         game_renderer=game_renderer_cls(

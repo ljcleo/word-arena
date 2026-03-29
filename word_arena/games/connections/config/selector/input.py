@@ -1,12 +1,14 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import ConnectionsConfig
 from ..common import ConnectionsMetaConfig
 
 
-class ConnectionsInputConfigReader(BaseInputConfigReader[ConnectionsMetaConfig, ConnectionsConfig]):
+class ConnectionsInputConfigSelector(
+    BaseInputConfigSelector[ConnectionsMetaConfig, ConnectionsConfig]
+):
     @override
     def input_config(
         self, *, meta_config: ConnectionsMetaConfig, input_func: Callable[[str], str]

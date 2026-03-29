@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import RedactleConfig
 from ..common import RedactleMetaConfig
 
 
-class RedactleInputConfigReader(BaseInputConfigReader[RedactleMetaConfig, RedactleConfig]):
+class RedactleInputConfigSelector(BaseInputConfigSelector[RedactleMetaConfig, RedactleConfig]):
     @override
     def input_config(
         self, *, meta_config: RedactleMetaConfig, input_func: Callable[[str], str]

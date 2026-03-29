@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import ConexoConfig
 from ..common import ConexoMetaConfig
 
 
-class ConexoInputConfigReader(BaseInputConfigReader[ConexoMetaConfig, ConexoConfig]):
+class ConexoInputConfigSelector(BaseInputConfigSelector[ConexoMetaConfig, ConexoConfig]):
     @override
     def input_config(
         self, *, meta_config: ConexoMetaConfig, input_func: Callable[[str], str]

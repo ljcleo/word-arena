@@ -1,13 +1,13 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import ContextoHintConfig
 from ..common import ContextoHintMetaConfig
 
 
-class ContextoHintInputConfigReader(
-    BaseInputConfigReader[ContextoHintMetaConfig, ContextoHintConfig]
+class ContextoHintInputConfigSelector(
+    BaseInputConfigSelector[ContextoHintMetaConfig, ContextoHintConfig]
 ):
     @override
     def input_config(

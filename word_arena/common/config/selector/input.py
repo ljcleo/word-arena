@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import override
 
-from .base import BaseConfigReader
+from .base import BaseConfigSelector
 
 
-class BaseInputConfigReader[MT, CT](BaseConfigReader[MT, CT], ABC):
+class BaseInputConfigSelector[MT, CT](BaseConfigSelector[MT, CT], ABC):
     def __init__(self, *, input_func: Callable[[str], str]) -> None:
         self._input_func: Callable[[str], str] = input_func
 

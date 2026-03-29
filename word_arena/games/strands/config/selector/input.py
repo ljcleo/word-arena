@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from typing import override
 
-from .....common.config.reader.input import BaseInputConfigReader
+from .....common.config.selector.input import BaseInputConfigSelector
 from ...common import StrandsConfig
 from ..common import StrandsMetaConfig
 
 
-class StrandsInputConfigReader(BaseInputConfigReader[StrandsMetaConfig, StrandsConfig]):
+class StrandsInputConfigSelector(BaseInputConfigSelector[StrandsMetaConfig, StrandsConfig]):
     @override
     def input_config(
         self, *, meta_config: StrandsMetaConfig, input_func: Callable[[str], str]
