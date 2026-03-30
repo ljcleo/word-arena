@@ -3,14 +3,7 @@ from typing import override
 
 from ....common.game.engine.base import BaseGameEngine
 from ....common.game.state import GameStateInterface
-from ..common import (
-    WordleConfig,
-    WordleFeedback,
-    WordleFinalResult,
-    WordleGuess,
-    WordleInfo,
-    WordleResponse,
-)
+from ..common import WordleConfig, WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo
 
 
 class WordleGameEngine(
@@ -56,7 +49,7 @@ class WordleGameEngine(
             if word == answer:
                 self._found_indices.add(index)
 
-        return WordleResponse(patterns=patterns)
+        return patterns
 
     @override
     def get_final_result(self) -> WordleFinalResult:

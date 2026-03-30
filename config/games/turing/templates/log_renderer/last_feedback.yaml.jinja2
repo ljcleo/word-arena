@@ -1,0 +1,27 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set accepted = feedback is not string -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+{% if feedback is iterable %}
+- key: Verification Result
+  value: |-
+    {% for verdict in feedback -%}
+    {{ "yes" if verdict else "no" }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+{%- else -%}
+- key: Final Guess Result
+  value: {{ "right" if feedback else "wrong" }}
+{%- endif %}
+{%- else -%}
+- key: Reason
+  value: {{ {
+      "invalid_code": "invalid code guess",
+      "too_many_verifiers": "too many verifiers",
+      "invalid_verifier": "invalid verifier index"
+    }[feedback]|default("system error") }}
+{%- endif %}

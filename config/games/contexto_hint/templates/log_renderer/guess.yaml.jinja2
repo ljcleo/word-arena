@@ -1,0 +1,7 @@
+{%- set last_turn = trajectory.turns[-1] -%}
+{%- set choices = last_turn.feedback.next_choices if last_turn is defined else trajectory.game_info -%}
+{%- set n_choices = choices|length -%}
+{%- set index = guess.index -%}
+- key: Selected Word
+  value: |-
+    {{ index }} ({{ choices[index] if 0 <= index < n_choices else "N/A" }})

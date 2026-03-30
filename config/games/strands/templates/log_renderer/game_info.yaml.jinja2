@@ -1,0 +1,17 @@
+{%- set max_turns = game_info.max_turns -%}
+- key: Board
+  value: |-
+    {% for line in game_info.board -%}
+    {{ line }}
+    {%- if not loop.last %}
+    {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Clue
+  value: game_info.clue
+
+- key: Maximum Number of Guesses
+  value: |-
+    {{ max_turns if max_turns > 0 else "unlimited"}}

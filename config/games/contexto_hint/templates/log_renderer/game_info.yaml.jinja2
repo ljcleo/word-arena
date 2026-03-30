@@ -1,0 +1,8 @@
+- key: Choices for Guess 1
+  value: |-
+    {% for word in game_info -%}
+    {{loop.index0}}. {{ word }}
+    {%- if not loop.last %}; {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}

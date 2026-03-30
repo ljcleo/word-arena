@@ -129,9 +129,7 @@ class RedactleAgentPrompter(
 
             yield (
                 prompt.positions,
-                join_or_na(
-                    f"L{line_index}:{word_index}" for line_index, word_index in feedback.positions
-                ),
+                join_or_na(f"L{line_id}:{word_id}" for line_id, word_id in feedback.positions),
             )
         else:
             yield prompt.result, prompt.reject
@@ -175,12 +173,12 @@ class RedactleAgentPrompter(
         )
 
         return "\n".join(
-            f"{line_index}: "
+            f"{line_id}: "
             + "".join(
                 word
                 if lemma is None or visible_words is None or lemma in visible_words
                 else "█" * len(word)
                 for word, lemma in line
             )
-            for line_index, line in enumerate(game_info.article)
+            for line_id, line in enumerate(game_info.article)
         )

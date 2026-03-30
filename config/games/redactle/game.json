@@ -4,37 +4,5 @@
     },
     "mutable_meta_config_pool": [
         50
-    ],
-    "log_prompt": {
-        "game_info": {
-            "article": "Redacted Article",
-            "max_turns": "Maximum Number of Guesses",
-            "unlimited": "unlimited"
-        },
-        "guess": "Guessed Word",
-        "feedback": {
-            "result": "Validation Result",
-            "accept": "accept",
-            "lemma": "Lemma",
-            "positions": "Positions",
-            "article": "Current Article",
-            "reject": "reject",
-            "reject_reason": "Reason",
-            "reject_messages": [
-                "invalid guess",
-                "word too common"
-            ]
-        },
-        "final_result": {
-            "result": "Game Result",
-            "verdicts": [
-                "failed",
-                "victory"
-            ],
-            "found_words": "Found Words",
-            "title": "Article Title",
-            "title_words": "Title Words",
-            "article": "Full Article"
-        }
-    }
+    ]
 }

@@ -1744,7 +1744,9 @@ name = "word-arena"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "jinja2" },
     { name = "pydantic" },
+    { name = "ruamel-yaml" },
 ]
 
 [package.dev-dependencies]
@@ -1769,7 +1771,11 @@ llm = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.12.5" }]
+requires-dist = [
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "ruamel-yaml", specifier = ">=0.18.16" },
+]
 
 [package.metadata.requires-dev]
 crawl = [

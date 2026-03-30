@@ -1,0 +1,17 @@
+{%- set max_turns = game_info.max_turns -%}
+- key: Words
+  value: |-
+    {% for word in game_info.words -%}
+    {{ loop.index0 }}. {{ word }}
+    {%- if not loop.last %}; {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Group Size
+  value: |-
+    {{ game_info.group_size }}
+
+- key: Maximum Number of Guesses
+  value: |-
+    {{ max_turns if max_turns > 0 else "unlimited" }}

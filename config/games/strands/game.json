@@ -4,44 +4,5 @@
     },
     "mutable_meta_config_pool": [
         20
-    ],
-    "log_prompt": {
-        "game_info": {
-            "board": "Board",
-            "clue": "Clue",
-            "max_turns": "Maximum Number of Guesses",
-            "unlimited": "unlimited"
-        },
-        "guess": "Guessed Word",
-        "feedback": {
-            "result": "Validation Result",
-            "accept": "accept",
-            "guess_result": "Guess Result",
-            "guess_verdicts": [
-                "missed",
-                "theme word",
-                "spangram"
-            ],
-            "reject": "reject",
-            "reject_reason": "Reason",
-            "reject_messages": {
-                "empty": "empty guess",
-                "out_of_bounds": "path out of bounds",
-                "not_continuous": "path not continuous",
-                "overlap": "path overlapping with itself",
-                "used": "path contains used cells"
-            }
-        },
-        "final_result": {
-            "result": "Game Result",
-            "verdicts": [
-                "failed",
-                "victory"
-            ],
-            "found_spangram": "Found Spangram",
-            "found_theme_words": "Found Theme Words",
-            "missed_spangram": "Spangram Not Found",
-            "missed_theme_words": "Theme Words Not Found"
-        }
-    }
+    ]
 }

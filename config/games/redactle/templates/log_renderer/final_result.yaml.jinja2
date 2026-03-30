@@ -1,0 +1,42 @@
+{%- set max_lines = 30 -%}
+{%- set game_info = trajectory.game_info -%}
+{%- set article = game_info.article -%}
+{%- set truncated_lines = article|length - max_lines %}
+{%- set found_words = final_result.found_words -%}
+{%- set title_words = final_result.title_words -%}
+{%- set victory = found_words|length == title_words|length -%}
+- key: Game Result
+  value: {{ "victory" if victory else "failed"}}
+
+- key: Found Words
+  value: |-
+    {% for word in found_words -%}
+    {{ word }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Article Title
+  value: |-
+    {{ final_result.title }}
+
+- key: Title Words
+  value: |-
+    {% for word in title_words -%}
+    {{ word }}
+    {%- if not loop.last %}/{% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Full Article
+  value: |-
+    {% for line in article[:max_lines] -%}
+    {{ loop.index0 }}: {% for word, lemma in line -%}
+    {{ word }}
+    {%- endfor %}
+    {% endfor -%}
+    {% if truncated_lines > 0 -%}
+    ({{ truncated_lines }} lines truncated ...)
+    {%- endif %}

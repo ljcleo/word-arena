@@ -1,0 +1,26 @@
+{%- set found_groups = final_result.found_groups -%}
+{%- set remaining_groups = final_result.remaining_groups -%}
+{%- set victory = remaining_groups|length == 0 -%}
+{%- macro format_groups(groups) -%}
+{%- for group in groups -%}
+{%- for word in group.words -%}
+{{ word }}
+{%- if not loop.last %}/{% endif -%}
+{%- endfor %} ({{ group.theme }})
+{%- if not loop.last %}; {% endif -%}
+{%- else -%}
+N/A
+{%- endfor -%}
+{%- endmacro -%}
+- key: Game Result
+  value: {{ "victory" if victory else "failed"}}
+
+- key: Found Groups
+  value: |-
+    {{ format_groups(found_groups) }}
+{%- if not victory %}
+
+- key: Groups Not Found
+  value: |-
+    {{ format_groups(remaining_groups) }}
+{%- endif %}

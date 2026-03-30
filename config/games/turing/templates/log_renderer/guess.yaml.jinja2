@@ -1,0 +1,20 @@
+{%- set code = guess.code -%}
+{%- set verifiers = guess.verifiers -%}
+{% if verifiers|length == 0 -%}
+- key: Final Guess
+  value: |-
+    {{ code }}
+{%- else -%}
+- key: Verifying Guess
+  value: |-
+    {{ code }}
+
+- key: Verifiers
+  value: |-
+    {% for index in verifiers -%}
+    {{ index }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+{%- endif %}

@@ -1,0 +1,20 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set accepted = feedback.accepted -%}
+{%- set message = feedback.message -%}
+- key: Validation Result
+  value: {{ "accept" if accepted else "reject" }}
+
+{% if accepted -%}
+{%- set is_group = message is not none -%}
+- key: Is Same Group
+  value: {{"yes" if is_group else "no"}}
+{%- if is_group %}
+
+- key: Group Theme
+  value: |-
+    {{ message }}
+{%- endif %}
+{%- else -%}
+- key: Reason
+  value: invalid guess
+{%- endif %}

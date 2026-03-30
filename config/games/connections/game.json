@@ -4,31 +4,5 @@
     },
     "mutable_meta_config_pool": [
         20
-    ],
-    "log_prompt": {
-        "game_info": {
-            "words": "Words",
-            "group_size": "Group Size",
-            "max_turns": "Maximum Number of Guesses",
-            "unlimited": "unlimited"
-        },
-        "guess": "Selected Words",
-        "feedback": {
-            "result": "Validation Result",
-            "accept": "accept",
-            "theme": "Theme",
-            "reject": "reject",
-            "reject_reason": "Reason",
-            "invalid_guess": "invalid guess"
-        },
-        "final_result": {
-            "result": "Game Result",
-            "verdicts": [
-                "failed",
-                "victory"
-            ],
-            "found_groups": "Found Groups",
-            "remaining_groups": "Groups Not Found"
-        }
-    }
+    ]
 }

@@ -1,0 +1,19 @@
+{%- set max_lines = 30 -%}
+{%- set article = game_info.article -%}
+{%- set truncated_lines = article|length - max_lines %}
+{%- set stop_words = game_info.stop_words %}
+{%- set max_turns = game_info.max_turns -%}
+- key: Redacted Article
+  value: |-
+    {% for line in article[:max_lines] -%}
+    {{ loop.index0 }}: {% for word, lemma in line -%}
+    {{ word if lemma is none or lemma in stop_words else "█" * word|length }}
+    {%- endfor %}
+    {% endfor -%}
+    {% if truncated_lines > 0 -%}
+    ({{ truncated_lines }} lines truncated ...)
+    {%- endif %}
+
+- key: Maximum Number of Guesses
+  value: |-
+    {{ max_turns if max_turns > 0 else "unlimited"}}

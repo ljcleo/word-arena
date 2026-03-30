@@ -20,7 +20,10 @@
             "patterns": "Match Pattern",
             "reject": "reject",
             "reject_reason": "Reason",
-            "invalid_guess": "invalid guess"
+            "reject_messages": [
+                "incorrect equation length",
+                "invalid equation"
+            ]
         },
         "final_result": {
             "result": "Game Result",

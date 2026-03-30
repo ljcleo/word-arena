@@ -1,0 +1,26 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set distance = feedback.distance -%}
+{%- set accepted = distance >= 0 -%}
+{%- set next_choices = feedback.next_choices -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+- key: Position
+  value: |-
+    {{ distance + 1 }}
+{%- else -%}
+- key: Reason
+  value: invalid_guess
+{%- endif %}
+{%- if next_choices is not none %}
+
+- key: Choices for Guess {{ (trajectory.turns|length) + 1 }}
+  value:
+    {% for word in next_choices -%}
+    {{loop.index0}}. {{ word }}
+    {%- if not loop.last %}; {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+{%- endif %}

@@ -1,0 +1,20 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set distance = feedback.distance -%}
+{%- set accepted = distance is defined -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+- key: Lemma Form
+  value: |-
+    {{ feedback.lemma }}
+
+- key: Position
+  value: |-
+    {{ distance + 1 }}
+{%- else -%}
+{%- set error = feedback.error -%}
+- key: Reason
+  value: |-
+    {{ "invalid guess" if error is none else error }}
+{%- endif %}

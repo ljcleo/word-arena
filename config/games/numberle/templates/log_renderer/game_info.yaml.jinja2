@@ -1,0 +1,12 @@
+{%- set max_turns = game_info.max_turns -%}
+- key: Number of Secret Equations
+  value: |-
+    {{ game_info.num_targets }}
+
+- key: Equation Length in Characters
+  value: |-
+    {{ game_info.eq_length }}
+
+- key: Maximum Number of Guesses
+  value: |-
+    {{ max_turns if max_turns > 0 else "unlimited"}}

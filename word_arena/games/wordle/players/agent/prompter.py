@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from .....common.game.common import Trajectory
 from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
-from ...common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo, WordleResponse
+from ...common import WordleFeedback, WordleFinalResult, WordleGuess, WordleInfo
 
 
 class WordleInfoPrompterPromptConfig(BaseModel):
@@ -101,9 +101,9 @@ class WordleAgentPrompter(
     ) -> Iterator[tuple[str, str]]:
         prompt: WordleFeedbackPrompterPromptConfig = self.prompt_config.feedback
 
-        if isinstance(feedback, WordleResponse):
+        if isinstance(feedback, list):
             yield prompt.result, prompt.accept
-            yield prompt.patterns, join_or_na(feedback.patterns)
+            yield prompt.patterns, join_or_na(feedback)
         else:
             yield prompt.result, prompt.reject
             yield prompt.reject_reason, prompt.reject_messages[feedback]

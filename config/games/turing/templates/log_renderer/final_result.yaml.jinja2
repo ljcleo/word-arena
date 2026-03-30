@@ -1,0 +1,14 @@
+{%- set verdict = final_result.verdict -%}
+- key: Game Result
+  value: {{ "victory" if verdict is true else "failed"}}
+
+- key: Asked Questions
+  value: |-
+    {{ final_result.num_questions }}
+
+- key: Made Final Guess
+  value: {{ "yes" if verdict is not none else "no" }}
+
+- key: Secret Code
+  value: |-
+    {{ final_result.answer }}
