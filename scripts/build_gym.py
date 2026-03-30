@@ -1,4 +1,5 @@
 from importlib import import_module
+from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -9,18 +10,18 @@ from utils import make_cls_prefix, try_validate
 from word_arena.common.config.generator.base import BaseConfigGenerator
 from word_arena.common.config.selector.input import BaseInputConfigSelector
 from word_arena.common.game.engine.base import BaseGameEngine
-from word_arena.common.game.renderer.log import BaseLogGameRenderer
+from word_arena.common.game.renderer.log import LogGameRenderer
 from word_arena.common.gym.gym import Gym
 
 
 class GameConfig(BaseModel):
     meta_config: dict[str, Any]
     mutable_meta_config_pool: list[Any]
-    log_prompt: Any
 
 
 def build_gym(*, game_key: str) -> Gym:
-    with (GAME_CONFIG_PATH / game_key / "game.json").open("rb") as f:
+    game_path: Path = GAME_CONFIG_PATH / game_key
+    with (game_path / "game.json").open("rb") as f:
         config: GameConfig = GameConfig.model_validate_json(f.read(), strict=True)
 
     cls_prefix: str = make_cls_prefix(key=game_key)
@@ -45,16 +46,6 @@ def build_gym(*, game_key: str) -> Gym:
         import_module(f"{module_parent}.game.engine"), f"{cls_prefix}GameEngine"
     )
 
-    game_renderer_module: ModuleType = import_module(f"{module_parent}.game.renderer.log")
-
-    game_renderer_cls: type[BaseLogGameRenderer] = getattr(
-        game_renderer_module, f"{cls_prefix}LogGameRenderer"
-    )
-
-    prompt_config_cls: type[BaseModel] | None = getattr(
-        game_renderer_module, f"{cls_prefix}LogPromptConfig", None
-    )
-
     return Gym(
         meta_config=try_validate(cls=meta_config_cls, data=config.meta_config),
         mutable_meta_config_pool=[
@@ -64,8 +55,7 @@ def build_gym(*, game_key: str) -> Gym:
         config_selector=config_selector_cls(input_func=input),
         config_generator=config_generator_cls(),
         game_engine_cls=game_engine_cls,
-        game_renderer=game_renderer_cls(
-            game_log_func=log,
-            prompt_config=try_validate(cls=prompt_config_cls, data=config.log_prompt),
+        game_renderer=LogGameRenderer(
+            game_log_func=log, template_path=game_path / "templates" / "log_renderer"
         ),
     )

@@ -6,13 +6,7 @@ from pydantic import BaseModel
 from .....common.game.common import Trajectory
 from .....players.agent.prompter.base import BaseAgentPrompter, BaseAgentPrompterPromptConfig
 from .....utils import join_or_na
-from ...common import (
-    NumberleFeedback,
-    NumberleFinalResult,
-    NumberleGuess,
-    NumberleInfo,
-    NumberleResponse,
-)
+from ...common import NumberleFeedback, NumberleFinalResult, NumberleGuess, NumberleInfo
 
 
 class NumberleInfoPrompterPromptConfig(BaseModel):
@@ -33,7 +27,7 @@ class NumberleFeedbackPrompterPromptConfig(BaseModel):
     patterns: str
     reject: str
     reject_reason: str
-    invalid_guess: str
+    reject_messages: tuple[str, str]
 
 
 class NumberleFinalResultPrompterPromptConfig(BaseModel):
@@ -113,12 +107,12 @@ class NumberleAgentPrompter(
     ) -> Iterator[tuple[str, str]]:
         prompt: NumberleFeedbackPrompterPromptConfig = self.prompt_config.feedback
 
-        if isinstance(feedback, NumberleResponse):
+        if isinstance(feedback, list):
             yield prompt.result, prompt.accept
-            yield prompt.patterns, join_or_na(feedback.patterns)
+            yield prompt.patterns, join_or_na(feedback)
         else:
             yield prompt.result, prompt.reject
-            yield prompt.reject_reason, prompt.invalid_guess
+            yield prompt.reject_reason, prompt.reject_messages[feedback]
 
     @override
     def prompt_final_result(

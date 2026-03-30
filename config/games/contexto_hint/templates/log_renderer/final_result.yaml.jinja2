@@ -1,0 +1,14 @@
+{%- set top_words = final_result -%}
+{%- set top_words_cnt = 30 -%}
+- key: Secret Word
+  value: |-
+    {{ top_words[0] }}
+
+- key: Top {{ top_words_cnt }} Words
+  value: |-
+    {% for word in top_words[:top_words_cnt] -%}
+    {{ word }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}

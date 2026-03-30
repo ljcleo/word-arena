@@ -1,0 +1,16 @@
+{%- set max_turns = game_info.max_turns -%}
+{% for card in game_info.verifiers -%}
+- key: Verifier {{ loop.index0 }}
+  value: |-
+    {% for expr in card -%}
+    {{ expr }}
+    {%- if not loop.last %}; {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+{% endfor -%}
+
+- key: Maximum Number of Guesses
+  value: |-
+    {{ max_turns if max_turns > 0 else "unlimited"}}

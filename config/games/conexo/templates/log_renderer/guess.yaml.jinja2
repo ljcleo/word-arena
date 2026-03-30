@@ -1,0 +1,10 @@
+{%- set words = trajectory.game_info.words -%}
+{%- set n_words = words|length -%}
+- key: Selected Words
+  value: |-
+    {% for index in guess.indices -%}
+    {{ index }} ({{ words[index] if 0 <= index < n_words else "N/A" }})
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}

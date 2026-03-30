@@ -16,11 +16,7 @@ class WordleGuess(BaseModel):
     word: str
 
 
-class WordleResponse(BaseModel):
-    patterns: list[str]
-
-
-type WordleFeedback = WordleResponse | bool
+type WordleFeedback = list[str] | bool
 
 
 class WordleFinalResult(BaseModel):

@@ -10,7 +10,6 @@ from ..common import (
     NumberleFinalResult,
     NumberleGuess,
     NumberleInfo,
-    NumberleResponse,
 )
 
 
@@ -50,8 +49,11 @@ class NumberleGameEngine(
     @override
     def process_guess(self, *, guess: NumberleGuess) -> NumberleFeedback:
         eq: str = guess.equation
-        if not (len(eq) == self._eq_length and self._validate_eq(eq=eq)):
-            return None
+
+        if len(eq) != self._eq_length:
+            return False
+        if not self._validate_eq(eq=eq):
+            return True
 
         patterns: list[str] = []
 
@@ -60,7 +62,7 @@ class NumberleGameEngine(
             if eq == answer:
                 self._found_indices.add(index)
 
-        return NumberleResponse(patterns=patterns)
+        return patterns
 
     @override
     def get_final_result(self) -> NumberleFinalResult:

@@ -1,0 +1,28 @@
+{%- set coords = guess.coords -%}
+{%- set cxs = coords|map("first")|list -%}
+{%- set cys = coords|map("last")|list -%}
+{%- set ns = namespace(
+  valid=coords|length == coords|unique|list|length and cxs|min >= 0 and cxs|max < 8 and cys|min >= 0 and cys|max < 6
+) -%}
+{%- if ns.valid -%}
+{%- for x, y in coords -%}
+{%- if ns.valid and not loop.last -%}
+{%- set nx, ny = loop.nextitem -%}
+{%- set dx = nx - x -%}
+{%- set dy = ny - y -%}
+{%- set ns.valid = ns.valid and (dx != 0 or dy != 0) and -1 <= dx <= 1 and -1 <= dy <= 1 -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+- key: Guessed Word
+  value: |-
+    {% if ns.valid -%}
+    {%- for x, y in coords -%}{{ trajectory.game_info.board[x][y] }}{%- endfor -%}
+    {%- else -%}
+    (N/A)
+    {%- endif %} [
+    {%- for x, y in coords -%}
+    ({{ x }}, {{ y }})
+    {%- if not loop.last %} -> {% endif -%}
+    {%- endfor -%}
+    ]

@@ -1,0 +1,25 @@
+{%- set best_pos = final_result.best_pos -%}
+{%- set top_words = final_result.top_words -%}
+{%- set top_words_cnt = 30 -%}
+{%- set victory = best_pos == 0 -%}
+- key: Game Result
+  value: {{ "victory" if victory else "failed"}}
+{%- if not victory %}
+
+- key: Best Guess
+  value: |-
+    {{ final_result.best_word }} ({{ best_pos + 1 }})
+{%- endif %}
+
+- key: Secret Word
+  value: |-
+    {{ top_words[0] }}
+
+- key: Top {{ top_words_cnt }} Words
+  value: |-
+    {% for word in top_words[:top_words_cnt] -%}
+    {{ word }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}

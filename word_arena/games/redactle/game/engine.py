@@ -49,10 +49,10 @@ class RedactleGameEngine(
         self._num_targets: int = len(self._title_words)
         self._positions: defaultdict[str, list[tuple[int, int]]] = defaultdict(list)
 
-        for line_index, line in enumerate(self._article):
-            for word_index, (_, word) in enumerate(line):
+        for line_id, line in enumerate(self._article):
+            for word_id, (_, word) in enumerate(line):
                 if word is not None:
-                    self._positions[word].append((line_index, word_index))
+                    self._positions[word].append((line_id, word_id))
 
     @override
     def start_game(self) -> RedactleInfo:

@@ -1,0 +1,18 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set accepted = feedback is iterable -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+- key: Match Pattern
+  value: |-
+    {% for pattern in feedback -%}
+    {{ pattern }}
+    {%- if not loop.last %}/{% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+{%- else -%}
+- key: Reason
+  value: {{ "unknown word" if feedback else "invalid guess" }}
+{%- endif %}

@@ -1,0 +1,41 @@
+{%- set max_lines = 30 -%}
+{%- set game_info = trajectory.game_info -%}
+{%- set article = game_info.article -%}
+{%- set truncated_lines = article|length - max_lines %}
+{%- set stop_words = game_info.stop_words %}
+{%- set turns = trajectory.turns|map(attribute="feedback") -%}
+{%- set guessed_words = turns|selectattr("lemma", "defined")|map(attribute="lemma")|unique(true)|list -%}
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set positions = feedback.positions -%}
+{%- set accepted = positions is defined -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+- key: Lemma
+  value: |-
+    {{ feedback.lemma }}
+
+- key: Positions
+  value: |-
+    {% for line_id, word_id in positions -%}
+    L{{ line_id }}:{{ word_id }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Current Article
+  value: |-
+    {% for line in article[:max_lines] -%}
+    {{ loop.index0 }}: {% for word, lemma in line -%}
+    {{ word if lemma is none or lemma in stop_words or lemma in guessed_words else "█" * word|length }}
+    {%- endfor %}
+    {% endfor -%}
+    {% if truncated_lines > 0 -%}
+    ({{ truncated_lines }} lines truncated ...)
+    {%- endif %}
+{%- else -%}
+- key: Reason
+  value: {{"word too common" if feedback else "invalid guess"}}
+{%- endif %}

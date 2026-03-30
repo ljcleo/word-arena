@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from pathlib import Path
+
+from pydantic import BaseModel
 
 
 class NumberleConfig(BaseModel):
@@ -20,11 +21,7 @@ class NumberleGuess(BaseModel):
     equation: str
 
 
-class NumberleResponse(BaseModel):
-    patterns: list[str]
-
-
-type NumberleFeedback = NumberleResponse | None
+type NumberleFeedback = list[str] | bool
 
 
 class NumberleFinalResult(BaseModel):

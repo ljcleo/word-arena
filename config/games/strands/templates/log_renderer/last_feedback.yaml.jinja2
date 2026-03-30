@@ -1,0 +1,18 @@
+{%- set feedback = trajectory.turns[-1].feedback -%}
+{%- set accepted = feedback is integer -%}
+- key: Validation Result
+  value: {{"accept" if accepted else "reject"}}
+
+{% if accepted -%}
+- key: Guess Result
+  value: {{ ["missed", "theme word", "spangram"][feedback] }}
+{%- else -%}
+- key: Reason
+  value: {{ {
+      "empty": "empty guess",
+      "out_of_bounds": "path out of bounds",
+      "not_continuous": "path not continuous",
+      "overlap": "path overlapping with itself",
+      "used": "path contains used cells"
+    }[feedback] }}
+{%- endif %}

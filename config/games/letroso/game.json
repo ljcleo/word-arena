@@ -8,34 +8,5 @@
             "max_turns": 20,
             "num_targets": 1
         }
-    ],
-    "log_prompt": {
-        "game_info": {
-            "num_targets": "Number of Secret Words",
-            "max_letters": "Maximum Number of Letters in One Guess",
-            "max_turns": "Maximum Number of Guesses",
-            "unlimited": "unlimited"
-        },
-        "guess": "Guessed Word",
-        "feedback": {
-            "result": "Validation Result",
-            "accept": "accept",
-            "patterns": "Match Pattern",
-            "reject": "reject",
-            "reject_reason": "Reason",
-            "reject_messages": [
-                "invalid guess",
-                "unknown word"
-            ]
-        },
-        "final_result": {
-            "result": "Game Result",
-            "verdicts": [
-                "failed",
-                "victory"
-            ],
-            "found_words": "Found Words",
-            "answers": "Secret Words"
-        }
-    }
+    ]
 }

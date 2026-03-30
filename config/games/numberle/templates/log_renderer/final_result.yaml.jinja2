@@ -1,0 +1,23 @@
+{%- set found_indices = final_result.found_indices -%}
+{%- set answers = final_result.answers -%}
+{%- set victory = found_indices|length == answers|length -%}
+- key: Game Result
+  value: {{ "victory" if victory else "failed"}}
+
+- key: Found Equations
+  value: |-
+    {% for index in found_indices -%}
+    {{ answers[index] }}
+    {%- if not loop.last %}, {% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}
+
+- key: Secret Equations
+  value: |-
+    {% for word in answers -%}
+    {{ word }}
+    {%- if not loop.last %}/{% endif -%}
+    {%- else -%}
+    N/A
+    {%- endfor %}

@@ -5,7 +5,9 @@ description = "Word game arena for humans and LLMs"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "jinja2>=3.1.6",
     "pydantic>=2.12.5",
+    "ruamel-yaml>=0.18.16",
 ]
 
 [dependency-groups]
